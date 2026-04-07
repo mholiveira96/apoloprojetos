@@ -1,49 +1,37 @@
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
-import { Building2, Zap, Droplets, Flame, Wind, Leaf } from 'lucide-react'
+import { Building2, Flame, Leaf, ShieldCheck, Waves, Zap } from 'lucide-react'
 
 const servicos = [
   {
     icon: Building2,
-    titulo: 'Projeto Estrutural',
-    descricao:
-      'Dimensionamento e detalhamento de estruturas em concreto armado, metálica e contenções.',
-    itens: ['Concreto Armado', 'Estrutura Metálica', 'Fundações', 'Contenções'],
+    titulo: 'Estrutural',
+    descricao: 'Dimensionamento, detalhamento e leitura de obra com solução viável e limpa.',
   },
   {
     icon: Zap,
-    titulo: 'Projeto Elétrico',
-    descricao:
-      'Instalações elétricas residenciais, comerciais e industriais, incluindo SPDA e fiação.',
-    itens: ['Baixa Tensão', 'SPDA (Para-raios)', 'Telecomunicações', 'Fiação Elétrica'],
+    titulo: 'Elétrico e SPDA',
+    descricao: 'Instalações com racionalidade técnica e organização que facilita execução.',
   },
   {
-    icon: Droplets,
-    titulo: 'Projeto Hidrossanitário',
-    descricao:
-      'Sistemas de água fria, quente, esgoto, pluvial e sanitário para obras de todos os portes.',
-    itens: ['Água Fria e Quente', 'Esgoto Sanitário', 'Drenagem Pluvial', 'Sistemas Sanitários'],
+    icon: Waves,
+    titulo: 'Hidrossanitário',
+    descricao: 'Compatibilização de água, esgoto e drenagem para obra sem improviso caro.',
   },
   {
     icon: Flame,
-    titulo: 'Combate a Incêndio',
-    descricao:
-      'Projetos de prevenção e combate a incêndio conforme normas do Corpo de Bombeiros.',
-    itens: ['Sprinklers', 'Hidrantes', 'Detecção e Alarme', 'AVCB'],
+    titulo: 'Prevenção a incêndio',
+    descricao: 'Projeto e documentação para aprovação, operação e segurança real.',
   },
   {
-    icon: Wind,
-    titulo: 'Projeto de Gás',
-    descricao:
-      'Instalações de gás canalizado para residenciais e comerciais com segurança certificada.',
-    itens: ['Gás Canalizado', 'GLP', 'Projeto e Laudo', 'Aprovação CIP'],
+    icon: ShieldCheck,
+    titulo: 'Gás e instalações',
+    descricao: 'Soluções seguras para empreendimentos que não podem errar no básico.',
   },
   {
     icon: Leaf,
-    titulo: 'Estudos Ambientais',
-    descricao:
-      'Licenciamento ambiental, estudos de impacto e relatórios de conformidade.',
-    itens: ['Licenciamento', 'Relatórios Ambientais', 'Instalações', 'Conformidade'],
+    titulo: 'Ambiental e apoio técnico',
+    descricao: 'Relatórios, conformidade e suporte complementar para tirar gargalo do caminho.',
   },
 ]
 
@@ -51,42 +39,36 @@ export function Servicos() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
 
   return (
-    <section id="servicos" className="py-24 bg-gray-50" ref={ref}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-14">
-          <span className="text-orange-500 font-semibold text-sm uppercase tracking-widest">
-            O que fazemos
-          </span>
-          <h2 className="text-4xl font-black text-gray-900 mt-2">Nossas Especialidades</h2>
-          <p className="text-gray-500 mt-4 max-w-xl mx-auto">
-            Cobrimos todas as disciplinas de projeto da sua obra com qualidade técnica e eficiência.
+    <section id="servicos" className="px-4 py-20 sm:px-6 lg:px-10" ref={ref}>
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-12 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-[0.35em] text-[var(--teal)]">Especialidades</div>
+            <h2 className="mt-3 font-display text-4xl text-[var(--ink)] sm:text-5xl">
+              Engenharia multidisciplinar, com cara de marca premium.
+            </h2>
+          </div>
+          <p className="max-w-xl text-[color:rgba(7,19,21,0.72)] leading-7">
+            O ponto não é listar serviço como panfleto. É mostrar capacidade técnica com linguagem visual coerente.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {servicos.map((s, i) => {
             const Icon = s.icon
             return (
               <motion.div
                 key={s.titulo}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 22 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow border border-gray-100 group"
+                transition={{ duration: 0.5, delay: i * 0.06 }}
+                className="group rounded-[30px] border border-[var(--line)] bg-white/80 p-6 transition-transform hover:-translate-y-1 hover:shadow-xl hover:shadow-[rgba(7,19,21,0.08)]"
               >
-                <div className="w-12 h-12 rounded-xl bg-orange-50 group-hover:bg-orange-500 flex items-center justify-center mb-4 transition-colors">
-                  <Icon className="text-orange-500 group-hover:text-white transition-colors" size={24} />
+                <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-[var(--teal-wash)] text-[var(--teal)] transition-colors group-hover:bg-[var(--teal)] group-hover:text-white">
+                  <Icon size={24} />
                 </div>
-                <h3 className="font-bold text-gray-900 text-lg mb-2">{s.titulo}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed mb-4">{s.descricao}</p>
-                <ul className="space-y-1">
-                  {s.itens.map((item) => (
-                    <li key={item} className="text-xs text-gray-400 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
+                <h3 className="mt-6 text-2xl font-extrabold text-[var(--ink)]">{s.titulo}</h3>
+                <p className="mt-3 text-sm leading-7 text-[color:rgba(7,19,21,0.7)]">{s.descricao}</p>
               </motion.div>
             )
           })}

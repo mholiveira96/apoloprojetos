@@ -1,64 +1,111 @@
 import { motion } from 'framer-motion'
-import { ArrowDown } from 'lucide-react'
+import { ArrowDownRight, Compass, Sparkles } from 'lucide-react'
+import heroCard from '../../../assets/Modelo Portfolio - Colinas Park.png'
+import logoWhite from '../../../assets/Apolo Logo branco.png'
 
 export function Hero() {
   return (
-    <section
-      id="hero"
-      className="relative min-h-screen flex items-center justify-center bg-gray-900 text-white overflow-hidden"
-    >
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-orange-950 opacity-90" />
+    <section id="hero" className="relative overflow-hidden px-4 pt-28 pb-16 sm:px-6 lg:px-10 lg:pt-36">
+      <div className="noise-overlay absolute inset-0 grid-paper opacity-60" />
 
-      <div
-        className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(249,115,22,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(249,115,22,0.3) 1px, transparent 1px)',
-          backgroundSize: '60px 60px',
-        }}
-      />
+      <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+        <div className="pb-4">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 text-[0.72rem] font-bold uppercase tracking-[0.28em] text-[var(--teal)]"
+          >
+            <Sparkles size={14} />
+            Obviously awesome, sem cara de template
+          </motion.div>
 
-      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-        >
-          <span className="inline-block text-orange-400 text-sm font-semibold uppercase tracking-widest mb-4">
-            Projetos Inteligentes
-          </span>
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-black leading-tight mb-6">
-            Projetos que
-            <span className="text-orange-500"> constroem</span>
-            <br />o futuro
-          </h1>
-          <p className="text-lg sm:text-xl text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Mais de 241 projetos entregues em estrutural, elétrica, hidráulica e combate a incêndio.
-            Soluções técnicas com precisão e comprometimento no Rio Grande do Norte e região Nordeste.
-          </p>
+          <motion.h1
+            initial={{ opacity: 0, y: 26 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.08 }}
+            className="mt-6 max-w-4xl text-5xl leading-[0.95] font-display font-bold text-[var(--ink)] sm:text-6xl lg:text-[5.8rem]"
+          >
+            Engenharia com presença, rigor e imagem de marca.
+          </motion.h1>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="#contato"
-              className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-4 rounded-xl text-lg transition-all hover:scale-105 active:scale-95"
-            >
-              Solicitar Orçamento
-            </a>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.16 }}
+            className="mt-6 max-w-2xl text-lg leading-8 text-[color:rgba(7,19,21,0.78)] sm:text-xl"
+          >
+            A Apolo projeta estruturas, instalações e soluções técnicas com um discurso visual que passa segurança.
+            Nada de site genérico de construtora, aqui a estética trabalha junto com a credibilidade.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.24 }}
+            className="mt-10 flex flex-col gap-4 sm:flex-row"
+          >
             <a
               href="#portfolio"
-              className="border border-white/30 hover:border-orange-400 text-white font-semibold px-8 py-4 rounded-xl text-lg transition-all hover:bg-white/5"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--teal)] px-7 py-4 text-base font-bold text-white shadow-lg shadow-[rgba(15,139,141,0.22)] transition-transform hover:-translate-y-0.5"
             >
-              Ver Portfólio
+              Ver projetos selecionados
+              <ArrowDownRight size={18} />
             </a>
-          </div>
-        </motion.div>
+            <a
+              href="#contato"
+              className="inline-flex items-center justify-center rounded-full border border-[var(--ink)] px-7 py-4 text-base font-semibold text-[var(--ink)] transition-colors hover:bg-[var(--ink)] hover:text-white"
+            >
+              Pedir proposta
+            </a>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.32 }}
+            className="mt-14 grid gap-4 sm:grid-cols-3"
+          >
+            {[
+              ['241+', 'projetos entregues'],
+              ['Natal → Nordeste', 'operação com foco regional'],
+              ['Estrutural a incêndio', 'escopo multidisciplinar'],
+            ].map(([value, label]) => (
+              <div key={label} className="rounded-[26px] border border-[var(--line)] bg-white/70 p-5 backdrop-blur-sm">
+                <div className="text-2xl font-extrabold text-[var(--ink)]">{value}</div>
+                <div className="mt-1 text-sm text-[color:rgba(7,19,21,0.7)]">{label}</div>
+              </div>
+            ))}
+          </motion.div>
+        </div>
 
         <motion.div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
-          animate={{ y: [0, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 2 }}
+          initial={{ opacity: 0, scale: 0.96, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.12 }}
+          className="relative lg:pl-8"
         >
-          <ArrowDown className="text-white/40" size={28} />
+          <div className="absolute -top-8 right-4 hidden rounded-[28px] bg-[var(--ink)] px-5 py-4 text-white shadow-2xl lg:block">
+            <img src={logoWhite} alt="Apolo" className="h-10 w-auto" />
+          </div>
+
+          <div className="relative overflow-hidden rounded-[36px] border border-black/8 bg-[var(--ink)] p-3 shadow-[0_40px_80px_rgba(7,19,21,0.18)]">
+            <img
+              src={heroCard}
+              alt="Projeto Colinas Park"
+              className="h-[28rem] w-full rounded-[28px] object-cover object-center"
+            />
+            <div className="absolute inset-x-8 bottom-8 rounded-[28px] bg-[rgba(7,19,21,0.78)] p-5 text-white backdrop-blur-sm">
+              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-[var(--teal-bright)]">
+                <Compass size={14} />
+                Projeto em destaque
+              </div>
+              <div className="mt-3 text-2xl font-display font-semibold">Colinas Park</div>
+              <p className="mt-2 max-w-md text-sm leading-6 text-white/78">
+                Uma landing que vende confiança antes do orçamento, com portfólio real e linguagem visual compatível com a marca.
+              </p>
+            </div>
+          </div>
         </motion.div>
       </div>
     </section>

@@ -1,35 +1,22 @@
+import logo from '../../../assets/Apolo Logo blue no bg.png'
+
 export function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-400 py-12">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div>
-            <h3 className="text-white font-bold text-lg mb-2">APOLO Projetos Inteligentes</h3>
-            <p className="text-sm leading-relaxed">
-              Projetos de engenharia com excelência técnica e comprometimento com prazos.
-              CNPJ: 42.570.326/0001-02
-            </p>
-          </div>
-          <div>
-            <h4 className="text-white font-semibold mb-3">Serviços</h4>
-            <ul className="space-y-1 text-sm">
-              <li>Projeto Estrutural</li>
-              <li>Projeto Elétrico</li>
-              <li>Projeto Hidrossanitário</li>
-              <li>Combate a Incêndio</li>
-              <li>Projeto de Gás</li>
-              <li>Estudos Ambientais</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-white font-semibold mb-3">Contato</h4>
-            <p className="text-sm">Rua Francisco Maia Sobrinho, 1950</p>
-            <p className="text-sm">Sala 1304, Ed. Plenar, Lagoa Nova</p>
-            <p className="text-sm">Natal, RN — CEP 59064-380</p>
-          </div>
+    <footer className="px-4 pb-10 sm:px-6 lg:px-10">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 rounded-[32px] border border-[var(--line)] bg-white/82 px-6 py-8 text-sm text-[color:rgba(7,19,21,0.72)] sm:flex-row sm:items-end sm:justify-between sm:px-8">
+        <div>
+          <img src={logo} alt="Apolo Projetos Inteligentes" className="h-12 w-auto" />
+          <p className="mt-4 max-w-lg leading-7">
+            Apolo Projetos Inteligentes. Engenharia com rigor técnico, apresentação forte e linguagem visual compatível com a marca.
+          </p>
         </div>
-        <div className="mt-8 pt-8 border-t border-gray-800 text-xs text-center">
-          © {new Date().getFullYear()} Apolo Projetos Inteligentes Ltda - ME. Todos os direitos reservados.
+
+        <div className="sm:text-right">
+          <div>Rua Francisco Maia Sobrinho, 1950, Sala 1304</div>
+          <div>Ed. Plenar, Lagoa Nova, Natal/RN</div>
+          <div className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--teal)]">
+            © {new Date().getFullYear()} Apolo Projetos Inteligentes
+          </div>
         </div>
       </div>
     </footer>

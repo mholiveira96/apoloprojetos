@@ -1,150 +1,122 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
+import { ArrowUpRight } from 'lucide-react'
 import { useInView } from 'react-intersection-observer'
 
-const filtros = ['Todos', 'Estrutural', 'Elétrica', 'Hidráulica', 'Incêndio', 'Gás', 'Ambiental']
+import buzios from '../../../assets/Modelo Portfolio - Búzios Privilege.png'
+import creiSocorro from '../../../assets/Modelo Portfolio - CREI Maria do Socorro.png'
+import crei from '../../../assets/Modelo Portfolio - CREI.png'
+import colinasPark from '../../../assets/Modelo Portfolio - Colinas Park.png'
+import freeway from '../../../assets/Modelo Portfolio - Freeway.png'
+import gnc from '../../../assets/Modelo Portfolio - GNC.png'
+import leapmotor from '../../../assets/Modelo Portfolio - Leapmotor.png'
+import liivs from '../../../assets/Modelo Portfolio - Liivs.png'
+import pirangi from '../../../assets/Modelo Portfolio - Pirangi .png'
+import selfit from '../../../assets/Modelo Portfolio - Selfit.png'
+import sicilia from '../../../assets/Modelo Portfolio - Sicilia Cucina.png'
+import solarCidadeAlta from '../../../assets/Modelo Portfolio - Solar Cidade Alta.png'
 
-type Disciplina = 'EST' | 'ELE' | 'HID' | 'INC' | 'GAS' | 'AMB' | 'ARQ' | 'TEL' | 'AVAC' | 'VIZ' | 'INST' | 'ESG' | 'SAN' | 'PGRCC'
-
-const disciplinaLabels: Record<Disciplina, string> = {
-  EST: 'Estrutural',
-  ELE: 'Elétrica',
-  HID: 'Hidráulica',
-  INC: 'Incêndio',
-  GAS: 'Gás',
-  AMB: 'Ambiental',
-  ARQ: 'Arquitetura',
-  TEL: 'Telecom',
-  AVAC: 'Ar-condicionado',
-  VIZ: 'Vistoria',
-  INST: 'Instalações',
-  ESG: 'Esgoto',
-  SAN: 'Sanitário',
-  PGRCC: 'PGRCC',
-}
-
-const disciplinaColors: Record<string, string> = {
-  Estrutural: 'bg-blue-100 text-blue-700',
-  Elétrica: 'bg-yellow-100 text-yellow-700',
-  Hidráulica: 'bg-cyan-100 text-cyan-700',
-  Incêndio: 'bg-red-100 text-red-700',
-  Gás: 'bg-purple-100 text-purple-700',
-  Ambiental: 'bg-green-100 text-green-700',
-}
+type Categoria = 'Todos' | 'Residencial' | 'Comercial' | 'Institucional'
 
 interface Projeto {
-  id: number
   nome: string
-  disciplinas: Disciplina[]
-  link: string
+  categoria: Exclude<Categoria, 'Todos'>
+  imagem: string
+  disciplina: string
+  destaque: string
 }
 
 const projetos: Projeto[] = [
-  { id: 1, nome: 'Adriano', disciplinas: ['EST', 'HID', 'ELE'], link: 'https://drive.google.com/drive/folders/1_EaqYZaLp5jrte8h9qSWS6WBig7whzHT' },
-  { id: 2, nome: 'Bruno e Juliana', disciplinas: ['ELE', 'HID'], link: 'https://drive.google.com/drive/folders/1Ffm_k7tgSa_lPF-whKJ6VoFyJVHQk7YM' },
-  { id: 3, nome: 'André e Débora', disciplinas: ['HID', 'ELE'], link: 'https://drive.google.com/drive/folders/1QZk3SiabCXMuJmX6XYmdf6GmjSslOu37' },
-  { id: 4, nome: 'Galeria Central Parque Mall', disciplinas: ['EST', 'ELE', 'HID', 'INC'], link: 'https://drive.google.com/drive/folders/1du8OWEb47q3kZgn1_FbT-IE1f-I47LqJ' },
-  { id: 5, nome: 'Porto Mar de Pirangi', disciplinas: ['EST', 'GAS', 'INC', 'HID', 'ELE'], link: 'https://drive.google.com/drive/folders/1tr88R__a4hPmZyrVtm3XkWMsprAcB3rJ' },
-  { id: 6, nome: 'Idaisa Alphaville', disciplinas: ['EST', 'HID', 'SAN', 'ELE'], link: 'https://drive.google.com/drive/folders/1fPvSsi9-qOxS9_gsV86PxfC3W5tu1YyR' },
-  { id: 7, nome: 'West Park', disciplinas: ['EST', 'HID', 'INC', 'ARQ'], link: 'https://drive.google.com/drive/folders/1MzEq528j7ma-GAh9USXqv5GdWW1GI482' },
-  { id: 8, nome: 'Ajax', disciplinas: ['EST', 'HID', 'ELE'], link: 'https://drive.google.com/drive/folders/1GynHtHcAhtNYMdqc3Uhv6ZiVGcNUFwXA' },
-  { id: 9, nome: 'Aerotur Fortaleza', disciplinas: ['HID', 'ELE', 'INC', 'AVAC'], link: 'https://drive.google.com/drive/folders/12F1BBAJsSOSSlbU585O-z4AlIQX6THG5' },
-  { id: 10, nome: 'CREI Maria do Socorro', disciplinas: ['GAS', 'INC', 'ELE', 'HID'], link: 'https://drive.google.com/drive/folders/1WID1GGY5WGWbcFTieDGA8XNWevb5H-YQ' },
-  { id: 11, nome: 'Terça da Serra', disciplinas: ['HID', 'ELE', 'INC', 'GAS'], link: 'https://drive.google.com/drive/folders/1KQNvXyQWLILvfQJ_m7cbOE4M7iPHRq9A' },
-  { id: 12, nome: 'Casa Quinta dos Ipês', disciplinas: ['ARQ', 'ELE', 'HID', 'EST'], link: 'https://drive.google.com/drive/folders/14d1DaaqvmUkuktZR79FtmJXFG-rlU7CQ' },
-  { id: 13, nome: 'Vai Lá e Arrasa', disciplinas: ['AMB', 'INST'], link: 'https://drive.google.com/drive/folders/1sGI6jDN-PtUQ_5aU1EZcwaykMHncJ314' },
-  { id: 14, nome: 'Kactus — YBY 373', disciplinas: ['EST', 'HID', 'ELE'], link: 'https://drive.google.com/drive/folders/11-lvoqC2Njfyx0RnyEz-yjTCz1kk5CfY' },
-  { id: 15, nome: 'Diego e Thalita', disciplinas: ['EST', 'HID', 'SAN', 'ELE'], link: 'https://drive.google.com/drive/folders/1bbY8w_yWHo8IKgwhKp58FQ-YbMxAxMYY' },
-  { id: 16, nome: 'Pedro e Taiany', disciplinas: ['ARQ', 'HID', 'ELE'], link: 'https://drive.google.com/drive/folders/16hQq6EqSJC6MYu7kzw2sTW8EuFfobdhh' },
-  { id: 17, nome: 'Raul e Rayssa', disciplinas: ['EST', 'HID', 'SAN', 'ELE'], link: 'https://drive.google.com/drive/folders/1L0iq2yxsU6cwayjymkaSJZ7RlirSKNEN' },
-  { id: 18, nome: 'Emater', disciplinas: ['EST'], link: 'https://drive.google.com/drive/folders/1CBBCD8G7Pjecb4odPQmLPo6I2Wc_S3fa' },
+  { nome: 'Búzios Privilege', categoria: 'Residencial', imagem: buzios, disciplina: 'Estrutural + Instalações', destaque: 'Verticalização com leitura premium' },
+  { nome: 'CREI Maria do Socorro', categoria: 'Institucional', imagem: creiSocorro, disciplina: 'Incêndio + Elétrico + Hidrossanitário', destaque: 'Equipamento público com compatibilização técnica' },
+  { nome: 'CREI', categoria: 'Institucional', imagem: crei, disciplina: 'Projeto multidisciplinar', destaque: 'Clareza para execução e aprovação' },
+  { nome: 'Colinas Park', categoria: 'Residencial', imagem: colinasPark, disciplina: 'Estrutural', destaque: 'Massa visual forte, linguagem imobiliária limpa' },
+  { nome: 'Freeway', categoria: 'Comercial', imagem: freeway, disciplina: 'Elétrico + Complementares', destaque: 'Site agora conversa com esse nível de apresentação' },
+  { nome: 'GNC', categoria: 'Comercial', imagem: gnc, disciplina: 'Instalações', destaque: 'Performance e leitura objetiva' },
+  { nome: 'Leapmotor', categoria: 'Comercial', imagem: leapmotor, disciplina: 'Projeto comercial', destaque: 'Marca e espaço trabalhando juntos' },
+  { nome: 'Liivs', categoria: 'Residencial', imagem: liivs, disciplina: 'Estrutural + Hidrossanitário', destaque: 'Detalhe e acabamento na narrativa' },
+  { nome: 'Pirangi', categoria: 'Residencial', imagem: pirangi, disciplina: 'Projeto integrado', destaque: 'Obra com presença litorânea e composição leve' },
+  { nome: 'Selfit', categoria: 'Comercial', imagem: selfit, disciplina: 'Complementares', destaque: 'Escala comercial com comunicação firme' },
+  { nome: 'Sicilia Cucina', categoria: 'Comercial', imagem: sicilia, disciplina: 'Projeto comercial', destaque: 'Hospitalidade com rigor técnico' },
+  { nome: 'Solar Cidade Alta', categoria: 'Residencial', imagem: solarCidadeAlta, disciplina: 'Estrutural + Instalações', destaque: 'Narrativa arquitetônica mais sofisticada' },
 ]
 
-const filtroMap: Record<string, Disciplina[]> = {
-  'Todos': [],
-  'Estrutural': ['EST'],
-  'Elétrica': ['ELE'],
-  'Hidráulica': ['HID', 'SAN', 'ESG'],
-  'Incêndio': ['INC'],
-  'Gás': ['GAS'],
-  'Ambiental': ['AMB', 'INST'],
-}
+const filtros: Categoria[] = ['Todos', 'Residencial', 'Comercial', 'Institucional']
 
 export function Portfolio() {
-  const [filtro, setFiltro] = useState('Todos')
+  const [filtro, setFiltro] = useState<Categoria>('Todos')
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
 
-  const filtered = filtro === 'Todos'
-    ? projetos
-    : projetos.filter((p) => p.disciplinas.some((d) => filtroMap[filtro]?.includes(d)))
+  const itens = useMemo(
+    () => (filtro === 'Todos' ? projetos : projetos.filter((item) => item.categoria === filtro)),
+    [filtro]
+  )
 
   return (
-    <section id="portfolio" className="py-24 bg-white" ref={ref}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-10">
-          <span className="text-orange-500 font-semibold text-sm uppercase tracking-widest">
-            Nossos Projetos
-          </span>
-          <h2 className="text-4xl font-black text-gray-900 mt-2">Portfólio</h2>
-          <p className="text-gray-500 mt-3 max-w-xl mx-auto">
-            Uma seleção dos 241 projetos realizados com excelência técnica.
+    <section id="portfolio" className="px-4 py-24 sm:px-6 lg:px-10" ref={ref}>
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-[0.35em] text-[var(--teal)]">Portfólio</div>
+            <h2 className="mt-3 font-display text-4xl text-[var(--ink)] sm:text-5xl">
+              Projetos reais, imagens reais, zero mockup de mentira.
+            </h2>
+          </div>
+          <p className="max-w-xl text-[color:rgba(7,19,21,0.72)] leading-7">
+            O que vendia mal aqui era a apresentação. Agora o portfólio puxa o usuário pelo olho e sustenta a credibilidade.
           </p>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2 mb-10">
-          {filtros.map((f) => (
+        <div className="mb-8 flex flex-wrap gap-2">
+          {filtros.map((item) => (
             <button
-              key={f}
-              onClick={() => setFiltro(f)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                filtro === f
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              key={item}
+              onClick={() => setFiltro(item)}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                filtro === item
+                  ? 'bg-[var(--ink)] text-white'
+                  : 'bg-white text-[var(--ink)] border border-[var(--line)] hover:border-[var(--teal)] hover:text-[var(--teal)]'
               }`}
             >
-              {f}
+              {item}
             </button>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((item, i) => (
-            <motion.a
-              key={item.id}
-              href={item.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={inView ? { opacity: 1, scale: 1 } : {}}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-shadow group block"
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {itens.map((item, i) => (
+            <motion.article
+              key={item.nome}
+              initial={{ opacity: 0, y: 24 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, delay: i * 0.04 }}
+              className="group overflow-hidden rounded-[30px] border border-[var(--line)] bg-white shadow-sm transition-transform hover:-translate-y-1 hover:shadow-xl hover:shadow-[rgba(7,19,21,0.08)]"
             >
-              <div className="h-32 bg-gradient-to-br from-gray-800 to-orange-900 flex items-center justify-center relative overflow-hidden">
-                <span className="text-white/60 text-sm font-medium">#{String(item.id).padStart(3, '0')}</span>
-                <div className="absolute inset-0 bg-orange-500/0 group-hover:bg-orange-500/10 transition-colors" />
-              </div>
-              <div className="p-4">
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {item.disciplinas.map((d) => (
-                    <span
-                      key={d}
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        disciplinaColors[disciplinaLabels[d]] || 'bg-gray-100 text-gray-700'
-                      }`}
-                    >
-                      {disciplinaLabels[d]}
-                    </span>
-                  ))}
+              <div className="relative overflow-hidden">
+                <img
+                  src={item.imagem}
+                  alt={item.nome}
+                  className="h-[22rem] w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.04]"
+                />
+                <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[rgba(7,19,21,0.72)] to-transparent" />
+                <div className="absolute left-5 top-5 rounded-full bg-white/88 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-[var(--teal)] backdrop-blur-sm">
+                  {item.categoria}
                 </div>
-                <h3 className="font-bold text-gray-900">{item.nome}</h3>
               </div>
-            </motion.a>
+
+              <div className="p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-2xl font-extrabold text-[var(--ink)]">{item.nome}</h3>
+                    <p className="mt-1 text-sm font-medium text-[var(--teal)]">{item.disciplina}</p>
+                  </div>
+                  <ArrowUpRight className="mt-1 text-[var(--ink)] opacity-60 transition-opacity group-hover:opacity-100" size={20} />
+                </div>
+                <p className="mt-4 text-sm leading-7 text-[color:rgba(7,19,21,0.72)]">{item.destaque}</p>
+              </div>
+            </motion.article>
           ))}
         </div>
-
-        <p className="text-center text-gray-400 text-sm mt-8">
-          E mais {241 - projetos.length} projetos no nosso portfólio completo.
-        </p>
       </div>
     </section>
   )

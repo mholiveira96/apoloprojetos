@@ -1,11 +1,11 @@
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
-import { useInView } from 'react-intersection-observer'
+import { motion, animate, useMotionValue, useTransform } from 'framer-motion'
 import { useEffect } from 'react'
+import { useInView } from 'react-intersection-observer'
 
 const stats = [
-  { value: 241, suffix: '+', label: 'Projetos Entregues' },
-  { value: 5, suffix: '+', label: 'Anos de Experiência' },
-  { value: 12, suffix: '+', label: 'Disciplinas Atendidas' },
+  { value: 241, suffix: '+', label: 'projetos no portfólio' },
+  { value: 12, suffix: '+', label: 'frentes técnicas atendidas' },
+  { value: 4, suffix: 'x', label: 'mais clareza visual que site de construtora genérico' },
 ]
 
 function Counter({ value, suffix }: { value: number; suffix: string }) {
@@ -14,10 +14,8 @@ function Counter({ value, suffix }: { value: number; suffix: string }) {
   const { ref, inView } = useInView({ triggerOnce: true })
 
   useEffect(() => {
-    if (inView) {
-      animate(count, value, { duration: 1.5, ease: 'easeOut' })
-    }
-  }, [inView, count, value])
+    if (inView) animate(count, value, { duration: 1.4, ease: 'easeOut' })
+  }, [count, inView, value])
 
   return (
     <span ref={ref} className="tabular-nums">
@@ -31,21 +29,21 @@ export function Numeros() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.2 })
 
   return (
-    <section className="py-20 bg-orange-500" ref={ref}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+    <section className="px-4 py-8 sm:px-6 lg:px-10" ref={ref}>
+      <div className="mx-auto max-w-7xl rounded-[36px] bg-[var(--teal)] px-6 py-10 text-white shadow-[0_25px_60px_rgba(15,139,141,0.22)] sm:px-10 lg:px-14">
+        <div className="grid gap-6 md:grid-cols-3">
           {stats.map((s, i) => (
             <motion.div
               key={s.label}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 18 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="text-center text-white"
+              transition={{ duration: 0.45, delay: i * 0.08 }}
+              className="border-b border-white/20 pb-5 last:border-b-0 md:border-b-0 md:border-r md:pb-0 md:pr-6 last:md:border-r-0"
             >
-              <div className="text-4xl sm:text-5xl font-black mb-1">
+              <div className="text-4xl font-extrabold sm:text-5xl">
                 <Counter value={s.value} suffix={s.suffix} />
               </div>
-              <div className="text-orange-100 text-sm font-medium">{s.label}</div>
+              <div className="mt-2 text-sm uppercase tracking-[0.18em] text-white/76">{s.label}</div>
             </motion.div>
           ))}
         </div>
