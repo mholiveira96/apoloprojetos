@@ -6,7 +6,6 @@ const stats = [
   { value: 241, suffix: '+', label: 'Projetos Entregues' },
   { value: 5, suffix: '+', label: 'Anos de Experiência' },
   { value: 12, suffix: '+', label: 'Disciplinas Atendidas' },
-  { value: 100, suffix: '%', label: 'Aprovações nos Órgãos' },
 ]
 
 function Counter({ value, suffix }: { value: number; suffix: string }) {

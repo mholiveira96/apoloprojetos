@@ -5,7 +5,6 @@ import { Sobre } from '@/components/sections/Sobre'
 import { Servicos } from '@/components/sections/Servicos'
 import { Numeros } from '@/components/sections/Numeros'
 import { Portfolio } from '@/components/sections/Portfolio'
-import { Projetos } from '@/components/sections/Projetos'
 import { Contato } from '@/components/sections/Contato'
 
 export default function App() {
@@ -18,7 +17,6 @@ export default function App() {
         <Servicos />
         <Numeros />
         <Portfolio />
-        <Projetos />
         <Contato />
       </main>
       <Footer />
