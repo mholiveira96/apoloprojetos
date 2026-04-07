@@ -3,9 +3,9 @@ import { useEffect } from 'react'
 import { useInView } from 'react-intersection-observer'
 
 const stats = [
-  { value: 241, suffix: '+', label: 'projetos no portfólio' },
-  { value: 12, suffix: '+', label: 'frentes técnicas atendidas' },
-  { value: 3, suffix: '', label: 'valores centrais: segurança, economia e prazo' },
+  { value: 200, suffix: '+', label: 'clientes' },
+  { value: 400, suffix: '+', label: 'projetos' },
+  { value: 7, suffix: '', label: 'anos de atuação' },
 ]
 
 function Counter({ value, suffix }: { value: number; suffix: string }) {

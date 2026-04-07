@@ -1,4 +1,4 @@
-import logo from '../../../assets/Apolo Logo whitebg.jpg'
+import logo from '../../../assets/Apolo Logo.png'
 
 export function Footer() {
   return (
@@ -12,10 +12,7 @@ export function Footer() {
         </div>
 
         <div className="text-right">
-          <div className="text-3xl font-extrabold text-[var(--ink)]">200+ clientes</div>
-          <div className="mt-2 text-3xl font-extrabold text-[var(--ink)]">400+ projetos</div>
-          <div className="mt-2 text-3xl font-extrabold text-[var(--ink)]">7 anos de atuação</div>
-          <div className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--teal)]">
+          <div className="text-xs uppercase tracking-[0.18em] text-[var(--teal)]">
             © {new Date().getFullYear()} Apolo Projetos Inteligentes
           </div>
         </div>
