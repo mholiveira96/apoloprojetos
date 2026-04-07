@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowUpRight, X } from 'lucide-react'
+import { ArrowUpRight, Flame, Gauge, House, Layers3, Ruler, Zap, X } from 'lucide-react'
 import { useInView } from 'react-intersection-observer'
 
 import buzios from '../../../assets/Modelo Portfolio - Búzios Privilege.png'
@@ -17,26 +17,40 @@ import solarCidadeAlta from '../../../assets/Modelo Portfolio - Solar Cidade Alt
 
 type Categoria = 'Todos' | 'Residencial' | 'Comercial' | 'Institucional'
 
+type DisciplinaKey = 'estrutural' | 'eletrico' | 'incendio' | 'hidrossanitario' | 'instalacoes' | 'complementares' | 'integrado'
+
 interface Projeto {
   nome: string
   categoria: Exclude<Categoria, 'Todos'>
   imagem: string
   disciplina: string
   destaque: string
+  area?: string
+  disciplinasTecnicas: DisciplinaKey[]
+}
+
+const disciplinaMeta: Record<DisciplinaKey, { label: string; icon: typeof Ruler; className: string }> = {
+  estrutural: { label: 'Estrutural', icon: Layers3, className: 'text-sky-600' },
+  eletrico: { label: 'Elétrico', icon: Zap, className: 'text-amber-500' },
+  incendio: { label: 'Incêndio', icon: Flame, className: 'text-red-500' },
+  hidrossanitario: { label: 'Hidrossanitário', icon: Gauge, className: 'text-cyan-600' },
+  instalacoes: { label: 'Instalações', icon: House, className: 'text-emerald-600' },
+  complementares: { label: 'Complementares', icon: Ruler, className: 'text-violet-600' },
+  integrado: { label: 'Integrado', icon: Layers3, className: 'text-slate-600' },
 }
 
 const projetos: Projeto[] = [
-  { nome: 'Búzios Privilege', categoria: 'Residencial', imagem: buzios, disciplina: 'Estrutural + Instalações', destaque: 'Soluções para execução mais segura e menor desperdício em obra vertical.' },
-  { nome: 'CREI Maria do Socorro', categoria: 'Institucional', imagem: creiSocorro, disciplina: 'Incêndio + Elétrico + Hidrossanitário', destaque: 'Compatibilização técnica para obra pública com mais controle e previsibilidade.' },
-  { nome: 'Colinas Park', categoria: 'Residencial', imagem: colinasPark, disciplina: 'Estrutural', destaque: 'Estrutura pensada para desempenho, economia e segurança na execução.' },
-  { nome: 'Freeway', categoria: 'Comercial', imagem: freeway, disciplina: 'Elétrico + Complementares', destaque: 'Projeto comercial com foco em operação eficiente e instalação racional.' },
-  { nome: 'GNC', categoria: 'Comercial', imagem: gnc, disciplina: 'Instalações', destaque: 'Soluções técnicas para reduzir erro de obra e melhorar desempenho da implantação.' },
-  { nome: 'Leapmotor', categoria: 'Comercial', imagem: leapmotor, disciplina: 'Projeto comercial', destaque: 'Coordenação de projeto para atender operação, custo e prazo com mais segurança.' },
-  { nome: 'Liivs', categoria: 'Residencial', imagem: liivs, disciplina: 'Estrutural + Hidrossanitário', destaque: 'Compatibilização para obra residencial mais eficiente e previsível.' },
-  { nome: 'Pirangi', categoria: 'Residencial', imagem: pirangi, disciplina: 'Projeto integrado', destaque: 'Integração entre disciplinas para evitar improviso e proteger cronograma.' },
-  { nome: 'Selfit', categoria: 'Comercial', imagem: selfit, disciplina: 'Complementares', destaque: 'Projetos complementares com foco em desempenho e velocidade de execução.' },
-  { nome: 'Sicilia Cucina', categoria: 'Comercial', imagem: sicilia, disciplina: 'Projeto comercial', destaque: 'Precisão técnica para implantação comercial com menos retrabalho.' },
-  { nome: 'Solar Cidade Alta', categoria: 'Residencial', imagem: solarCidadeAlta, disciplina: 'Estrutural + Instalações', destaque: 'Soluções integradas para obra mais segura, econômica e bem coordenada.' },
+  { nome: 'Búzios Privilege', categoria: 'Residencial', imagem: buzios, disciplina: 'Estrutural + Instalações', destaque: 'Soluções para execução mais segura e menor desperdício em obra vertical.', area: 'Área a preencher', disciplinasTecnicas: ['estrutural', 'instalacoes'] },
+  { nome: 'CREI Maria do Socorro', categoria: 'Institucional', imagem: creiSocorro, disciplina: 'Incêndio + Elétrico + Hidrossanitário', destaque: 'Compatibilização técnica para obra pública com mais controle e previsibilidade.', area: 'Área a preencher', disciplinasTecnicas: ['incendio', 'eletrico', 'hidrossanitario'] },
+  { nome: 'Colinas Park', categoria: 'Residencial', imagem: colinasPark, disciplina: 'Estrutural', destaque: 'Estrutura pensada para desempenho, economia e segurança na execução.', area: 'Área a preencher', disciplinasTecnicas: ['estrutural'] },
+  { nome: 'Freeway', categoria: 'Comercial', imagem: freeway, disciplina: 'Elétrico + Complementares', destaque: 'Projeto comercial com foco em operação eficiente e instalação racional.', area: 'Área a preencher', disciplinasTecnicas: ['eletrico', 'complementares'] },
+  { nome: 'GNC', categoria: 'Comercial', imagem: gnc, disciplina: 'Instalações', destaque: 'Soluções técnicas para reduzir erro de obra e melhorar desempenho da implantação.', area: 'Área a preencher', disciplinasTecnicas: ['instalacoes'] },
+  { nome: 'Leapmotor', categoria: 'Comercial', imagem: leapmotor, disciplina: 'Projeto comercial', destaque: 'Coordenação de projeto para atender operação, custo e prazo com mais segurança.', area: 'Área a preencher', disciplinasTecnicas: ['integrado'] },
+  { nome: 'Liivs', categoria: 'Residencial', imagem: liivs, disciplina: 'Estrutural + Hidrossanitário', destaque: 'Compatibilização para obra residencial mais eficiente e previsível.', area: 'Área a preencher', disciplinasTecnicas: ['estrutural', 'hidrossanitario'] },
+  { nome: 'Pirangi', categoria: 'Residencial', imagem: pirangi, disciplina: 'Projeto integrado', destaque: 'Integração entre disciplinas para evitar improviso e proteger cronograma.', area: 'Área a preencher', disciplinasTecnicas: ['integrado'] },
+  { nome: 'Selfit', categoria: 'Comercial', imagem: selfit, disciplina: 'Complementares', destaque: 'Projetos complementares com foco em desempenho e velocidade de execução.', area: 'Área a preencher', disciplinasTecnicas: ['complementares'] },
+  { nome: 'Sicilia Cucina', categoria: 'Comercial', imagem: sicilia, disciplina: 'Projeto comercial', destaque: 'Precisão técnica para implantação comercial com menos retrabalho.', area: 'Área a preencher', disciplinasTecnicas: ['integrado'] },
+  { nome: 'Solar Cidade Alta', categoria: 'Residencial', imagem: solarCidadeAlta, disciplina: 'Estrutural + Instalações', destaque: 'Soluções integradas para obra mais segura, econômica e bem coordenada.', area: 'Área a preencher', disciplinasTecnicas: ['estrutural', 'instalacoes'] },
 ]
 
 const filtros: Categoria[] = ['Todos', 'Residencial', 'Comercial', 'Institucional']
@@ -118,6 +132,30 @@ export function Portfolio() {
                     </div>
                     <ArrowUpRight className="mt-1 text-[var(--ink)] opacity-60 transition-opacity group-hover:opacity-100" size={20} />
                   </div>
+
+                  <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                      <Ruler size={16} className="text-[var(--teal)]" />
+                      <span>{item.area ?? 'Área a preencher'}</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {item.disciplinasTecnicas.map((disciplina) => {
+                        const meta = disciplinaMeta[disciplina]
+                        const Icon = meta.icon
+
+                        return (
+                          <span
+                            key={disciplina}
+                            className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--ink)]"
+                          >
+                            <Icon size={15} className={meta.className} />
+                            {meta.label}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+
                   <p className="mt-4 text-sm leading-7 text-[color:rgba(7,19,21,0.72)]">{item.destaque}</p>
                 </div>
               </motion.button>
@@ -160,6 +198,30 @@ export function Portfolio() {
                 <div className="text-xs uppercase tracking-[0.25em] text-[var(--teal)]">{selected.categoria}</div>
                 <h3 className="mt-2 text-2xl font-extrabold text-[var(--ink)]">{selected.nome}</h3>
                 <p className="mt-1 text-sm font-medium text-[var(--teal)]">{selected.disciplina}</p>
+
+                <div className="mt-4 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
+                    <Ruler size={16} className="text-[var(--teal)]" />
+                    <span>{selected.area ?? 'Área a preencher'}</span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {selected.disciplinasTecnicas.map((disciplina) => {
+                      const meta = disciplinaMeta[disciplina]
+                      const Icon = meta.icon
+
+                      return (
+                        <span
+                          key={disciplina}
+                          className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--ink)]"
+                        >
+                          <Icon size={15} className={meta.className} />
+                          {meta.label}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 <p className="mt-3 text-sm leading-7 text-[color:rgba(7,19,21,0.72)]">{selected.destaque}</p>
               </div>
             </motion.div>
