@@ -30,12 +30,12 @@ export function Navbar() {
           : 'bg-transparent'
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 h-24 flex items-center justify-between gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 h-28 flex items-center justify-between gap-6">
         <a href="#hero" className="flex items-center">
           <motion.img
             src={logo}
             alt="Apolo Projetos Inteligentes"
-            className="h-20 w-auto sm:h-24 lg:h-28"
+            className="h-24 w-auto sm:h-28 lg:h-32"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
