@@ -5,7 +5,6 @@ import { useInView } from 'react-intersection-observer'
 
 import buzios from '../../../assets/Modelo Portfolio - Búzios Privilege.png'
 import creiSocorro from '../../../assets/Modelo Portfolio - CREI Maria do Socorro.png'
-import crei from '../../../assets/Modelo Portfolio - CREI.png'
 import colinasPark from '../../../assets/Modelo Portfolio - Colinas Park.png'
 import freeway from '../../../assets/Modelo Portfolio - Freeway.png'
 import gnc from '../../../assets/Modelo Portfolio - GNC.png'
@@ -29,7 +28,6 @@ interface Projeto {
 const projetos: Projeto[] = [
   { nome: 'Búzios Privilege', categoria: 'Residencial', imagem: buzios, disciplina: 'Estrutural + Instalações', destaque: 'Soluções para execução mais segura e menor desperdício em obra vertical.' },
   { nome: 'CREI Maria do Socorro', categoria: 'Institucional', imagem: creiSocorro, disciplina: 'Incêndio + Elétrico + Hidrossanitário', destaque: 'Compatibilização técnica para obra pública com mais controle e previsibilidade.' },
-  { nome: 'CREI', categoria: 'Institucional', imagem: crei, disciplina: 'Projeto multidisciplinar', destaque: 'Documentação clara para aprovação, execução e redução de retrabalho.' },
   { nome: 'Colinas Park', categoria: 'Residencial', imagem: colinasPark, disciplina: 'Estrutural', destaque: 'Estrutura pensada para desempenho, economia e segurança na execução.' },
   { nome: 'Freeway', categoria: 'Comercial', imagem: freeway, disciplina: 'Elétrico + Complementares', destaque: 'Projeto comercial com foco em operação eficiente e instalação racional.' },
   { nome: 'GNC', categoria: 'Comercial', imagem: gnc, disciplina: 'Instalações', destaque: 'Soluções técnicas para reduzir erro de obra e melhorar desempenho da implantação.' },
