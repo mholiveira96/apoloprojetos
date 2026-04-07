@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Menu, X } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import logo from '../../../assets/Apolo Logo blue no bg.png'
+import logo from '../../../assets/Apolo Logo.png'
 
 const links = [
   { label: 'Manifesto', href: '#sobre' },
@@ -30,12 +31,16 @@ export function Navbar() {
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 h-20 flex items-center justify-between">
-        <a href="#hero" className="flex items-center gap-3">
-          <img src={logo} alt="Apolo Projetos Inteligentes" className="h-11 w-auto" />
-          <div className="hidden sm:block">
-            <div className="text-[0.7rem] uppercase tracking-[0.35em] text-[var(--teal)]">Natal, RN</div>
-            <div className="text-sm font-semibold text-[var(--ink)]">Projetos Inteligentes</div>
-          </div>
+        <a href="#hero" className="flex items-center">
+          <motion.img
+            src={logo}
+            alt="Apolo Projetos Inteligentes"
+            className="h-14 w-auto sm:h-16"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            whileHover={{ y: -1, scale: 1.01 }}
+          />
         </a>
 
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-[var(--ink-soft)]">

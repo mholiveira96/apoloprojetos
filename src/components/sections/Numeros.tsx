@@ -5,7 +5,7 @@ import { useInView } from 'react-intersection-observer'
 const stats = [
   { value: 241, suffix: '+', label: 'projetos no portfólio' },
   { value: 12, suffix: '+', label: 'frentes técnicas atendidas' },
-  { value: 4, suffix: 'x', label: 'mais clareza visual que site de construtora genérico' },
+  { value: 3, suffix: '', label: 'valores centrais: segurança, economia e prazo' },
 ]
 
 function Counter({ value, suffix }: { value: number; suffix: string }) {

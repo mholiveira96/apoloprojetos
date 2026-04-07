@@ -5,7 +5,7 @@ const pilares = [
   'Projeto como ativo de negócio, não só documentação.',
   'Clareza técnica sem parecer frio ou burocrático.',
   'Entrega multidisciplinar para reduzir atrito na obra.',
-  'Estética de marca que combina com precisão de engenharia.',
+  'Soluções pensadas para reduzir risco, retrabalho e desperdício.',
 ]
 
 export function Sobre() {
@@ -22,7 +22,7 @@ export function Sobre() {
         >
           <div className="text-xs uppercase tracking-[0.35em] text-[var(--teal-bright)]">Manifesto</div>
           <h2 className="mt-4 font-display text-4xl leading-tight sm:text-5xl">
-            O melhor projeto é o que resolve, comunica e eleva a percepção da obra.
+            O melhor projeto é o que protege a obra, controla custo e ajuda a cumprir prazo.
           </h2>
         </motion.div>
 
@@ -33,9 +33,9 @@ export function Sobre() {
           className="rounded-[32px] border border-[var(--line)] bg-white/82 p-8 shadow-lg shadow-black/5 sm:p-10"
         >
           <p className="max-w-3xl text-lg leading-8 text-[color:rgba(7,19,21,0.78)]">
-            A Apolo Projetos Inteligentes nasceu para fugir do óbvio. Fazemos estrutural, elétrico,
-            hidrossanitário, incêndio, gás e soluções complementares com uma abordagem de marca mais refinada,
-            mais segura e mais memorável.
+            A Apolo Projetos Inteligentes nasceu para entregar clareza, rigor e segurança. Fazemos estrutural, elétrico,
+            hidrossanitário, incêndio, gás e soluções complementares com foco em eficiência técnica, economia na execução
+            e previsibilidade para a obra.
           </p>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2">

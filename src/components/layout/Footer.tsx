@@ -1,4 +1,4 @@
-import logo from '../../../assets/Apolo Logo blue no bg.png'
+import logo from '../../../assets/Apolo Logo whitebg.jpg'
 
 export function Footer() {
   return (
@@ -7,7 +7,7 @@ export function Footer() {
         <div>
           <img src={logo} alt="Apolo Projetos Inteligentes" className="h-12 w-auto" />
           <p className="mt-4 max-w-lg leading-7">
-            Apolo Projetos Inteligentes. Engenharia com rigor técnico, apresentação forte e linguagem visual compatível com a marca.
+            Apolo Projetos Inteligentes. Engenharia com rigor técnico, foco em segurança, economia e cumprimento de prazo.
           </p>
         </div>
 

@@ -17,7 +17,7 @@ export function Hero() {
             className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 text-[0.72rem] font-bold uppercase tracking-[0.28em] text-[var(--teal)]"
           >
             <Sparkles size={14} />
-            Obviously awesome, sem cara de template
+            Projetos Inteligentes
           </motion.div>
 
           <motion.h1
@@ -26,7 +26,7 @@ export function Hero() {
             transition={{ duration: 0.8, delay: 0.08 }}
             className="mt-6 max-w-4xl text-5xl leading-[0.95] font-display font-bold text-[var(--ink)] sm:text-6xl lg:text-[5.8rem]"
           >
-            Engenharia com presença, rigor e imagem de marca.
+            Engenharia com segurança, economia e cumprimento de prazo.
           </motion.h1>
 
           <motion.p
@@ -35,8 +35,8 @@ export function Hero() {
             transition={{ duration: 0.7, delay: 0.16 }}
             className="mt-6 max-w-2xl text-lg leading-8 text-[color:rgba(7,19,21,0.78)] sm:text-xl"
           >
-            A Apolo projeta estruturas, instalações e soluções técnicas com um discurso visual que passa segurança.
-            Nada de site genérico de construtora, aqui a estética trabalha junto com a credibilidade.
+            A Apolo desenvolve projetos estruturais e complementares com foco em reduzir riscos, evitar desperdícios e manter a obra dentro do cronograma.
+            Segurança técnica, economia na execução e prazo confiável são os critérios que guiam cada entrega.
           </motion.p>
 
           <motion.div
@@ -102,7 +102,7 @@ export function Hero() {
               </div>
               <div className="mt-3 text-2xl font-display font-semibold">Colinas Park</div>
               <p className="mt-2 max-w-md text-sm leading-6 text-white/78">
-                Uma landing que vende confiança antes do orçamento, com portfólio real e linguagem visual compatível com a marca.
+                Projetos desenvolvidos para dar previsibilidade à obra, mais segurança na execução e melhor controle de custo e prazo.
               </p>
             </div>
           </div>

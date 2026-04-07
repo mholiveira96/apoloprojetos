@@ -45,11 +45,11 @@ export function Servicos() {
           <div>
             <div className="text-xs uppercase tracking-[0.35em] text-[var(--teal)]">Especialidades</div>
             <h2 className="mt-3 font-display text-4xl text-[var(--ink)] sm:text-5xl">
-              Engenharia multidisciplinar, com cara de marca premium.
+              Engenharia multidisciplinar para obras mais seguras, econômicas e previsíveis.
             </h2>
           </div>
           <p className="max-w-xl text-[color:rgba(7,19,21,0.72)] leading-7">
-            O ponto não é listar serviço como panfleto. É mostrar capacidade técnica com linguagem visual coerente.
+            Cada disciplina existe para resolver problema real de obra, reduzir retrabalho e manter custo e prazo sob controle.
           </p>
         </div>
 
