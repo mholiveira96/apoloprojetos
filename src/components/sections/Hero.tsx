@@ -35,8 +35,8 @@ export function Hero() {
             transition={{ duration: 0.7, delay: 0.16 }}
             className="mt-6 max-w-2xl text-lg leading-8 text-[color:rgba(7,19,21,0.78)] sm:text-xl"
           >
-            A Apolo desenvolve projetos estruturais e complementares com foco em reduzir riscos, evitar desperdícios e manter a obra dentro do cronograma.
-            Segurança técnica, economia na execução e prazo confiável são os critérios que guiam cada entrega.
+            A Apolo faz a compatibilização entre disciplinas para reduzir interferências, retrabalho e improviso em obra.
+            O resultado é uma entrega mais segura, mais econômica e mais previsível, do projeto à execução.
           </motion.p>
 
           <motion.div
@@ -68,8 +68,8 @@ export function Hero() {
           >
             {[
               ['241+', 'projetos entregues'],
-              ['Natal → Nordeste', 'operação com foco regional'],
-              ['Estrutural a incêndio', 'escopo multidisciplinar'],
+              ['Atuação nacional', 'projetos em diferentes regiões do Brasil'],
+              ['Compatibilização', 'menos conflito entre disciplinas e mais previsibilidade'],
             ].map(([value, label]) => (
               <div key={label} className="rounded-[26px] border border-[var(--line)] bg-white/70 p-5 backdrop-blur-sm">
                 <div className="text-2xl font-extrabold text-[var(--ink)]">{value}</div>
@@ -102,7 +102,7 @@ export function Hero() {
               </div>
               <div className="mt-3 text-2xl font-display font-semibold">Colinas Park</div>
               <p className="mt-2 max-w-md text-sm leading-6 text-white/78">
-                Projetos desenvolvidos para dar previsibilidade à obra, mais segurança na execução e melhor controle de custo e prazo.
+                Compatibilização pensada para reduzir conflito entre disciplinas, evitar retrabalho e dar mais previsibilidade ao custo e ao prazo.
               </p>
             </div>
           </div>
