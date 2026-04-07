@@ -1,0 +1,6 @@
+[
+  { "id": 1, "cliente": "Residencial Alfa", "disciplinas": ["Estrutural"], "ano": 2023, "cidade": "São Paulo", "tipo": "Residencial" },
+  { "id": 2, "cliente": "Comercial Beta", "disciplinas": ["Elétrica", "Hidráulica"], "ano": 2023, "cidade": "Campinas", "tipo": "Comercial" },
+  { "id": 3, "cliente": "Condomínio Gamma", "disciplinas": ["Estrutural", "Elétrica", "Hidráulica", "Combate a Incêndio"], "ano": 2022, "cidade": "São Paulo", "tipo": "Residencial" },
+  { "id": 4, "cliente": "Indústria Delta", "disciplinas": ["Combate a Incêndio", "Elétrica"], "ano": 2022, "cidade": "Santo André", "tipo": "Industrial" }
+]
