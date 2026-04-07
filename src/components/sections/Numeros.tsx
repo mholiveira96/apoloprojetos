@@ -3,9 +3,9 @@ import { useInView } from 'react-intersection-observer'
 import { useEffect } from 'react'
 
 const stats = [
-  { value: 241, suffix: '+', label: 'Clientes Atendidos' },
-  { value: 8, suffix: '+', label: 'Anos de Experiência' },
-  { value: 400, suffix: '+', label: 'Projetos Entregues' },
+  { value: 241, suffix: '+', label: 'Projetos Entregues' },
+  { value: 5, suffix: '+', label: 'Anos de Experiência' },
+  { value: 12, suffix: '+', label: 'Disciplinas Atendidas' },
   { value: 100, suffix: '%', label: 'Aprovações nos Órgãos' },
 ]
 

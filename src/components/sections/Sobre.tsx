@@ -4,10 +4,10 @@ import { CheckCircle2 } from 'lucide-react'
 
 const diferenciais = [
   'Equipe multidisciplinar com engenheiros especializados',
-  'Projetos entregues dentro do prazo e do orçamento',
-  'Uso de softwares BIM e ferramentas modernas de projeto',
-  'Suporte completo da concepção ao As-Built',
-  'Atendimento personalizado para cada cliente',
+  'Mais de 241 projetos entregues com qualidade comprovada',
+  'Atendimento em todo o Rio Grande do Norte e Nordeste',
+  'Suporte completo da concepção ao AVCB',
+  'Aprovação garantida nos órgãos competentes',
 ]
 
 export function Sobre() {
@@ -30,14 +30,15 @@ export function Sobre() {
               <span className="text-orange-500"> confiar</span>
             </h2>
             <p className="text-gray-600 text-lg leading-relaxed mb-6">
-              A Apolo Engenharia nasceu com um propósito: entregar projetos técnicos de alta qualidade
-              com agilidade e responsabilidade. Atuamos nas disciplinas de projeto estrutural,
-              elétrico, hidrossanitário e de combate a incêndio para obras residenciais,
-              comerciais e industriais.
+              A Apolo Projetos Inteligentes nasceu em 2021 com um propósito: entregar projetos técnicos 
+              de alta qualidade com agilidade e responsabilidade. Atuamos nas disciplinas de projeto 
+              estrutural, elétrico, hidrossanitário, combate a incêndio, gás e ambiental para obras 
+              residenciais, comerciais e industriais.
             </p>
             <p className="text-gray-600 leading-relaxed">
-              Com uma equipe de engenheiros dedicados e processos bem definidos, garantimos
-              conformidade com as normas técnicas vigentes e total satisfação dos nossos clientes.
+              Baseados em Natal, RN, já atendemos mais de 241 clientes em todo o Nordeste. 
+              Nossa equipe de engenheiros dedica atenção personalizada a cada projeto, garantindo 
+              conformidade com as normas técnicas e total satisfação.
             </p>
           </motion.div>
 

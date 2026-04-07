@@ -1,35 +1,49 @@
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
-import { Building2, Zap, Droplets, Flame } from 'lucide-react'
+import { Building2, Zap, Droplets, Flame, Wind, Leaf } from 'lucide-react'
 
 const servicos = [
   {
     icon: Building2,
     titulo: 'Projeto Estrutural',
     descricao:
-      'Dimensionamento e detalhamento de estruturas em concreto armado, metálica e madeira para todos os tipos de edificação.',
-    itens: ['Concreto Armado', 'Estrutura Metálica', 'Fundações', 'Laudos Técnicos'],
+      'Dimensionamento e detalhamento de estruturas em concreto armado, metálica e contenções.',
+    itens: ['Concreto Armado', 'Estrutura Metálica', 'Fundações', 'Contenções'],
   },
   {
     icon: Zap,
     titulo: 'Projeto Elétrico',
     descricao:
-      'Instalações elétricas de baixa e média tensão, SPDA, CFTV, automação e eficiência energética.',
-    itens: ['Baixa Tensão', 'SPDA (Para-raios)', 'CFTV e Automação', 'Eficiência Energética'],
+      'Instalações elétricas residenciais, comerciais e industriais, incluindo SPDA e fiação.',
+    itens: ['Baixa Tensão', 'SPDA (Para-raios)', 'Telecomunicações', 'Fiação Elétrica'],
   },
   {
     icon: Droplets,
     titulo: 'Projeto Hidrossanitário',
     descricao:
-      'Sistemas de água fria, quente, esgoto, pluvial e reaproveitamento de água para obras de todos os portes.',
-    itens: ['Água Fria e Quente', 'Esgoto Sanitário', 'Drenagem Pluvial', 'Reúso de Água'],
+      'Sistemas de água fria, quente, esgoto, pluvial e sanitário para obras de todos os portes.',
+    itens: ['Água Fria e Quente', 'Esgoto Sanitário', 'Drenagem Pluvial', 'Sistemas Sanitários'],
   },
   {
     icon: Flame,
     titulo: 'Combate a Incêndio',
     descricao:
-      'Projetos de prevenção e combate a incêndio conforme normas do Corpo de Bombeiros, com aprovação garantida.',
-    itens: ['Sprinklers', 'Hidrantes', 'Detecção e Alarme', 'Aprovação no CBPMESP'],
+      'Projetos de prevenção e combate a incêndio conforme normas do Corpo de Bombeiros.',
+    itens: ['Sprinklers', 'Hidrantes', 'Detecção e Alarme', 'AVCB'],
+  },
+  {
+    icon: Wind,
+    titulo: 'Projeto de Gás',
+    descricao:
+      'Instalações de gás canalizado para residenciais e comerciais com segurança certificada.',
+    itens: ['Gás Canalizado', 'GLP', 'Projeto e Laudo', 'Aprovação CIP'],
+  },
+  {
+    icon: Leaf,
+    titulo: 'Estudos Ambientais',
+    descricao:
+      'Licenciamento ambiental, estudos de impacto e relatórios de conformidade.',
+    itens: ['Licenciamento', 'Relatórios Ambientais', 'Instalações', 'Conformidade'],
   },
 ]
 
@@ -49,7 +63,7 @@ export function Servicos() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {servicos.map((s, i) => {
             const Icon = s.icon
             return (

@@ -4,9 +4,10 @@ export function Footer() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="text-white font-bold text-lg mb-2">APOLO Engenharia</h3>
+            <h3 className="text-white font-bold text-lg mb-2">APOLO Projetos Inteligentes</h3>
             <p className="text-sm leading-relaxed">
               Projetos de engenharia com excelência técnica e comprometimento com prazos.
+              CNPJ: 42.570.326/0001-02
             </p>
           </div>
           <div>
@@ -16,16 +17,19 @@ export function Footer() {
               <li>Projeto Elétrico</li>
               <li>Projeto Hidrossanitário</li>
               <li>Combate a Incêndio</li>
+              <li>Projeto de Gás</li>
+              <li>Estudos Ambientais</li>
             </ul>
           </div>
           <div>
             <h4 className="text-white font-semibold mb-3">Contato</h4>
-            <p className="text-sm">contato@apoloengenharia.com.br</p>
-            <p className="text-sm mt-1">São Paulo, SP</p>
+            <p className="text-sm">Rua Francisco Maia Sobrinho, 1950</p>
+            <p className="text-sm">Sala 1304, Ed. Plenar, Lagoa Nova</p>
+            <p className="text-sm">Natal, RN — CEP 59064-380</p>
           </div>
         </div>
         <div className="mt-8 pt-8 border-t border-gray-800 text-xs text-center">
-          © {new Date().getFullYear()} Apolo Engenharia. Todos os direitos reservados.
+          © {new Date().getFullYear()} Apolo Projetos Inteligentes Ltda - ME. Todos os direitos reservados.
         </div>
       </div>
     </footer>

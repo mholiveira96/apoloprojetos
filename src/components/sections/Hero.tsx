@@ -7,10 +7,8 @@ export function Hero() {
       id="hero"
       className="relative min-h-screen flex items-center justify-center bg-gray-900 text-white overflow-hidden"
     >
-      {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-orange-950 opacity-90" />
 
-      {/* Decorative grid */}
       <div
         className="absolute inset-0 opacity-10"
         style={{
@@ -27,7 +25,7 @@ export function Hero() {
           transition={{ duration: 0.7 }}
         >
           <span className="inline-block text-orange-400 text-sm font-semibold uppercase tracking-widest mb-4">
-            Engenharia de Excelência
+            Projetos Inteligentes
           </span>
           <h1 className="text-5xl sm:text-6xl md:text-7xl font-black leading-tight mb-6">
             Projetos que
@@ -36,7 +34,7 @@ export function Hero() {
           </h1>
           <p className="text-lg sm:text-xl text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed">
             Mais de 241 projetos entregues em estrutural, elétrica, hidráulica e combate a incêndio.
-            Soluções técnicas com precisão e comprometimento.
+            Soluções técnicas com precisão e comprometimento no Rio Grande do Norte e região Nordeste.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
