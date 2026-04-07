@@ -100,11 +100,15 @@ export function Portfolio() {
                   <img
                     src={item.imagem}
                     alt={item.nome}
+                    title="Clique para ampliar"
                     className="h-[22rem] w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.04]"
                   />
                   <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[rgba(7,19,21,0.72)] to-transparent" />
                   <div className="absolute left-5 top-5 rounded-full bg-white/88 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-[var(--teal)] backdrop-blur-sm">
                     {item.categoria}
+                  </div>
+                  <div className="pointer-events-none absolute bottom-5 right-5 rounded-full bg-[rgba(7,19,21,0.72)] px-3 py-1 text-xs font-semibold text-white opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100">
+                    Clique para ampliar
                   </div>
                 </div>
 
