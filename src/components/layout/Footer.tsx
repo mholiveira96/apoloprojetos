@@ -13,7 +13,7 @@ export function Footer() {
 
         <div className="sm:text-right">
           <div>Rua Francisco Maia Sobrinho, 1950, Sala 1304</div>
-          <div>Ed. Plenar, Lagoa Nova, Natal/RN</div>
+          <div>Ed. Plenarium, Lagoa Nova, Natal/RN</div>
           <div className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--teal)]">
             © {new Date().getFullYear()} Apolo Projetos Inteligentes
           </div>
