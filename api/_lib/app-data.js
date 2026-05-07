@@ -148,15 +148,15 @@ export async function getBootstrapData() {
     db.execute(`
       SELECT * FROM (
         SELECT
-          id,
-          project_id,
-          amount,
-          received_at AS entry_date,
-          bank_account,
-          note,
+          payment_receipts.id,
+          payment_receipts.project_id,
+          payment_receipts.amount,
+          payment_receipts.received_at AS entry_date,
+          payment_receipts.bank_account,
+          payment_receipts.note,
           'receipt' AS entry_type,
           projects.name AS project_name,
-          amount AS signed_amount,
+          payment_receipts.amount AS signed_amount,
           NULL AS counterpart
         FROM payment_receipts
         INNER JOIN projects ON projects.id = payment_receipts.project_id
@@ -164,32 +164,32 @@ export async function getBootstrapData() {
         UNION ALL
 
         SELECT
-          id,
-          project_id,
-          amount,
-          paid_at AS entry_date,
-          bank_account,
-          note,
+          project_expenses.id,
+          project_expenses.project_id,
+          project_expenses.amount,
+          project_expenses.paid_at AS entry_date,
+          project_expenses.bank_account,
+          project_expenses.note,
           'expense' AS entry_type,
           projects.name AS project_name,
-          amount * -1 AS signed_amount,
-          COALESCE(vendor, category) AS counterpart
+          project_expenses.amount * -1 AS signed_amount,
+          COALESCE(project_expenses.vendor, project_expenses.category) AS counterpart
         FROM project_expenses
         INNER JOIN projects ON projects.id = project_expenses.project_id
 
         UNION ALL
 
         SELECT
-          id,
-          project_id,
-          amount,
-          paid_at AS entry_date,
-          bank_account,
-          note,
+          partner_payouts.id,
+          partner_payouts.project_id,
+          partner_payouts.amount,
+          partner_payouts.paid_at AS entry_date,
+          partner_payouts.bank_account,
+          partner_payouts.note,
           'payout' AS entry_type,
           projects.name AS project_name,
-          amount * -1 AS signed_amount,
-          partner_name AS counterpart
+          partner_payouts.amount * -1 AS signed_amount,
+          partner_payouts.partner_name AS counterpart
         FROM partner_payouts
         INNER JOIN projects ON projects.id = partner_payouts.project_id
       )
