@@ -205,6 +205,135 @@ function MetricCard({
   )
 }
 
+type ViewMode = 'list' | 'kanban'
+
+function ViewSwitch({ value, onChange }: { value: ViewMode; onChange: (value: ViewMode) => void }) {
+  return (
+    <div className="inline-flex rounded-full border border-[var(--line)] bg-[var(--paper)] p-1">
+      {(['list', 'kanban'] as ViewMode[]).map((option) => (
+        <button
+          key={option}
+          type="button"
+          className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${value === option ? 'bg-white text-[var(--ink)] shadow-[0_6px_18px_rgba(7,19,21,0.08)]' : 'text-[var(--ink-soft)]'}`}
+          onClick={() => onChange(option)}
+        >
+          {option === 'list' ? 'Lista' : 'Kanban'}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function KanbanColumn({
+  title,
+  count,
+  children,
+}: {
+  title: string
+  count: number
+  children: ReactNode
+}) {
+  return (
+    <div className="min-w-[280px] flex-1 rounded-[24px] border border-[var(--line)] bg-[rgba(245,245,242,0.8)] p-4">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-3">
+        <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]/75">{title}</div>
+        <div className="rounded-full border border-[var(--line)] bg-white/80 px-2.5 py-1 text-xs font-medium text-[var(--ink)]">{count}</div>
+      </div>
+      <div className="mt-4 space-y-3">{children}</div>
+    </div>
+  )
+}
+
+function LeadKanbanCard({
+  lead,
+  active,
+  onEdit,
+  onStageChange,
+}: {
+  lead: Lead
+  active: boolean
+  onEdit: (leadId: string) => void
+  onStageChange: (leadId: string, stage: string) => void
+}) {
+  const followUp = leadFollowUpMeta(lead)
+
+  return (
+    <div className={`rounded-[22px] border p-4 shadow-[0_16px_40px_rgba(7,19,21,0.04)] ${active ? 'border-[rgba(15,139,141,0.2)] bg-[rgba(15,139,141,0.06)]' : 'border-[var(--line)] bg-white/92'}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="font-medium text-[var(--ink)]">{lead.title}</div>
+          <div className="mt-1 text-sm text-[var(--ink-soft)]">{lead.client_name || 'Cliente não informado'}</div>
+        </div>
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
+          onClick={() => onEdit(lead.id)}
+        >
+          <SquarePen className="h-3.5 w-3.5" /> Editar
+        </button>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--ink-soft)]">
+        <span className="rounded-full border border-[var(--line)] px-2.5 py-1">{formatCurrency(numericValue(lead.estimated_amount))}</span>
+        <span className={`rounded-full border px-2.5 py-1 ${followUp.tone}`}>{followUp.label}</span>
+      </div>
+      <div className="mt-3 text-sm text-[var(--ink-soft)]">{lead.sales_owner || 'Sem responsável'} · Entrada {formatDate(lead.inbound_at || lead.created_at)}</div>
+      <div className="mt-3">
+        <select
+          className="w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)]"
+          value={lead.stage}
+          onChange={(event) => onStageChange(lead.id, event.target.value)}
+        >
+          {leadStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
+        </select>
+      </div>
+    </div>
+  )
+}
+
+function ProjectKanbanCard({
+  project,
+  active,
+  onEdit,
+  onStageChange,
+}: {
+  project: Project
+  active: boolean
+  onEdit: (projectId: string) => void
+  onStageChange: (projectId: string, stage: string) => void
+}) {
+  return (
+    <div className={`rounded-[22px] border p-4 shadow-[0_16px_40px_rgba(7,19,21,0.04)] ${active ? 'border-[rgba(15,139,141,0.2)] bg-[rgba(15,139,141,0.06)]' : 'border-[var(--line)] bg-white/92'}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="font-medium text-[var(--ink)]">{project.name}</div>
+          <div className="mt-1 text-sm text-[var(--ink-soft)]">{project.client_name || 'Cliente não informado'}</div>
+        </div>
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
+          onClick={() => onEdit(project.id)}
+        >
+          <SquarePen className="h-3.5 w-3.5" /> Editar
+        </button>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--ink-soft)]">
+        {project.discipline ? <span className="rounded-full border border-[var(--line)] px-2.5 py-1">{project.discipline}</span> : null}
+        <span className="rounded-full border border-[var(--line)] px-2.5 py-1">{project.pending_count} pendências</span>
+      </div>
+      <div className="mt-3 text-sm text-[var(--ink-soft)]">{formatCurrency(numericValue(project.contract_amount))} · prazo {formatDate(project.next_pending_due || project.deadline)}</div>
+      <div className="mt-3">
+        <select
+          className="w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)]"
+          value={project.stage}
+          onChange={(event) => onStageChange(project.id, event.target.value)}
+        >
+          {projectStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
+        </select>
+      </div>
+    </div>
+  )
+}
+
 type LeadDetailForm = {
   title: string
   stage: string
@@ -682,6 +811,8 @@ export function ApoloWorkspace() {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null)
+  const [commercialView, setCommercialView] = useState<ViewMode>('list')
+  const [operationsView, setOperationsView] = useState<ViewMode>('list')
   const [leadDetailForm, setLeadDetailForm] = useState<LeadDetailForm>({
     title: '',
     stage: 'incoming',
@@ -896,6 +1027,14 @@ export function ApoloWorkspace() {
   const selectedLead = useMemo(() => data?.leads?.find((lead) => lead.id === selectedLeadId) || null, [data?.leads, selectedLeadId])
   const selectedProject = useMemo(() => data?.projects?.find((project) => project.id === selectedProjectId) || null, [data?.projects, selectedProjectId])
   const selectedLog = useMemo(() => data?.logs?.find((item) => item.id === selectedLogId) || null, [data?.logs, selectedLogId])
+  const commercialKanban = useMemo(
+    () => Object.fromEntries(leadStages.map((stage) => [stage, (data?.leads || []).filter((lead) => lead.stage === stage)])) as Record<string, Lead[]>,
+    [data?.leads],
+  )
+  const operationsKanban = useMemo(
+    () => Object.fromEntries(projectStages.map((stage) => [stage, (data?.projects || []).filter((project) => project.stage === stage)])) as Record<string, Project[]>,
+    [data?.projects],
+  )
   const monthly = useMemo(() => monthTotals(data?.cashflow || []), [data?.cashflow])
 
   useEffect(() => {
@@ -1203,66 +1342,98 @@ export function ApoloWorkspace() {
                 </div>
 
                 <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
-                  <Panel title="Pipeline comercial" subtitle="Comercial bom tem data, dono e ação explícita — sem lead órfão.">
+                  <Panel
+                    title="Pipeline comercial"
+                    subtitle="Comercial bom tem data, dono e ação explícita — sem lead órfão."
+                    actions={<ViewSwitch value={commercialView} onChange={setCommercialView} />}
+                  >
                     {data.leads.length ? (
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full text-left text-sm">
-                          <thead className="text-[var(--ink-soft)]">
-                            <tr>
-                              <th className="pb-3">Lead</th>
-                              <th className="pb-3">Cliente</th>
-                              <th className="pb-3">Valor</th>
-                              <th className="pb-3">Responsável</th>
-                              <th className="pb-3">Entrada</th>
-                              <th className="pb-3">Últ. contato</th>
-                              <th className="pb-3">Próx. follow-up</th>
-                              <th className="pb-3">Etapa</th>
-                              <th className="pb-3 text-right">Ação</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-[var(--line)]">
-                            {data.leads.map((lead: Lead) => {
-                              const followUp = leadFollowUpMeta(lead)
-                              const isActive = selectedLeadId === lead.id
-                              return (
-                                <tr key={lead.id} className={isActive ? 'bg-[rgba(15,139,141,0.05)]' : ''}>
-                                  <td className="py-4 font-medium text-[var(--ink)]">{lead.title}</td>
-                                  <td className="py-4 text-[var(--ink-soft)]">{lead.client_name || '—'}</td>
-                                  <td className="py-4 text-[var(--ink-soft)]">{formatCurrency(numericValue(lead.estimated_amount))}</td>
-                                  <td className="py-4 text-[var(--ink-soft)]">{lead.sales_owner || '—'}</td>
-                                  <td className="py-4 text-[var(--ink-soft)]">{formatDate(lead.inbound_at || lead.created_at)}</td>
-                                  <td className="py-4 text-[var(--ink-soft)]">{formatDate(lead.last_contact_at || lead.first_contact_at)}</td>
-                                  <td className="py-4">
-                                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${followUp.tone}`}>
-                                      {formatDate(lead.next_follow_up_at)}
-                                    </span>
-                                  </td>
-                                  <td className="py-4">
-                                    <select
-                                      className="rounded-full border border-[var(--line)] bg-white px-3 py-2 text-xs"
-                                      value={lead.stage}
-                                      onChange={(event) => {
-                                        void submitMutation('updateLeadStage', { id: lead.id, stage: event.target.value }, undefined, 'Etapa do lead atualizada')
+                      commercialView === 'list' ? (
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-left text-sm">
+                            <thead className="text-[var(--ink-soft)]">
+                              <tr>
+                                <th className="pb-3">Lead</th>
+                                <th className="pb-3">Cliente</th>
+                                <th className="pb-3">Valor</th>
+                                <th className="pb-3">Responsável</th>
+                                <th className="pb-3">Entrada</th>
+                                <th className="pb-3">Últ. contato</th>
+                                <th className="pb-3">Próx. follow-up</th>
+                                <th className="pb-3">Etapa</th>
+                                <th className="pb-3 text-right">Ação</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--line)]">
+                              {data.leads.map((lead: Lead) => {
+                                const followUp = leadFollowUpMeta(lead)
+                                const isActive = selectedLeadId === lead.id
+                                return (
+                                  <tr key={lead.id} className={isActive ? 'bg-[rgba(15,139,141,0.05)]' : ''}>
+                                    <td className="py-4 font-medium text-[var(--ink)]">{lead.title}</td>
+                                    <td className="py-4 text-[var(--ink-soft)]">{lead.client_name || '—'}</td>
+                                    <td className="py-4 text-[var(--ink-soft)]">{formatCurrency(numericValue(lead.estimated_amount))}</td>
+                                    <td className="py-4 text-[var(--ink-soft)]">{lead.sales_owner || '—'}</td>
+                                    <td className="py-4 text-[var(--ink-soft)]">{formatDate(lead.inbound_at || lead.created_at)}</td>
+                                    <td className="py-4 text-[var(--ink-soft)]">{formatDate(lead.last_contact_at || lead.first_contact_at)}</td>
+                                    <td className="py-4">
+                                      <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${followUp.tone}`}>
+                                        {formatDate(lead.next_follow_up_at)}
+                                      </span>
+                                    </td>
+                                    <td className="py-4">
+                                      <select
+                                        className="rounded-full border border-[var(--line)] bg-white px-3 py-2 text-xs"
+                                        value={lead.stage}
+                                        onChange={(event) => {
+                                          void submitMutation('updateLeadStage', { id: lead.id, stage: event.target.value }, undefined, 'Etapa do lead atualizada')
+                                        }}
+                                      >
+                                        {leadStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
+                                      </select>
+                                    </td>
+                                    <td className="py-4 text-right">
+                                      <button
+                                        type="button"
+                                        className={`rounded-full border px-3 py-2 text-xs font-medium transition ${isActive ? 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]' : 'border-[var(--line)] text-[var(--ink)] hover:bg-white'}`}
+                                        onClick={() => setSelectedLeadId(lead.id)}
+                                      >
+                                        {isActive ? 'Editando' : 'Editar'}
+                                      </button>
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto pb-2">
+                          <div className="flex gap-4">
+                            {leadStages.map((stage) => (
+                              <KanbanColumn key={stage} title={stageLabel(stage)} count={commercialKanban[stage]?.length || 0}>
+                                {(commercialKanban[stage] || []).length ? (
+                                  (commercialKanban[stage] || []).map((lead) => (
+                                    <LeadKanbanCard
+                                      key={lead.id}
+                                      lead={lead}
+                                      active={selectedLeadId === lead.id}
+                                      onEdit={setSelectedLeadId}
+                                      onStageChange={(leadId, nextStage) => {
+                                        void submitMutation('updateLeadStage', { id: leadId, stage: nextStage }, undefined, 'Etapa do lead atualizada')
                                       }}
-                                    >
-                                      {leadStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
-                                    </select>
-                                  </td>
-                                  <td className="py-4 text-right">
-                                    <button
-                                      type="button"
-                                      className={`rounded-full border px-3 py-2 text-xs font-medium transition ${isActive ? 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]' : 'border-[var(--line)] text-[var(--ink)] hover:bg-white'}`}
-                                      onClick={() => setSelectedLeadId(lead.id)}
-                                    >
-                                      {isActive ? 'Editando' : 'Editar'}
-                                    </button>
-                                  </td>
-                                </tr>
-                              )
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+                                    />
+                                  ))
+                                ) : (
+                                  <div className="rounded-[20px] border border-dashed border-[var(--line)] bg-white/65 p-4 text-sm text-[var(--ink-soft)]">
+                                    Nada aqui. Milagre ou abandono — você decide.
+                                  </div>
+                                )}
+                              </KanbanColumn>
+                            ))}
+                          </div>
+                        </div>
+                      )
                     ) : (
                       <EmptyState title="Sem leads ainda" body="Use o formulário acima para o comercial parar de viver em conversa solta e resto de Notion." />
                     )}
@@ -1277,7 +1448,7 @@ export function ApoloWorkspace() {
                       onTouch={() => void handleLeadTouch()}
                     />
                   ) : (
-                    <EmptyState title="Edite um lead" body="Use a coluna de ação para abrir a edição e manter as datas do comercial sob controle." />
+                    <EmptyState title="Edite um lead" body="Abra um card na lista ou no kanban para manter as datas do comercial sob controle." />
                   )}
                 </div>
               </>
@@ -1315,18 +1486,50 @@ export function ApoloWorkspace() {
                   </Panel>
 
                   <div className="space-y-6">
-                    <Panel title="Faixa de projetos" subtitle="A operação fica mais limpa quando cada projeto mostra o pulso num relance.">
-                      <div className="space-y-4">
-                        {data.projects.length ? (
-                          data.projects.map((project) => (
-                            <ProjectStrip key={project.id} project={project} onEdit={setSelectedProjectId} onStageChange={(projectId, stage) => {
-                              void submitMutation('updateProjectStage', { id: projectId, stage }, undefined, 'Etapa do projeto atualizada')
-                            }} />
-                          ))
+                    <Panel
+                      title="Faixa de projetos"
+                      subtitle="A operação fica mais limpa quando cada projeto mostra o pulso num relance."
+                      actions={<ViewSwitch value={operationsView} onChange={setOperationsView} />}
+                    >
+                      {data.projects.length ? (
+                        operationsView === 'list' ? (
+                          <div className="space-y-4">
+                            {data.projects.map((project) => (
+                              <ProjectStrip key={project.id} project={project} onEdit={setSelectedProjectId} onStageChange={(projectId, stage) => {
+                                void submitMutation('updateProjectStage', { id: projectId, stage }, undefined, 'Etapa do projeto atualizada')
+                              }} />
+                            ))}
+                          </div>
                         ) : (
-                          <EmptyState title="Nenhum projeto acompanhado" body="Crie um projeto no Comercial para começar a registrar operação e prazos." />
-                        )}
-                      </div>
+                          <div className="overflow-x-auto pb-2">
+                            <div className="flex gap-4">
+                              {projectStages.map((stage) => (
+                                <KanbanColumn key={stage} title={stageLabel(stage)} count={operationsKanban[stage]?.length || 0}>
+                                  {(operationsKanban[stage] || []).length ? (
+                                    (operationsKanban[stage] || []).map((project) => (
+                                      <ProjectKanbanCard
+                                        key={project.id}
+                                        project={project}
+                                        active={selectedProjectId === project.id}
+                                        onEdit={setSelectedProjectId}
+                                        onStageChange={(projectId, nextStage) => {
+                                          void submitMutation('updateProjectStage', { id: projectId, stage: nextStage }, undefined, 'Etapa do projeto atualizada')
+                                        }}
+                                      />
+                                    ))
+                                  ) : (
+                                    <div className="rounded-[20px] border border-dashed border-[var(--line)] bg-white/65 p-4 text-sm text-[var(--ink-soft)]">
+                                      Coluna limpa. Aproveita enquanto dura.
+                                    </div>
+                                  )}
+                                </KanbanColumn>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      ) : (
+                        <EmptyState title="Nenhum projeto acompanhado" body="Crie um projeto no Comercial para começar a registrar operação e prazos." />
+                      )}
                     </Panel>
 
                     {selectedProject ? (
@@ -1337,7 +1540,7 @@ export function ApoloWorkspace() {
                         onSave={() => void handleProjectSave()}
                       />
                     ) : (
-                      <EmptyState title="Edite um projeto" body="Use o botão editar na faixa de projetos para ajustar prazo, etapa e observações operacionais." />
+                      <EmptyState title="Edite um projeto" body="Use editar na lista ou no kanban para ajustar prazo, etapa e observações operacionais." />
                     )}
                   </div>
                 </div>
