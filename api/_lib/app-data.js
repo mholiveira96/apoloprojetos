@@ -41,12 +41,26 @@ export async function getBootstrapData() {
         leads.estimated_amount,
         leads.sales_owner,
         leads.notes,
+        leads.inbound_at,
+        leads.first_contact_at,
+        leads.last_contact_at,
+        leads.next_follow_up_at,
+        leads.proposal_sent_at,
+        leads.closed_at,
         leads.created_at,
         clients.name AS client_name
       FROM leads
       LEFT JOIN clients ON clients.id = leads.client_id
-      ORDER BY leads.created_at DESC
-      LIMIT 24
+      ORDER BY
+        CASE
+          WHEN leads.stage NOT IN ('won', 'lost') AND leads.next_follow_up_at IS NOT NULL AND leads.next_follow_up_at < date('now') THEN 0
+          WHEN leads.stage NOT IN ('won', 'lost') AND leads.next_follow_up_at IS NOT NULL THEN 1
+          WHEN leads.stage NOT IN ('won', 'lost') THEN 2
+          ELSE 3
+        END,
+        COALESCE(leads.next_follow_up_at, leads.inbound_at, substr(leads.created_at, 1, 10)) ASC,
+        leads.updated_at DESC
+      LIMIT 80
     `),
     db.execute(`
       SELECT

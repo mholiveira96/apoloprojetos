@@ -74,9 +74,42 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
 }
 
+function parseDateValue(value: string | null | undefined) {
+  if (!value) return null
+  const text = String(value)
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(text) ? `${text}T12:00:00` : text
+  const date = new Date(normalized)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 function formatDate(value: string | null | undefined) {
-  if (!value) return '—'
-  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(new Date(value))
+  const date = parseDateValue(value)
+  if (!date) return '—'
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(date)
+}
+
+function toDateInputValue(value: string | null | undefined) {
+  if (!value) return ''
+  return String(value).slice(0, 10)
+}
+
+function leadFollowUpMeta(lead: Lead) {
+  if (!lead.next_follow_up_at) {
+    return { label: 'Sem follow-up', tone: 'border-[var(--line)] text-[var(--ink-soft)]' }
+  }
+
+  const followUpDate = parseDateValue(lead.next_follow_up_at)
+  const today = parseDateValue(new Date().toISOString().slice(0, 10))
+  if (!followUpDate || !today) {
+    return { label: formatDate(lead.next_follow_up_at), tone: 'border-[var(--line)] text-[var(--ink-soft)]' }
+  }
+
+  const diffDays = Math.round((followUpDate.getTime() - today.getTime()) / 86400000)
+
+  if (diffDays < 0) return { label: `${Math.abs(diffDays)}d em atraso`, tone: 'border-rose-200 bg-rose-50 text-rose-700' }
+  if (diffDays === 0) return { label: 'Vence hoje', tone: 'border-amber-200 bg-amber-50 text-amber-700' }
+  if (diffDays <= 2) return { label: `${diffDays}d para agir`, tone: 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]' }
+  return { label: `Próximo em ${diffDays}d`, tone: 'border-[var(--line)] text-[var(--ink-soft)]' }
 }
 
 function stageLabel(value: string) {
@@ -167,6 +200,129 @@ function MetricCard({
         </div>
       </div>
       <div className="mt-4 text-sm text-[var(--ink-soft)]">{helper}</div>
+    </div>
+  )
+}
+
+type LeadDetailForm = {
+  title: string
+  stage: string
+  source: string
+  estimatedAmount: string
+  salesOwner: string
+  notes: string
+  inboundAt: string
+  firstContactAt: string
+  lastContactAt: string
+  nextFollowUpAt: string
+  proposalSentAt: string
+  closedAt: string
+}
+
+function LeadDetailCard({
+  lead,
+  draft,
+  onChange,
+  onSave,
+  onTouch,
+}: {
+  lead: Lead
+  draft: LeadDetailForm
+  onChange: (field: keyof LeadDetailForm, value: string) => void
+  onSave: () => void
+  onTouch: () => void
+}) {
+  const followUp = leadFollowUpMeta(lead)
+
+  return (
+    <div className="rounded-[28px] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(245,245,242,0.98))] p-5 shadow-[0_24px_60px_rgba(7,19,21,0.05)]">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--line)] pb-4">
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-[var(--teal)]">Lead aberto</div>
+          <h3 className="mt-2 text-xl font-semibold text-[var(--ink)]">{lead.title}</h3>
+          <div className="mt-2 text-sm text-[var(--ink-soft)]">{lead.client_name || 'Cliente não informado'}</div>
+        </div>
+        <div className={`rounded-full border px-3 py-1 text-xs font-medium ${followUp.tone}`}>
+          {followUp.label}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div className="rounded-2xl border border-[var(--line)] bg-white/80 p-4 text-sm">
+          <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Entrada</div>
+          <div className="mt-2 font-medium text-[var(--ink)]">{formatDate(lead.inbound_at || lead.created_at)}</div>
+        </div>
+        <div className="rounded-2xl border border-[var(--line)] bg-white/80 p-4 text-sm">
+          <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Próxima ação</div>
+          <div className="mt-2 font-medium text-[var(--ink)]">{formatDate(lead.next_follow_up_at)}</div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <label className="block text-sm font-medium text-[var(--ink)]">
+          Lead
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.title} onChange={(event) => onChange('title', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">
+          Etapa
+          <select className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.stage} onChange={(event) => onChange('stage', event.target.value)}>
+            {leadStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
+          </select>
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">
+          Origem
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.source} onChange={(event) => onChange('source', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">
+          Responsável comercial
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.salesOwner} onChange={(event) => onChange('salesOwner', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">
+          Valor estimado
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="number" value={draft.estimatedAmount} onChange={(event) => onChange('estimatedAmount', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">
+          Próximo follow-up
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.nextFollowUpAt} onChange={(event) => onChange('nextFollowUpAt', event.target.value)} />
+        </label>
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <label className="block text-sm font-medium text-[var(--ink)]">
+          Data de entrada
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.inboundAt} onChange={(event) => onChange('inboundAt', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">
+          Primeiro contato
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.firstContactAt} onChange={(event) => onChange('firstContactAt', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">
+          Último contato
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.lastContactAt} onChange={(event) => onChange('lastContactAt', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">
+          Proposta enviada
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.proposalSentAt} onChange={(event) => onChange('proposalSentAt', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">
+          Fechamento
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.closedAt} onChange={(event) => onChange('closedAt', event.target.value)} />
+        </label>
+      </div>
+
+      <label className="mt-4 block text-sm font-medium text-[var(--ink)]">
+        Observações
+        <textarea className="mt-2 min-h-28 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.notes} onChange={(event) => onChange('notes', event.target.value)} />
+      </label>
+
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button type="button" className="inline-flex items-center justify-center rounded-2xl border border-[var(--line)] px-4 py-3 text-sm text-[var(--ink)] transition hover:bg-white" onClick={onTouch}>
+          Registrar contato hoje
+        </button>
+        <button type="button" className="inline-flex items-center justify-center rounded-2xl bg-[var(--ink)] px-4 py-3 text-sm text-white transition hover:bg-[var(--ink-soft)]" onClick={onSave}>
+          Salvar lead
+        </button>
+      </div>
     </div>
   )
 }
@@ -363,6 +519,23 @@ export function ApoloWorkspace() {
     estimatedAmount: '',
     salesOwner: '',
     notes: '',
+    inboundAt: new Date().toISOString().slice(0, 10),
+    nextFollowUpAt: '',
+  })
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
+  const [leadDetailForm, setLeadDetailForm] = useState<LeadDetailForm>({
+    title: '',
+    stage: 'incoming',
+    source: '',
+    estimatedAmount: '',
+    salesOwner: '',
+    notes: '',
+    inboundAt: '',
+    firstContactAt: '',
+    lastContactAt: '',
+    nextFollowUpAt: '',
+    proposalSentAt: '',
+    closedAt: '',
   })
   const [projectForm, setProjectForm] = useState({
     clientName: '',
@@ -458,6 +631,36 @@ export function ApoloWorkspace() {
     }
   }
 
+  const handleLeadDetailChange = (field: keyof LeadDetailForm, value: string) => {
+    setLeadDetailForm((current) => ({ ...current, [field]: value }))
+  }
+
+  const handleLeadSave = async () => {
+    if (!selectedLead) return
+    await submitMutation(
+      'updateLead',
+      {
+        id: selectedLead.id,
+        ...leadDetailForm,
+      },
+      undefined,
+      'Lead atualizado',
+    )
+  }
+
+  const handleLeadTouch = async () => {
+    if (!selectedLead) return
+    await submitMutation(
+      'touchLead',
+      {
+        id: selectedLead.id,
+        nextFollowUpAt: leadDetailForm.nextFollowUpAt || undefined,
+      },
+      undefined,
+      'Contato registrado',
+    )
+  }
+
   const handleLogin = async (email: string, password: string) => {
     try {
       const session = await login(email, password)
@@ -479,11 +682,42 @@ export function ApoloWorkspace() {
   }
 
   const openProjectOptions = data?.projects.map((project) => ({ id: project.id, name: project.name })) || []
+  const selectedLead = useMemo(() => data?.leads?.find((lead) => lead.id === selectedLeadId) || null, [data?.leads, selectedLeadId])
   const recentPending = useMemo(
     () => (data?.logs || []).filter((item) => item.log_type === 'pending' && item.status !== 'done').slice(0, 8),
     [data?.logs],
   )
   const monthly = useMemo(() => monthTotals(data?.cashflow || []), [data?.cashflow])
+
+  useEffect(() => {
+    if (!data?.leads.length) {
+      setSelectedLeadId(null)
+      return
+    }
+
+    const stillExists = selectedLeadId && data.leads.some((lead) => lead.id === selectedLeadId)
+    if (!stillExists) {
+      setSelectedLeadId(data.leads[0].id)
+    }
+  }, [data?.leads, selectedLeadId])
+
+  useEffect(() => {
+    if (!selectedLead) return
+    setLeadDetailForm({
+      title: selectedLead.title || '',
+      stage: selectedLead.stage || 'incoming',
+      source: selectedLead.source || '',
+      estimatedAmount: String(selectedLead.estimated_amount || ''),
+      salesOwner: selectedLead.sales_owner || '',
+      notes: selectedLead.notes || '',
+      inboundAt: toDateInputValue(selectedLead.inbound_at || selectedLead.created_at),
+      firstContactAt: toDateInputValue(selectedLead.first_contact_at),
+      lastContactAt: toDateInputValue(selectedLead.last_contact_at),
+      nextFollowUpAt: toDateInputValue(selectedLead.next_follow_up_at),
+      proposalSentAt: toDateInputValue(selectedLead.proposal_sent_at),
+      closedAt: toDateInputValue(selectedLead.closed_at),
+    })
+  }, [selectedLead])
 
   if (checkingSession) {
     return (
@@ -675,13 +909,23 @@ export function ApoloWorkspace() {
             {section === 'commercial' ? (
               <>
                 <div className="grid gap-6 xl:grid-cols-2">
-                  <Panel title="Novo lead" subtitle="Entrada comercial rápida.">
+                  <Panel title="Novo lead" subtitle="Entrada comercial com dono e próxima ação já definida.">
                     <form
                       className="grid gap-4 md:grid-cols-2"
                       onSubmit={(event) => {
                         event.preventDefault()
                         void submitMutation('createLead', leadForm, () => {
-                          setLeadForm({ clientName: '', title: '', stage: 'incoming', source: '', estimatedAmount: '', salesOwner: '', notes: '' })
+                          setLeadForm({
+                            clientName: '',
+                            title: '',
+                            stage: 'incoming',
+                            source: '',
+                            estimatedAmount: '',
+                            salesOwner: '',
+                            notes: '',
+                            inboundAt: new Date().toISOString().slice(0, 10),
+                            nextFollowUpAt: '',
+                          })
                         }, 'Lead criado')
                       }}
                     >
@@ -693,6 +937,8 @@ export function ApoloWorkspace() {
                       <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Origem" value={leadForm.source} onChange={(event) => setLeadForm((current) => ({ ...current, source: event.target.value }))} />
                       <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Valor estimado" type="number" value={leadForm.estimatedAmount} onChange={(event) => setLeadForm((current) => ({ ...current, estimatedAmount: event.target.value }))} />
                       <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Responsável comercial" value={leadForm.salesOwner} onChange={(event) => setLeadForm((current) => ({ ...current, salesOwner: event.target.value }))} />
+                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={leadForm.inboundAt} onChange={(event) => setLeadForm((current) => ({ ...current, inboundAt: event.target.value }))} />
+                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={leadForm.nextFollowUpAt} onChange={(event) => setLeadForm((current) => ({ ...current, nextFollowUpAt: event.target.value }))} />
                       <textarea className="md:col-span-2 min-h-28 rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Observações" value={leadForm.notes} onChange={(event) => setLeadForm((current) => ({ ...current, notes: event.target.value }))} />
                       <button className="md:col-span-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-4 py-3 text-white" disabled={mutating}>
                         <Plus className="h-4 w-4" /> Adicionar lead
@@ -728,46 +974,84 @@ export function ApoloWorkspace() {
                   </Panel>
                 </div>
 
-                <Panel title="Pipeline comercial" subtitle="O comercial precisa continuar brutalmente visível.">
-                  {data.leads.length ? (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-left text-sm">
-                        <thead className="text-[var(--ink-soft)]">
-                          <tr>
-                            <th className="pb-3">Lead</th>
-                            <th className="pb-3">Cliente</th>
-                            <th className="pb-3">Valor</th>
-                            <th className="pb-3">Responsável</th>
-                            <th className="pb-3">Etapa</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--line)]">
-                          {data.leads.map((lead: Lead) => (
-                            <tr key={lead.id}>
-                              <td className="py-4 font-medium text-[var(--ink)]">{lead.title}</td>
-                              <td className="py-4 text-[var(--ink-soft)]">{lead.client_name || '—'}</td>
-                              <td className="py-4 text-[var(--ink-soft)]">{formatCurrency(numericValue(lead.estimated_amount))}</td>
-                              <td className="py-4 text-[var(--ink-soft)]">{lead.sales_owner || '—'}</td>
-                              <td className="py-4">
-                                <select
-                                  className="rounded-full border border-[var(--line)] bg-white px-3 py-2 text-xs"
-                                  value={lead.stage}
-                                  onChange={(event) => {
-                                    void submitMutation('updateLeadStage', { id: lead.id, stage: event.target.value }, undefined, 'Lead atualizado')
-                                  }}
-                                >
-                                  {leadStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
-                                </select>
-                              </td>
+                <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
+                  <Panel title="Pipeline comercial" subtitle="Comercial bom tem data, dono e ação explícita — sem lead órfão.">
+                    {data.leads.length ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-left text-sm">
+                          <thead className="text-[var(--ink-soft)]">
+                            <tr>
+                              <th className="pb-3">Lead</th>
+                              <th className="pb-3">Cliente</th>
+                              <th className="pb-3">Valor</th>
+                              <th className="pb-3">Responsável</th>
+                              <th className="pb-3">Entrada</th>
+                              <th className="pb-3">Últ. contato</th>
+                              <th className="pb-3">Próx. follow-up</th>
+                              <th className="pb-3">Etapa</th>
+                              <th className="pb-3 text-right">Ação</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--line)]">
+                            {data.leads.map((lead: Lead) => {
+                              const followUp = leadFollowUpMeta(lead)
+                              const isActive = selectedLeadId === lead.id
+                              return (
+                                <tr key={lead.id} className={isActive ? 'bg-[rgba(15,139,141,0.05)]' : ''}>
+                                  <td className="py-4 font-medium text-[var(--ink)]">{lead.title}</td>
+                                  <td className="py-4 text-[var(--ink-soft)]">{lead.client_name || '—'}</td>
+                                  <td className="py-4 text-[var(--ink-soft)]">{formatCurrency(numericValue(lead.estimated_amount))}</td>
+                                  <td className="py-4 text-[var(--ink-soft)]">{lead.sales_owner || '—'}</td>
+                                  <td className="py-4 text-[var(--ink-soft)]">{formatDate(lead.inbound_at || lead.created_at)}</td>
+                                  <td className="py-4 text-[var(--ink-soft)]">{formatDate(lead.last_contact_at || lead.first_contact_at)}</td>
+                                  <td className="py-4">
+                                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${followUp.tone}`}>
+                                      {formatDate(lead.next_follow_up_at)}
+                                    </span>
+                                  </td>
+                                  <td className="py-4">
+                                    <select
+                                      className="rounded-full border border-[var(--line)] bg-white px-3 py-2 text-xs"
+                                      value={lead.stage}
+                                      onChange={(event) => {
+                                        void submitMutation('updateLeadStage', { id: lead.id, stage: event.target.value }, undefined, 'Etapa do lead atualizada')
+                                      }}
+                                    >
+                                      {leadStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
+                                    </select>
+                                  </td>
+                                  <td className="py-4 text-right">
+                                    <button
+                                      type="button"
+                                      className={`rounded-full border px-3 py-2 text-xs font-medium transition ${isActive ? 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]' : 'border-[var(--line)] text-[var(--ink)] hover:bg-white'}`}
+                                      onClick={() => setSelectedLeadId(lead.id)}
+                                    >
+                                      {isActive ? 'Aberto' : 'Abrir card'}
+                                    </button>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <EmptyState title="Sem leads ainda" body="Use o formulário acima para o comercial parar de viver em conversa solta e resto de Notion." />
+                    )}
+                  </Panel>
+
+                  {selectedLead ? (
+                    <LeadDetailCard
+                      lead={selectedLead}
+                      draft={leadDetailForm}
+                      onChange={handleLeadDetailChange}
+                      onSave={() => void handleLeadSave()}
+                      onTouch={() => void handleLeadTouch()}
+                    />
                   ) : (
-                    <EmptyState title="Sem leads ainda" body="Use o formulário acima para o comercial parar de viver em conversa solta e resto de Notion." />
+                    <EmptyState title="Abra um lead" body="Use a coluna de ação para abrir o card e manter as datas do comercial sob controle." />
                   )}
-                </Panel>
+                </div>
               </>
             ) : null}
 

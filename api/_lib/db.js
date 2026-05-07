@@ -29,6 +29,12 @@ const schemaStatements = [
     estimated_amount REAL DEFAULT 0,
     sales_owner TEXT,
     notes TEXT,
+    inbound_at TEXT,
+    first_contact_at TEXT,
+    last_contact_at TEXT,
+    next_follow_up_at TEXT,
+    proposal_sent_at TEXT,
+    closed_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (client_id) REFERENCES clients(id)
@@ -121,6 +127,27 @@ export function getDb() {
   return clientSingleton
 }
 
+async function ensureColumn(tableName, columnName, columnSql) {
+  const db = getDb()
+  const columnsResult = await db.execute(`PRAGMA table_info(${tableName})`)
+  const existing = new Set(columnsResult.rows.map((row) => String(row.name)))
+  if (!existing.has(columnName)) {
+    await db.execute(`ALTER TABLE ${tableName} ADD COLUMN ${columnSql}`)
+  }
+}
+
+async function runLeadSchemaMigrations() {
+  const db = getDb()
+  await ensureColumn('leads', 'inbound_at', 'inbound_at TEXT')
+  await ensureColumn('leads', 'first_contact_at', 'first_contact_at TEXT')
+  await ensureColumn('leads', 'last_contact_at', 'last_contact_at TEXT')
+  await ensureColumn('leads', 'next_follow_up_at', 'next_follow_up_at TEXT')
+  await ensureColumn('leads', 'proposal_sent_at', 'proposal_sent_at TEXT')
+  await ensureColumn('leads', 'closed_at', 'closed_at TEXT')
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_leads_next_follow_up ON leads(next_follow_up_at)`)
+  await db.execute(`UPDATE leads SET inbound_at = COALESCE(inbound_at, substr(created_at, 1, 10)) WHERE inbound_at IS NULL`)
+}
+
 export async function ensureSchema() {
   if (!schemaReady) {
     schemaReady = (async () => {
@@ -128,9 +155,10 @@ export async function ensureSchema() {
       for (const sql of schemaStatements) {
         await db.execute(sql)
       }
+      await runLeadSchemaMigrations()
       await db.execute({
         sql: `INSERT INTO app_meta (key, value, updated_at)
-              VALUES ('schema_version', '1', ?)
+              VALUES ('schema_version', '2', ?)
               ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
         args: [new Date().toISOString()],
       })

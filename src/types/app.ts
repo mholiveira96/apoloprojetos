@@ -22,6 +22,12 @@ export type Lead = {
   estimated_amount: number
   sales_owner: string | null
   notes: string | null
+  inbound_at: string | null
+  first_contact_at: string | null
+  last_contact_at: string | null
+  next_follow_up_at: string | null
+  proposal_sent_at: string | null
+  closed_at: string | null
   created_at: string
   client_name: string | null
 }

@@ -9,6 +9,15 @@ function normalizeAmount(value) {
   return Number.isFinite(amount) ? amount : 0
 }
 
+function normalizeDate(value) {
+  const text = String(value ?? '').trim()
+  return text || null
+}
+
+function todayIsoDate() {
+  return nowIso().slice(0, 10)
+}
+
 async function upsertClient(clientName, extras = {}) {
   const db = getDb()
   const name = normalizeText(clientName)
@@ -72,18 +81,30 @@ export async function runMutation(action, payload, actor) {
   switch (action) {
     case 'createLead': {
       const clientId = await upsertClient(normalizeText(payload.clientName), payload)
+      const stage = normalizeText(payload.stage) || 'incoming'
+      const inboundAt = normalizeDate(payload.inboundAt) || todayIsoDate()
+      const nextFollowUpAt = normalizeDate(payload.nextFollowUpAt)
       await db.execute({
-        sql: `INSERT INTO leads (id, client_id, title, stage, source, estimated_amount, sales_owner, notes, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO leads (
+                id, client_id, title, stage, source, estimated_amount, sales_owner, notes,
+                inbound_at, first_contact_at, last_contact_at, next_follow_up_at, proposal_sent_at, closed_at,
+                created_at, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           createId('lead'),
           clientId,
           normalizeText(payload.title),
-          normalizeText(payload.stage) || 'incoming',
+          stage,
           normalizeText(payload.source),
           normalizeAmount(payload.estimatedAmount),
           normalizeText(payload.salesOwner),
           normalizeText(payload.notes),
+          inboundAt,
+          normalizeDate(payload.firstContactAt),
+          normalizeDate(payload.lastContactAt),
+          nextFollowUpAt,
+          stage === 'proposal' ? (normalizeDate(payload.proposalSentAt) || todayIsoDate()) : normalizeDate(payload.proposalSentAt),
+          ['won', 'lost'].includes(stage) ? (normalizeDate(payload.closedAt) || todayIsoDate()) : normalizeDate(payload.closedAt),
           timestamp,
           timestamp,
         ],
@@ -92,9 +113,84 @@ export async function runMutation(action, payload, actor) {
     }
 
     case 'updateLeadStage': {
+      const nextStage = normalizeText(payload.stage)
+      const shouldStampProposal = nextStage === 'proposal'
+      const shouldStampClosed = ['won', 'lost'].includes(nextStage)
       await db.execute({
-        sql: 'UPDATE leads SET stage = ?, updated_at = ? WHERE id = ?',
-        args: [normalizeText(payload.stage), timestamp, normalizeText(payload.id)],
+        sql: `UPDATE leads
+              SET stage = ?,
+                  proposal_sent_at = CASE
+                    WHEN ? = 1 THEN COALESCE(proposal_sent_at, ?)
+                    ELSE proposal_sent_at
+                  END,
+                  closed_at = CASE
+                    WHEN ? = 1 THEN COALESCE(closed_at, ?)
+                    WHEN ? = 0 THEN NULL
+                    ELSE closed_at
+                  END,
+                  updated_at = ?
+              WHERE id = ?`,
+        args: [
+          nextStage,
+          shouldStampProposal ? 1 : 0,
+          todayIsoDate(),
+          shouldStampClosed ? 1 : 0,
+          todayIsoDate(),
+          shouldStampClosed ? 1 : 0,
+          timestamp,
+          normalizeText(payload.id),
+        ],
+      })
+      return { ok: true }
+    }
+
+    case 'updateLead': {
+      const stage = normalizeText(payload.stage) || 'incoming'
+      await db.execute({
+        sql: `UPDATE leads
+              SET title = ?,
+                  stage = ?,
+                  source = ?,
+                  estimated_amount = ?,
+                  sales_owner = ?,
+                  notes = ?,
+                  inbound_at = ?,
+                  first_contact_at = ?,
+                  last_contact_at = ?,
+                  next_follow_up_at = ?,
+                  proposal_sent_at = ?,
+                  closed_at = ?,
+                  updated_at = ?
+              WHERE id = ?`,
+        args: [
+          normalizeText(payload.title),
+          stage,
+          normalizeText(payload.source),
+          normalizeAmount(payload.estimatedAmount),
+          normalizeText(payload.salesOwner),
+          normalizeText(payload.notes),
+          normalizeDate(payload.inboundAt),
+          normalizeDate(payload.firstContactAt),
+          normalizeDate(payload.lastContactAt),
+          normalizeDate(payload.nextFollowUpAt),
+          stage === 'proposal' ? (normalizeDate(payload.proposalSentAt) || null) : normalizeDate(payload.proposalSentAt),
+          ['won', 'lost'].includes(stage) ? normalizeDate(payload.closedAt) : null,
+          timestamp,
+          normalizeText(payload.id),
+        ],
+      })
+      return { ok: true }
+    }
+
+    case 'touchLead': {
+      await db.execute({
+        sql: `UPDATE leads
+              SET first_contact_at = COALESCE(first_contact_at, ?),
+                  last_contact_at = ?,
+                  next_follow_up_at = COALESCE(?, next_follow_up_at),
+                  updated_at = ?
+              WHERE id = ?`,
+        args: [todayIsoDate(), todayIsoDate(), normalizeDate(payload.nextFollowUpAt), timestamp, normalizeText(payload.id)],
       })
       return { ok: true }
     }
