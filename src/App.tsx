@@ -1,25 +1,13 @@
-import { Navbar } from '@/components/layout/Navbar'
-import { Footer } from '@/components/layout/Footer'
-import { Hero } from '@/components/sections/Hero'
-import { Sobre } from '@/components/sections/Sobre'
-import { Servicos } from '@/components/sections/Servicos'
-import { Numeros } from '@/components/sections/Numeros'
-import { Portfolio } from '@/components/sections/Portfolio'
-import { Contato } from '@/components/sections/Contato'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { MarketingPage } from '@/pages/MarketingPage'
+import { ApoloWorkspace } from '@/pages/ApoloWorkspace'
 
 export default function App() {
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <main>
-        <Hero />
-        <Sobre />
-        <Servicos />
-        <Numeros />
-        <Portfolio />
-        <Contato />
-      </main>
-      <Footer />
-    </div>
+    <Routes>
+      <Route path="/" element={<MarketingPage />} />
+      <Route path="/app/*" element={<ApoloWorkspace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }
