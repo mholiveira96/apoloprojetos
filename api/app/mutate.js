@@ -1,9 +1,9 @@
-import { requireSession } from '../_lib/auth'
-import { getBootstrapData } from '../_lib/app-data'
-import { json, methodNotAllowed, readJsonBody, type ApiRequest, type ApiResponse } from '../_lib/http'
-import { runMutation } from '../_lib/mutations'
+import { requireSession } from '../_lib/auth.js'
+import { getBootstrapData } from '../_lib/app-data.js'
+import { json, methodNotAllowed, readJsonBody } from '../_lib/http.js'
+import { runMutation } from '../_lib/mutations.js'
 
-export default async function handler(req: ApiRequest, res: ApiResponse) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') return methodNotAllowed(res, ['POST'])
 
   const user = requireSession(req, res)
@@ -12,7 +12,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     const body = await readJsonBody(req)
     const action = typeof body.action === 'string' ? body.action : ''
-    const payload = typeof body.payload === 'object' && body.payload !== null ? body.payload as Record<string, unknown> : {}
+    const payload = typeof body.payload === 'object' && body.payload !== null ? body.payload : {}
     await runMutation(action, payload, user.email)
     const data = await getBootstrapData()
     return json(res, 200, { user, ...data })

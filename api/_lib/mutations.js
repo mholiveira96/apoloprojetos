@@ -1,15 +1,15 @@
-import { createId, ensureSchema, getDb, nowIso } from './db'
+import { createId, ensureSchema, getDb, nowIso } from './db.js'
 
-function normalizeText(value: unknown) {
+function normalizeText(value) {
   return String(value ?? '').trim()
 }
 
-function normalizeAmount(value: unknown) {
+function normalizeAmount(value) {
   const amount = Number(value)
   return Number.isFinite(amount) ? amount : 0
 }
 
-async function upsertClient(clientName: string, extras: Record<string, unknown> = {}) {
+async function upsertClient(clientName, extras = {}) {
   const db = getDb()
   const name = normalizeText(clientName)
   if (!name) return null
@@ -64,7 +64,7 @@ async function upsertClient(clientName: string, extras: Record<string, unknown> 
   return id
 }
 
-export async function runMutation(action: string, payload: Record<string, unknown>, actor: string) {
+export async function runMutation(action, payload, actor) {
   await ensureSchema()
   const db = getDb()
   const timestamp = nowIso()

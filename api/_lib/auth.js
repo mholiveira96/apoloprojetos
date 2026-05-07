@@ -1,14 +1,9 @@
 import crypto from 'node:crypto'
 import { parse as parseCookie, serialize as serializeCookie } from 'cookie'
-import type { ApiRequest, ApiResponse } from './http'
+import { json } from './http.js'
 
 const COOKIE_NAME = 'apolo_session'
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30
-
-type SessionUser = {
-  email: string
-  name: string
-}
 
 function getSecret() {
   const secret = process.env.APP_AUTH_SECRET
@@ -16,20 +11,20 @@ function getSecret() {
   return secret
 }
 
-function base64url(input: string) {
+function base64url(input) {
   return Buffer.from(input).toString('base64url')
 }
 
-function decodeBase64url(input: string) {
+function decodeBase64url(input) {
   return Buffer.from(input, 'base64url').toString('utf8')
 }
 
-function sign(value: string) {
+function sign(value) {
   return crypto.createHmac('sha256', getSecret()).update(value).digest('base64url')
 }
 
 function getEnvUsers() {
-  const users: Array<{ email: string; password: string; name: string }> = []
+  const users = []
 
   for (let i = 1; i <= 9; i += 1) {
     const email = process.env[`APP_USER_${i}_EMAIL`]
@@ -44,7 +39,7 @@ function getEnvUsers() {
   return users
 }
 
-export function authenticate(email: string, password: string): SessionUser | null {
+export function authenticate(email, password) {
   const normalizedEmail = email.trim().toLowerCase()
   const user = getEnvUsers().find(
     (entry) => entry.email === normalizedEmail && entry.password === password,
@@ -55,7 +50,7 @@ export function authenticate(email: string, password: string): SessionUser | nul
   return { email: user.email, name: user.name }
 }
 
-export function createSessionCookie(user: SessionUser) {
+export function createSessionCookie(user) {
   const payload = {
     ...user,
     exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
@@ -82,7 +77,7 @@ export function clearSessionCookie() {
   })
 }
 
-export function getSession(req: ApiRequest): SessionUser | null {
+export function getSession(req) {
   const cookies = parseCookie(req.headers.cookie || '')
   const raw = cookies[COOKIE_NAME]
 
@@ -93,7 +88,7 @@ export function getSession(req: ApiRequest): SessionUser | null {
   if (sign(encoded) !== signature) return null
 
   try {
-    const payload = JSON.parse(decodeBase64url(encoded)) as SessionUser & { exp: number }
+    const payload = JSON.parse(decodeBase64url(encoded))
     if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) {
       return null
     }
@@ -103,13 +98,10 @@ export function getSession(req: ApiRequest): SessionUser | null {
   }
 }
 
-export function requireSession(req: ApiRequest, res: ApiResponse) {
+export function requireSession(req, res) {
   const session = getSession(req)
   if (!session) {
-    res.statusCode = 401
-    res.setHeader('Content-Type', 'application/json')
-    res.end(JSON.stringify({ error: 'Unauthorized' }))
-    return null
+    return json(res, 401, { error: 'Unauthorized' })
   }
   return session
 }

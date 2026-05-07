@@ -1,7 +1,7 @@
-import { authenticate, createSessionCookie } from '../_lib/auth'
-import { json, methodNotAllowed, readJsonBody, type ApiRequest, type ApiResponse } from '../_lib/http'
+import { authenticate, createSessionCookie } from '../_lib/auth.js'
+import { json, methodNotAllowed, readJsonBody } from '../_lib/http.js'
 
-export default async function handler(req: ApiRequest, res: ApiResponse) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') return methodNotAllowed(res, ['POST'])
 
   try {

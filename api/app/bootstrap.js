@@ -1,8 +1,8 @@
-import { requireSession } from '../_lib/auth'
-import { getBootstrapData } from '../_lib/app-data'
-import { json, methodNotAllowed, type ApiRequest, type ApiResponse } from '../_lib/http'
+import { requireSession } from '../_lib/auth.js'
+import { getBootstrapData } from '../_lib/app-data.js'
+import { json, methodNotAllowed } from '../_lib/http.js'
 
-export default async function handler(req: ApiRequest, res: ApiResponse) {
+export default async function handler(req, res) {
   if (req.method !== 'GET') return methodNotAllowed(res, ['GET'])
 
   const user = requireSession(req, res)

@@ -1,6 +1,6 @@
-import { ensureSchema, getDb } from './db'
+import { ensureSchema, getDb } from './db.js'
 
-function asNumber(value: unknown) {
+function asNumber(value) {
   if (typeof value === 'number') return value
   if (typeof value === 'string') return Number(value)
   return 0

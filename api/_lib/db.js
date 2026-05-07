@@ -1,7 +1,7 @@
 import { createClient } from '@libsql/client'
 
-let clientSingleton: ReturnType<typeof createClient> | null = null
-let schemaReady: Promise<void> | null = null
+let clientSingleton = null
+let schemaReady = null
 
 const schemaStatements = [
   `CREATE TABLE IF NOT EXISTS app_meta (
@@ -140,7 +140,7 @@ export async function ensureSchema() {
   await schemaReady
 }
 
-export function createId(prefix: string) {
+export function createId(prefix) {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`
 }
 
