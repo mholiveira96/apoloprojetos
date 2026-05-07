@@ -16,6 +16,7 @@ import {
   LogOut,
   Plus,
   ReceiptText,
+  SquarePen,
   TrendingUp,
 } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
@@ -25,6 +26,7 @@ import type {
   CashflowEntry,
   Lead,
   Project,
+  ProjectLog,
   SessionUser,
 } from '@/types/app'
 
@@ -218,6 +220,26 @@ type LeadDetailForm = {
   closedAt: string
 }
 
+type ProjectDetailForm = {
+  name: string
+  code: string
+  discipline: string
+  stage: string
+  contractAmount: string
+  salesOwner: string
+  deadline: string
+  statusNote: string
+}
+
+type LogDetailForm = {
+  projectId: string
+  logType: string
+  title: string
+  details: string
+  dueDate: string
+  status: string
+}
+
 function LeadDetailCard({
   lead,
   draft,
@@ -326,12 +348,137 @@ function LeadDetailCard({
   )
 }
 
+function ProjectDetailCard({
+  project,
+  draft,
+  onChange,
+  onSave,
+}: {
+  project: Project
+  draft: ProjectDetailForm
+  onChange: (field: keyof ProjectDetailForm, value: string) => void
+  onSave: () => void
+}) {
+  return (
+    <div className="rounded-[28px] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(245,245,242,0.98))] p-5 shadow-[0_24px_60px_rgba(7,19,21,0.05)]">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--line)] pb-4">
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-[var(--teal)]">Projeto em edição</div>
+          <h3 className="mt-2 text-xl font-semibold text-[var(--ink)]">{project.name}</h3>
+          <div className="mt-2 text-sm text-[var(--ink-soft)]">{project.client_name || 'Cliente não informado'}</div>
+        </div>
+        <span className={`rounded-full border px-3 py-1 text-xs font-medium ${stageTone(project.stage)}`}>{stageLabel(project.stage)}</span>
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <label className="block text-sm font-medium text-[var(--ink)]">Nome do projeto
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.name} onChange={(event) => onChange('name', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">Código
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.code} onChange={(event) => onChange('code', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">Disciplina
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.discipline} onChange={(event) => onChange('discipline', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">Etapa
+          <select className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.stage} onChange={(event) => onChange('stage', event.target.value)}>
+            {projectStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
+          </select>
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">Valor do contrato
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="number" value={draft.contractAmount} onChange={(event) => onChange('contractAmount', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">Responsável comercial
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.salesOwner} onChange={(event) => onChange('salesOwner', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)] md:col-span-2">Prazo
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.deadline} onChange={(event) => onChange('deadline', event.target.value)} />
+        </label>
+      </div>
+
+      <label className="mt-4 block text-sm font-medium text-[var(--ink)]">Observação de status
+        <textarea className="mt-2 min-h-28 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.statusNote} onChange={(event) => onChange('statusNote', event.target.value)} />
+      </label>
+
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-[var(--ink)] px-4 py-3 text-sm text-white transition hover:bg-[var(--ink-soft)]" onClick={onSave}>
+          <SquarePen className="h-4 w-4" /> Salvar projeto
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function LogDetailCard({
+  log,
+  draft,
+  projectOptions,
+  onChange,
+  onSave,
+}: {
+  log: ProjectLog
+  draft: LogDetailForm
+  projectOptions: Array<{ id: string; name: string }>
+  onChange: (field: keyof LogDetailForm, value: string) => void
+  onSave: () => void
+}) {
+  return (
+    <div className="rounded-[28px] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(245,245,242,0.98))] p-5 shadow-[0_24px_60px_rgba(7,19,21,0.05)]">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--line)] pb-4">
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-[var(--teal)]">Movimentação em edição</div>
+          <h3 className="mt-2 text-xl font-semibold text-[var(--ink)]">{log.title}</h3>
+          <div className="mt-2 text-sm text-[var(--ink-soft)]">{log.project_name}</div>
+        </div>
+        <span className={`rounded-full border px-3 py-1 text-xs font-medium ${stageTone(log.status)}`}>{stageLabel(log.log_type)}</span>
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <label className="block text-sm font-medium text-[var(--ink)]">Projeto
+          <select className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.projectId} onChange={(event) => onChange('projectId', event.target.value)}>
+            {projectOptions.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+          </select>
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">Tipo
+          <select className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.logType} onChange={(event) => onChange('logType', event.target.value)}>
+            {logTypes.map((item) => <option key={item} value={item}>{stageLabel(item)}</option>)}
+          </select>
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)] md:col-span-2">Título
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.title} onChange={(event) => onChange('title', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">Prazo
+          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.dueDate} onChange={(event) => onChange('dueDate', event.target.value)} />
+        </label>
+        <label className="block text-sm font-medium text-[var(--ink)]">Status
+          <select className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.status} onChange={(event) => onChange('status', event.target.value)}>
+            <option value="open">Aberto</option>
+            <option value="done">Concluído</option>
+          </select>
+        </label>
+      </div>
+
+      <label className="mt-4 block text-sm font-medium text-[var(--ink)]">Detalhes
+        <textarea className="mt-2 min-h-28 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.details} onChange={(event) => onChange('details', event.target.value)} />
+      </label>
+
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-[var(--ink)] px-4 py-3 text-sm text-white transition hover:bg-[var(--ink-soft)]" onClick={onSave}>
+          <SquarePen className="h-4 w-4" /> Salvar movimentação
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function ProjectStrip({
   project,
   onStageChange,
+  onEdit,
 }: {
   project: Project
   onStageChange: (projectId: string, stage: string) => void
+  onEdit?: (projectId: string) => void
 }) {
   const outstanding = numericValue(project.contract_amount) - numericValue(project.total_received)
 
@@ -352,20 +499,31 @@ function ProjectStrip({
           </div>
         </div>
 
-        <label className="text-sm text-[var(--ink-soft)]">
-          <span className="mb-2 block text-xs uppercase tracking-[0.16em]">Etapa</span>
-          <select
-            className="rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none"
-            value={project.stage}
-            onChange={(event) => onStageChange(project.id, event.target.value)}
-          >
-            {projectStages.map((stage) => (
-              <option key={stage} value={stage}>
-                {stageLabel(stage)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="flex flex-wrap items-end gap-3">
+          {onEdit ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] transition hover:bg-[var(--paper)]"
+              onClick={() => onEdit(project.id)}
+            >
+              <SquarePen className="h-4 w-4" /> Editar
+            </button>
+          ) : null}
+          <label className="text-sm text-[var(--ink-soft)]">
+            <span className="mb-2 block text-xs uppercase tracking-[0.16em]">Etapa</span>
+            <select
+              className="rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none"
+              value={project.stage}
+              onChange={(event) => onStageChange(project.id, event.target.value)}
+            >
+              {projectStages.map((stage) => (
+                <option key={stage} value={stage}>
+                  {stageLabel(stage)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -522,6 +680,8 @@ export function ApoloWorkspace() {
     nextFollowUpAt: '',
   })
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [selectedLogId, setSelectedLogId] = useState<string | null>(null)
   const [leadDetailForm, setLeadDetailForm] = useState<LeadDetailForm>({
     title: '',
     stage: 'incoming',
@@ -547,7 +707,25 @@ export function ApoloWorkspace() {
     deadline: '',
     statusNote: '',
   })
+  const [projectDetailForm, setProjectDetailForm] = useState<ProjectDetailForm>({
+    name: '',
+    code: '',
+    discipline: '',
+    stage: 'proposal',
+    contractAmount: '',
+    salesOwner: '',
+    deadline: '',
+    statusNote: '',
+  })
   const [logForm, setLogForm] = useState({
+    projectId: '',
+    logType: 'pending',
+    title: '',
+    details: '',
+    dueDate: '',
+    status: 'open',
+  })
+  const [logDetailForm, setLogDetailForm] = useState<LogDetailForm>({
     projectId: '',
     logType: 'pending',
     title: '',
@@ -634,6 +812,14 @@ export function ApoloWorkspace() {
     setLeadDetailForm((current) => ({ ...current, [field]: value }))
   }
 
+  const handleProjectDetailChange = (field: keyof ProjectDetailForm, value: string) => {
+    setProjectDetailForm((current) => ({ ...current, [field]: value }))
+  }
+
+  const handleLogDetailChange = (field: keyof LogDetailForm, value: string) => {
+    setLogDetailForm((current) => ({ ...current, [field]: value }))
+  }
+
   const handleLeadSave = async () => {
     if (!selectedLead) return
     await submitMutation(
@@ -660,6 +846,32 @@ export function ApoloWorkspace() {
     )
   }
 
+  const handleProjectSave = async () => {
+    if (!selectedProject) return
+    await submitMutation(
+      'updateProject',
+      {
+        id: selectedProject.id,
+        ...projectDetailForm,
+      },
+      undefined,
+      'Projeto atualizado',
+    )
+  }
+
+  const handleLogSave = async () => {
+    if (!selectedLog) return
+    await submitMutation(
+      'updateProjectLog',
+      {
+        id: selectedLog.id,
+        ...logDetailForm,
+      },
+      undefined,
+      'Movimentação atualizada',
+    )
+  }
+
   const handleLogin = async (email: string, password: string) => {
     try {
       const session = await login(email, password)
@@ -682,6 +894,8 @@ export function ApoloWorkspace() {
 
   const openProjectOptions = data?.projects.map((project) => ({ id: project.id, name: project.name })) || []
   const selectedLead = useMemo(() => data?.leads?.find((lead) => lead.id === selectedLeadId) || null, [data?.leads, selectedLeadId])
+  const selectedProject = useMemo(() => data?.projects?.find((project) => project.id === selectedProjectId) || null, [data?.projects, selectedProjectId])
+  const selectedLog = useMemo(() => data?.logs?.find((item) => item.id === selectedLogId) || null, [data?.logs, selectedLogId])
   const monthly = useMemo(() => monthTotals(data?.cashflow || []), [data?.cashflow])
 
   useEffect(() => {
@@ -695,6 +909,26 @@ export function ApoloWorkspace() {
       setSelectedLeadId(data.leads[0].id)
     }
   }, [data?.leads, selectedLeadId])
+
+  useEffect(() => {
+    if (!data?.projects.length) {
+      setSelectedProjectId(null)
+      return
+    }
+    if (!selectedProjectId) return
+    const stillExists = data.projects.some((project) => project.id === selectedProjectId)
+    if (!stillExists) setSelectedProjectId(null)
+  }, [data?.projects, selectedProjectId])
+
+  useEffect(() => {
+    if (!data?.logs.length) {
+      setSelectedLogId(null)
+      return
+    }
+    if (!selectedLogId) return
+    const stillExists = data.logs.some((item) => item.id === selectedLogId)
+    if (!stillExists) setSelectedLogId(null)
+  }, [data?.logs, selectedLogId])
 
   useEffect(() => {
     if (!selectedLead) return
@@ -713,6 +947,32 @@ export function ApoloWorkspace() {
       closedAt: toDateInputValue(selectedLead.closed_at),
     })
   }, [selectedLead])
+
+  useEffect(() => {
+    if (!selectedProject) return
+    setProjectDetailForm({
+      name: selectedProject.name || '',
+      code: selectedProject.code || '',
+      discipline: selectedProject.discipline || '',
+      stage: selectedProject.stage || 'proposal',
+      contractAmount: String(selectedProject.contract_amount || ''),
+      salesOwner: selectedProject.sales_owner || '',
+      deadline: toDateInputValue(selectedProject.deadline),
+      statusNote: selectedProject.status_note || '',
+    })
+  }, [selectedProject])
+
+  useEffect(() => {
+    if (!selectedLog) return
+    setLogDetailForm({
+      projectId: selectedLog.project_id || '',
+      logType: selectedLog.log_type || 'pending',
+      title: selectedLog.title || '',
+      details: selectedLog.details || '',
+      dueDate: toDateInputValue(selectedLog.due_date),
+      status: selectedLog.status || 'open',
+    })
+  }, [selectedLog])
 
   if (checkingSession) {
     return (
@@ -994,7 +1254,7 @@ export function ApoloWorkspace() {
                                       className={`rounded-full border px-3 py-2 text-xs font-medium transition ${isActive ? 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]' : 'border-[var(--line)] text-[var(--ink)] hover:bg-white'}`}
                                       onClick={() => setSelectedLeadId(lead.id)}
                                     >
-                                      {isActive ? 'Aberto' : 'Abrir card'}
+                                      {isActive ? 'Editando' : 'Editar'}
                                     </button>
                                   </td>
                                 </tr>
@@ -1017,7 +1277,7 @@ export function ApoloWorkspace() {
                       onTouch={() => void handleLeadTouch()}
                     />
                   ) : (
-                    <EmptyState title="Abra um lead" body="Use a coluna de ação para abrir o card e manter as datas do comercial sob controle." />
+                    <EmptyState title="Edite um lead" body="Use a coluna de ação para abrir a edição e manter as datas do comercial sob controle." />
                   )}
                 </div>
               </>
@@ -1054,45 +1314,79 @@ export function ApoloWorkspace() {
                     </form>
                   </Panel>
 
-                  <Panel title="Faixa de projetos" subtitle="A operação fica mais limpa quando cada projeto mostra o pulso num relance.">
-                    <div className="space-y-4">
-                      {data.projects.length ? (
-                        data.projects.map((project) => (
-                          <ProjectStrip key={project.id} project={project} onStageChange={(projectId, stage) => {
-                            void submitMutation('updateProjectStage', { id: projectId, stage }, undefined, 'Etapa do projeto atualizada')
-                          }} />
-                        ))
-                      ) : (
-                        <EmptyState title="Nenhum projeto acompanhado" body="Crie um projeto no Comercial para começar a registrar operação e prazos." />
-                      )}
-                    </div>
-                  </Panel>
+                  <div className="space-y-6">
+                    <Panel title="Faixa de projetos" subtitle="A operação fica mais limpa quando cada projeto mostra o pulso num relance.">
+                      <div className="space-y-4">
+                        {data.projects.length ? (
+                          data.projects.map((project) => (
+                            <ProjectStrip key={project.id} project={project} onEdit={setSelectedProjectId} onStageChange={(projectId, stage) => {
+                              void submitMutation('updateProjectStage', { id: projectId, stage }, undefined, 'Etapa do projeto atualizada')
+                            }} />
+                          ))
+                        ) : (
+                          <EmptyState title="Nenhum projeto acompanhado" body="Crie um projeto no Comercial para começar a registrar operação e prazos." />
+                        )}
+                      </div>
+                    </Panel>
+
+                    {selectedProject ? (
+                      <ProjectDetailCard
+                        project={selectedProject}
+                        draft={projectDetailForm}
+                        onChange={handleProjectDetailChange}
+                        onSave={() => void handleProjectSave()}
+                      />
+                    ) : (
+                      <EmptyState title="Edite um projeto" body="Use o botão editar na faixa de projetos para ajustar prazo, etapa e observações operacionais." />
+                    )}
+                  </div>
                 </div>
 
-                <Panel title="Registros operacionais recentes" subtitle="Isso vira o diário do projeto em vez de caçar contexto no WhatsApp e no Notion.">
-                  {data.logs.length ? (
-                    <div className="grid gap-3 lg:grid-cols-2">
-                      {data.logs.map((item) => (
-                        <div key={item.id} className="rounded-2xl border border-[var(--line)] bg-white/80 p-4 text-sm">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="font-medium text-[var(--ink)]">{item.title}</div>
-                            <span className={`rounded-full border px-3 py-1 text-xs font-medium ${stageTone(item.status)}`}>
-                              {stageLabel(item.log_type)}
-                            </span>
+                <div className="space-y-6">
+                  <Panel title="Registros operacionais recentes" subtitle="Isso vira o diário do projeto em vez de caçar contexto no WhatsApp e no Notion.">
+                    {data.logs.length ? (
+                      <div className="grid gap-3 lg:grid-cols-2">
+                        {data.logs.map((item) => (
+                          <div key={item.id} className="rounded-2xl border border-[var(--line)] bg-white/80 p-4 text-sm">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="font-medium text-[var(--ink)]">{item.title}</div>
+                              <div className="flex items-center gap-2">
+                                <span className={`rounded-full border px-3 py-1 text-xs font-medium ${stageTone(item.status)}`}>
+                                  {stageLabel(item.log_type)}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] px-3 py-1 text-xs font-medium text-[var(--ink)] transition hover:bg-white"
+                                  onClick={() => setSelectedLogId(item.id)}
+                                >
+                                  <SquarePen className="h-3.5 w-3.5" /> Editar
+                                </button>
+                              </div>
+                            </div>
+                            <div className="mt-1 text-[var(--ink-soft)]">{item.project_name}</div>
+                            {item.details ? <p className="mt-3 leading-6 text-[var(--ink-soft)]">{item.details}</p> : null}
+                            <div className="mt-3 flex flex-wrap gap-4 text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]/70">
+                              <span>{formatDate(item.created_at)}</span>
+                              {item.due_date ? <span>Prazo {formatDate(item.due_date)}</span> : null}
+                            </div>
                           </div>
-                          <div className="mt-1 text-[var(--ink-soft)]">{item.project_name}</div>
-                          {item.details ? <p className="mt-3 leading-6 text-[var(--ink-soft)]">{item.details}</p> : null}
-                          <div className="mt-3 flex flex-wrap gap-4 text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]/70">
-                            <span>{formatDate(item.created_at)}</span>
-                            {item.due_date ? <span>Prazo {formatDate(item.due_date)}</span> : null}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <EmptyState title="Sem movimentação operacional ainda" body="Registre materiais recebidos, pendências e revisões aqui para a execução parar de depender da memória." />
-                  )}
-                </Panel>
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState title="Sem movimentação operacional ainda" body="Registre materiais recebidos, pendências e revisões aqui para a execução parar de depender da memória." />
+                    )}
+                  </Panel>
+
+                  {selectedLog ? (
+                    <LogDetailCard
+                      log={selectedLog}
+                      draft={logDetailForm}
+                      projectOptions={openProjectOptions}
+                      onChange={handleLogDetailChange}
+                      onSave={() => void handleLogSave()}
+                    />
+                  ) : null}
+                </div>
               </>
             ) : null}
 

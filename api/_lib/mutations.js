@@ -231,6 +231,35 @@ export async function runMutation(action, payload, actor) {
       return { ok: true }
     }
 
+    case 'updateProject': {
+      await db.execute({
+        sql: `UPDATE projects
+              SET name = ?,
+                  code = ?,
+                  discipline = ?,
+                  stage = ?,
+                  contract_amount = ?,
+                  sales_owner = ?,
+                  deadline = ?,
+                  status_note = ?,
+                  updated_at = ?
+              WHERE id = ?`,
+        args: [
+          normalizeText(payload.name),
+          normalizeText(payload.code),
+          normalizeText(payload.discipline),
+          normalizeText(payload.stage) || 'proposal',
+          normalizeAmount(payload.contractAmount),
+          normalizeText(payload.salesOwner),
+          normalizeText(payload.deadline),
+          normalizeText(payload.statusNote),
+          timestamp,
+          normalizeText(payload.id),
+        ],
+      })
+      return { ok: true }
+    }
+
     case 'addProjectLog': {
       await db.execute({
         sql: `INSERT INTO project_logs (id, project_id, log_type, title, details, due_date, status, created_by, created_at)
@@ -245,6 +274,33 @@ export async function runMutation(action, payload, actor) {
           normalizeText(payload.status) || 'open',
           actor,
           timestamp,
+        ],
+      })
+      await db.execute({
+        sql: 'UPDATE projects SET updated_at = ? WHERE id = ?',
+        args: [timestamp, normalizeText(payload.projectId)],
+      })
+      return { ok: true }
+    }
+
+    case 'updateProjectLog': {
+      await db.execute({
+        sql: `UPDATE project_logs
+              SET project_id = ?,
+                  log_type = ?,
+                  title = ?,
+                  details = ?,
+                  due_date = ?,
+                  status = ?
+              WHERE id = ?`,
+        args: [
+          normalizeText(payload.projectId),
+          normalizeText(payload.logType) || 'note',
+          normalizeText(payload.title),
+          normalizeText(payload.details),
+          normalizeText(payload.dueDate),
+          normalizeText(payload.status) || 'open',
+          normalizeText(payload.id),
         ],
       })
       await db.execute({
