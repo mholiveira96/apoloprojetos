@@ -6,7 +6,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   try {
     const body = await readJsonBody(req)
-    const user = authenticate(body.email || '', body.password || '')
+    const email = typeof body.email === 'string' ? body.email : ''
+    const password = typeof body.password === 'string' ? body.password : ''
+    const user = authenticate(email, password)
 
     if (!user) {
       return json(res, 401, { error: 'Credenciais inválidas' })

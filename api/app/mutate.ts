@@ -11,7 +11,9 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
   try {
     const body = await readJsonBody(req)
-    await runMutation(body.action, body.payload || {}, user.email)
+    const action = typeof body.action === 'string' ? body.action : ''
+    const payload = typeof body.payload === 'object' && body.payload !== null ? body.payload as Record<string, unknown> : {}
+    await runMutation(action, payload, user.email)
     const data = await getBootstrapData()
     return json(res, 200, { user, ...data })
   } catch (error) {
