@@ -12,6 +12,9 @@ export type Summary = {
   payoutTotal: number
   netCash: number
   outstandingTotal: number
+  activeContractTotal: number
+  currentYearSales: number
+  deliveredUnpaidTotal: number
 }
 
 export type Lead = {

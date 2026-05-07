@@ -25,7 +25,6 @@ import type {
   CashflowEntry,
   Lead,
   Project,
-  ProjectLog,
   SessionUser,
 } from '@/types/app'
 
@@ -683,10 +682,6 @@ export function ApoloWorkspace() {
 
   const openProjectOptions = data?.projects.map((project) => ({ id: project.id, name: project.name })) || []
   const selectedLead = useMemo(() => data?.leads?.find((lead) => lead.id === selectedLeadId) || null, [data?.leads, selectedLeadId])
-  const recentPending = useMemo(
-    () => (data?.logs || []).filter((item) => item.log_type === 'pending' && item.status !== 'done').slice(0, 8),
-    [data?.logs],
-  )
   const monthly = useMemo(() => monthTotals(data?.cashflow || []), [data?.cashflow])
 
   useEffect(() => {
@@ -831,11 +826,10 @@ export function ApoloWorkspace() {
           <div className="space-y-6">
             {section === 'dashboard' ? (
               <>
-                <div className="grid gap-4 xl:grid-cols-4 md:grid-cols-2">
-                  <MetricCard label="Contratos" value={formatCurrency(data.summary.contractTotal)} helper="Valor contratado somado dos projetos acompanhados." icon={ReceiptText} />
-                  <MetricCard label="Recebido" value={formatCurrency(data.summary.receivedTotal)} helper="Dinheiro efetivamente pago pelos clientes." icon={ArrowDownCircle} />
-                  <MetricCard label="Despesas" value={formatCurrency(data.summary.expenseTotal)} helper="Saídas operacionais já registradas." icon={ArrowUpCircle} />
-                  <MetricCard label="Em aberto" value={formatCurrency(data.summary.outstandingTotal)} helper="Quanto ainda falta receber sobre os contratos." icon={HandCoins} />
+                <div className="grid gap-4 xl:grid-cols-3 md:grid-cols-2">
+                  <MetricCard label="Contratos ativos" value={formatCurrency(data.summary.activeContractTotal)} helper="Valor em contrato que ainda está rodando na operação." icon={ReceiptText} />
+                  <MetricCard label="Vendas no ano" value={formatCurrency(data.summary.currentYearSales)} helper="Valor contratado no ano corrente, priorizando data de contratação." icon={TrendingUp} />
+                  <MetricCard label="Entregues sem receber" value={formatCurrency(data.summary.deliveredUnpaidTotal)} helper="Valor ainda em aberto nos projetos já entregues." icon={HandCoins} />
                 </div>
 
                 <Panel
@@ -859,50 +853,24 @@ export function ApoloWorkspace() {
                   </div>
                 </Panel>
 
-                <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-                  <Panel title="Pendências urgentes" subtitle="Pendências abertas e documentos faltando sobem para cá.">
-                    <div className="space-y-3">
-                      {recentPending.length ? (
-                        recentPending.map((item: ProjectLog) => (
-                          <div key={item.id} className="rounded-2xl border border-[var(--line)] bg-white/80 p-4 text-sm">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div className="font-medium text-[var(--ink)]">{item.title}</div>
-                              <span className={`rounded-full border px-3 py-1 text-xs font-medium ${stageTone(item.status)}`}>
-                                {stageLabel(item.status)}
-                              </span>
-                            </div>
-                            <div className="mt-1 text-[var(--ink-soft)]">{item.project_name}</div>
-                            {item.details ? <p className="mt-3 leading-6 text-[var(--ink-soft)]">{item.details}</p> : null}
-                            <div className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]/70">
-                              Prazo {formatDate(item.due_date)}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <EmptyState title="Sem pendências críticas" body="Bom sinal. Registre pendências em Operações quando documentos, aprovações ou revisões começarem a acumular." />
-                      )}
-                    </div>
-                  </Panel>
-
-                  <Panel title="Movimentação recente" subtitle="Leitura rápida do que realmente girou no caixa.">
-                    <div className="space-y-3">
-                      {data.cashflow.slice(0, 8).map((entry) => (
-                        <div key={`${entry.entry_type}-${entry.id}`} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 text-sm">
-                          <div>
-                            <div className="font-medium text-[var(--ink)]">{entry.project_name}</div>
-                            <div className="text-[var(--ink-soft)]">
-                              {stageLabel(entry.entry_type)} {entry.counterpart ? `· ${entry.counterpart}` : ''}
-                            </div>
-                          </div>
-                          <div className={`font-semibold ${entry.signed_amount >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                            {entry.signed_amount >= 0 ? '+' : '-'}
-                            {formatCurrency(Math.abs(numericValue(entry.signed_amount)))}
+                <Panel title="Movimentação recente" subtitle="Leitura rápida do que realmente girou no caixa.">
+                  <div className="space-y-3">
+                    {data.cashflow.slice(0, 8).map((entry) => (
+                      <div key={`${entry.entry_type}-${entry.id}`} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 text-sm">
+                        <div>
+                          <div className="font-medium text-[var(--ink)]">{entry.project_name}</div>
+                          <div className="text-[var(--ink-soft)]">
+                            {stageLabel(entry.entry_type)} {entry.counterpart ? `· ${entry.counterpart}` : ''}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </Panel>
-                </div>
+                        <div className={`font-semibold ${entry.signed_amount >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                          {entry.signed_amount >= 0 ? '+' : '-'}
+                          {formatCurrency(Math.abs(numericValue(entry.signed_amount)))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Panel>
               </>
             ) : null}
 

@@ -30,7 +30,42 @@ export async function getBootstrapData() {
         COALESCE((SELECT SUM(amount) FROM payment_receipts), 0) AS received_total,
         COALESCE((SELECT SUM(amount) FROM project_expenses), 0) AS expense_total,
         COALESCE((SELECT SUM(amount) FROM partner_payouts), 0) AS payout_total,
-        COALESCE((SELECT SUM(contract_amount) FROM projects), 0) - COALESCE((SELECT SUM(amount) FROM payment_receipts), 0) AS outstanding_total
+        COALESCE((SELECT SUM(contract_amount) FROM projects), 0) - COALESCE((SELECT SUM(amount) FROM payment_receipts), 0) AS outstanding_total,
+        COALESCE((SELECT SUM(contract_amount) FROM projects WHERE stage != 'closed'), 0) AS active_contract_total,
+        COALESCE((
+          SELECT SUM(projects.contract_amount)
+          FROM projects
+          WHERE (
+            EXISTS (
+              SELECT 1
+              FROM project_logs
+              WHERE project_logs.project_id = projects.id
+                AND project_logs.title = 'Contratação registrada'
+                AND substr(project_logs.due_date, 1, 4) = strftime('%Y', 'now')
+            )
+            OR (
+              NOT EXISTS (
+                SELECT 1
+                FROM project_logs
+                WHERE project_logs.project_id = projects.id
+                  AND project_logs.title = 'Contratação registrada'
+              )
+              AND projects.stage NOT IN ('proposal')
+              AND substr(projects.created_at, 1, 4) = strftime('%Y', 'now')
+            )
+          )
+        ), 0) AS current_year_sales,
+        COALESCE((
+          SELECT SUM(
+            CASE
+              WHEN projects.contract_amount - COALESCE((SELECT SUM(amount) FROM payment_receipts WHERE project_id = projects.id), 0) > 0
+                THEN projects.contract_amount - COALESCE((SELECT SUM(amount) FROM payment_receipts WHERE project_id = projects.id), 0)
+              ELSE 0
+            END
+          )
+          FROM projects
+          WHERE projects.stage = 'delivered'
+        ), 0) AS delivered_unpaid_total
     `),
     db.execute(`
       SELECT
@@ -218,6 +253,9 @@ export async function getBootstrapData() {
   const expenseTotal = asNumber(financial.expense_total)
   const payoutTotal = asNumber(financial.payout_total)
   const outstandingTotal = asNumber(financial.outstanding_total)
+  const activeContractTotal = asNumber(financial.active_contract_total)
+  const currentYearSales = asNumber(financial.current_year_sales)
+  const deliveredUnpaidTotal = asNumber(financial.delivered_unpaid_total)
 
   return {
     summary: {
@@ -229,6 +267,9 @@ export async function getBootstrapData() {
       payoutTotal,
       netCash: receivedTotal - expenseTotal - payoutTotal,
       outstandingTotal,
+      activeContractTotal,
+      currentYearSales,
+      deliveredUnpaidTotal,
     },
     leads: leadsResult.rows,
     projects: projectsResult.rows,
