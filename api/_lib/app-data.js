@@ -21,9 +21,10 @@ export async function getBootstrapData() {
     expensesResult,
     payoutsResult,
     cashflowResult,
+    subprojectsResult,
   ] = await Promise.all([
     db.execute(`SELECT COUNT(*) AS total FROM leads WHERE stage NOT IN ('won', 'lost')`),
-    db.execute(`SELECT COUNT(*) AS total FROM projects WHERE stage NOT IN ('closed')`),
+    db.execute(`SELECT COUNT(*) AS total FROM projects WHERE stage NOT IN ('concluído')`),
     db.execute(`
       SELECT
         COALESCE((SELECT SUM(contract_amount) FROM projects), 0) AS contract_total,
@@ -31,7 +32,7 @@ export async function getBootstrapData() {
         COALESCE((SELECT SUM(amount) FROM project_expenses), 0) AS expense_total,
         COALESCE((SELECT SUM(amount) FROM partner_payouts), 0) AS payout_total,
         COALESCE((SELECT SUM(contract_amount) FROM projects), 0) - COALESCE((SELECT SUM(amount) FROM payment_receipts), 0) AS outstanding_total,
-        COALESCE((SELECT SUM(contract_amount) FROM projects WHERE stage != 'closed'), 0) AS active_contract_total,
+        COALESCE((SELECT SUM(contract_amount) FROM projects WHERE stage != 'concluído'), 0) AS active_contract_total,
         COALESCE((
           SELECT SUM(projects.contract_amount)
           FROM projects
@@ -50,7 +51,6 @@ export async function getBootstrapData() {
                 WHERE project_logs.project_id = projects.id
                   AND project_logs.title = 'Contratação registrada'
               )
-              AND projects.stage NOT IN ('proposal')
               AND substr(projects.created_at, 1, 4) = strftime('%Y', 'now')
             )
           )
@@ -64,7 +64,7 @@ export async function getBootstrapData() {
             END
           )
           FROM projects
-          WHERE projects.stage = 'delivered'
+          WHERE projects.stage = 'concluído'
         ), 0) AS delivered_unpaid_total
     `),
     db.execute(`
@@ -110,9 +110,19 @@ export async function getBootstrapData() {
         projects.base_partner_split_percent,
         projects.deadline,
         projects.status_note,
+        projects.notes,
+        projects.lead_id,
         projects.created_at,
         projects.updated_at,
         clients.name AS client_name,
+        (SELECT COUNT(*)
+          FROM project_logs
+          WHERE project_logs.project_id = projects.id
+            AND project_logs.title = 'ContrataÃ§Ã£o registrada') AS sale_log_count,
+        (SELECT MAX(COALESCE(project_logs.due_date, project_logs.created_at))
+          FROM project_logs
+          WHERE project_logs.project_id = projects.id
+            AND project_logs.title = 'ContrataÃ§Ã£o registrada') AS sale_recorded_at,
         COALESCE((SELECT SUM(amount) FROM payment_receipts WHERE project_id = projects.id), 0) AS total_received,
         COALESCE((SELECT SUM(amount) FROM project_expenses WHERE project_id = projects.id), 0) AS total_expenses,
         COALESCE((SELECT SUM(amount) FROM partner_payouts WHERE project_id = projects.id), 0) AS total_payouts,
@@ -121,12 +131,11 @@ export async function getBootstrapData() {
       FROM projects
       LEFT JOIN clients ON clients.id = projects.client_id
       ORDER BY CASE projects.stage
-        WHEN 'in-progress' THEN 1
-        WHEN 'waiting-files' THEN 2
-        WHEN 'review' THEN 3
-        WHEN 'proposal' THEN 4
-        WHEN 'closed' THEN 5
-        ELSE 6
+        WHEN 'em-andamento' THEN 1
+        WHEN 'aguardar' THEN 2
+        WHEN 'concluído-aguardando-pagamento' THEN 3
+        WHEN 'concluído' THEN 4
+        ELSE 5
       END, projects.updated_at DESC
     `),
     db.execute(`
@@ -149,15 +158,18 @@ export async function getBootstrapData() {
     db.execute(`
       SELECT
         payment_receipts.id,
+        payment_receipts.client_id,
         payment_receipts.project_id,
         payment_receipts.amount,
         payment_receipts.bank_account,
         payment_receipts.received_at,
         payment_receipts.note,
         payment_receipts.created_by,
+        clients.name AS client_name,
         projects.name AS project_name
       FROM payment_receipts
-      INNER JOIN projects ON projects.id = payment_receipts.project_id
+      INNER JOIN clients ON clients.id = payment_receipts.client_id
+      LEFT JOIN projects ON projects.id = payment_receipts.project_id
       ORDER BY payment_receipts.received_at DESC
       LIMIT 40
     `),
@@ -174,7 +186,7 @@ export async function getBootstrapData() {
         project_expenses.created_by,
         projects.name AS project_name
       FROM project_expenses
-      INNER JOIN projects ON projects.id = project_expenses.project_id
+      LEFT JOIN projects ON projects.id = project_expenses.project_id
       ORDER BY project_expenses.paid_at DESC
       LIMIT 40
     `),
@@ -182,15 +194,19 @@ export async function getBootstrapData() {
       SELECT
         partner_payouts.id,
         partner_payouts.project_id,
+        partner_payouts.subproject_id,
         partner_payouts.partner_name,
+        partner_payouts.percentage,
         partner_payouts.amount,
         partner_payouts.bank_account,
         partner_payouts.paid_at,
         partner_payouts.note,
         partner_payouts.created_by,
-        projects.name AS project_name
+        projects.name AS project_name,
+        subprojects.discipline AS discipline
       FROM partner_payouts
       INNER JOIN projects ON projects.id = partner_payouts.project_id
+      LEFT JOIN subprojects ON subprojects.id = partner_payouts.subproject_id
       ORDER BY partner_payouts.paid_at DESC
       LIMIT 40
     `),
@@ -204,11 +220,12 @@ export async function getBootstrapData() {
           payment_receipts.bank_account,
           payment_receipts.note,
           'receipt' AS entry_type,
-          projects.name AS project_name,
+          COALESCE(projects.name, clients.name) AS project_name,
           payment_receipts.amount AS signed_amount,
-          NULL AS counterpart
+          clients.name AS counterpart
         FROM payment_receipts
-        INNER JOIN projects ON projects.id = payment_receipts.project_id
+        INNER JOIN clients ON clients.id = payment_receipts.client_id
+        LEFT JOIN projects ON projects.id = payment_receipts.project_id
 
         UNION ALL
 
@@ -220,11 +237,11 @@ export async function getBootstrapData() {
           project_expenses.bank_account,
           project_expenses.note,
           'expense' AS entry_type,
-          projects.name AS project_name,
+          COALESCE(projects.name, project_expenses.category, 'Despesa geral') AS project_name,
           project_expenses.amount * -1 AS signed_amount,
           COALESCE(project_expenses.vendor, project_expenses.category) AS counterpart
         FROM project_expenses
-        INNER JOIN projects ON projects.id = project_expenses.project_id
+        LEFT JOIN projects ON projects.id = project_expenses.project_id
 
         UNION ALL
 
@@ -238,12 +255,33 @@ export async function getBootstrapData() {
           'payout' AS entry_type,
           projects.name AS project_name,
           partner_payouts.amount * -1 AS signed_amount,
-          partner_payouts.partner_name AS counterpart
+          CASE
+            WHEN subprojects.discipline IS NOT NULL
+            THEN partner_payouts.partner_name || ' · ' || subprojects.discipline
+            ELSE partner_payouts.partner_name
+          END AS counterpart
         FROM partner_payouts
         INNER JOIN projects ON projects.id = partner_payouts.project_id
+        LEFT JOIN subprojects ON subprojects.id = partner_payouts.subproject_id
       )
       ORDER BY entry_date DESC
       LIMIT 80
+    `),
+    db.execute(`
+      SELECT
+        subprojects.id,
+        subprojects.project_id,
+        subprojects.discipline,
+        subprojects.amount,
+        subprojects.stage,
+        subprojects.responsible_partner,
+        subprojects.contracted_at,
+        subprojects.created_at,
+        subprojects.updated_at,
+        projects.name AS project_name
+      FROM subprojects
+      INNER JOIN projects ON projects.id = subprojects.project_id
+      ORDER BY subprojects.updated_at DESC
     `),
   ])
 
@@ -278,5 +316,6 @@ export async function getBootstrapData() {
     expenses: expensesResult.rows,
     payouts: payoutsResult.rows,
     cashflow: cashflowResult.rows,
+    subprojects: subprojectsResult.rows,
   }
 }

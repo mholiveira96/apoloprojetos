@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .env
 .vercel
+.apolo-dev.sqlite
+.apolo-dev-test.db
+*.csv

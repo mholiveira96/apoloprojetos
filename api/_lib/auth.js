@@ -4,11 +4,13 @@ import { json } from './http.js'
 
 const COOKIE_NAME = 'apolo_session'
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30
+const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 
 function getSecret() {
   const secret = process.env.APP_AUTH_SECRET
-  if (!secret) throw new Error('Missing APP_AUTH_SECRET')
-  return secret
+  if (secret) return secret
+  if (IS_PRODUCTION) throw new Error('Missing APP_AUTH_SECRET')
+  return 'apolo-dev-secret'
 }
 
 function base64url(input) {
@@ -36,6 +38,14 @@ function getEnvUsers() {
     }
   }
 
+  if (!users.length && !IS_PRODUCTION) {
+    users.push({
+      email: 'admin@apolo.local',
+      password: 'apolo123',
+      name: 'Apolo Demo',
+    })
+  }
+
   return users
 }
 
@@ -61,7 +71,7 @@ export function createSessionCookie(user) {
   return serializeCookie(COOKIE_NAME, `${encoded}.${signature}`, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: true,
+    secure: IS_PRODUCTION,
     path: '/',
     maxAge: SESSION_TTL_SECONDS,
   })
@@ -71,7 +81,7 @@ export function clearSessionCookie() {
   return serializeCookie(COOKIE_NAME, '', {
     httpOnly: true,
     sameSite: 'lax',
-    secure: true,
+    secure: IS_PRODUCTION,
     path: '/',
     expires: new Date(0),
   })

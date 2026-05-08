@@ -47,9 +47,13 @@ export type Project = {
   base_partner_split_percent: number
   deadline: string | null
   status_note: string | null
+  notes: string | null
+  lead_id: string | null
   created_at: string
   updated_at: string
   client_name: string | null
+  sale_log_count: number
+  sale_recorded_at: string | null
   total_received: number
   total_expenses: number
   total_payouts: number
@@ -72,18 +76,20 @@ export type ProjectLog = {
 
 export type Receipt = {
   id: string
-  project_id: string
+  client_id: string
+  project_id: string | null
   amount: number
   bank_account: string | null
   received_at: string
   note: string | null
   created_by: string | null
-  project_name: string
+  client_name: string
+  project_name: string | null
 }
 
 export type Expense = {
   id: string
-  project_id: string
+  project_id: string | null
   amount: number
   category: string | null
   bank_account: string | null
@@ -91,30 +97,46 @@ export type Expense = {
   vendor: string | null
   note: string | null
   created_by: string | null
-  project_name: string
+  project_name: string | null
 }
 
 export type Payout = {
   id: string
   project_id: string
+  subproject_id: string | null
   partner_name: string
+  percentage: number | null
   amount: number
   bank_account: string | null
   paid_at: string
   note: string | null
   created_by: string | null
   project_name: string
+  discipline: string | null
+}
+
+export type Subproject = {
+  id: string
+  project_id: string
+  discipline: string
+  amount: number
+  stage: string
+  responsible_partner: string
+  contracted_at: string | null
+  created_at: string
+  updated_at: string
+  project_name: string
 }
 
 export type CashflowEntry = {
   id: string
-  project_id: string
+  project_id: string | null
   amount: number
   entry_date: string
   bank_account: string | null
   note: string | null
   entry_type: 'receipt' | 'expense' | 'payout'
-  project_name: string
+  project_name: string | null
   signed_amount: number
   counterpart: string | null
 }
@@ -129,4 +151,5 @@ export type BootstrapData = {
   expenses: Expense[]
   payouts: Payout[]
   cashflow: CashflowEntry[]
+  subprojects: Subproject[]
 }

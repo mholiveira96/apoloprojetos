@@ -1,792 +1,39 @@
-import { useEffect, useMemo, useState, type ComponentType, type FormEvent, type ReactNode } from 'react'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
-  ArrowDownCircle,
-  ArrowUpCircle,
-  Banknote,
-  BriefcaseBusiness,
-  CheckCircle2,
+  ChevronDown,
   CircleDollarSign,
-  ClipboardList,
   FolderKanban,
-  HandCoins,
-  Landmark,
-  LayoutDashboard,
   LoaderCircle,
   LogOut,
   Plus,
   ReceiptText,
-  SquarePen,
+  Search,
   TrendingUp,
 } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
 import { getBootstrap, getSession, login, logout, mutate } from '@/lib/app-api'
-import type {
-  BootstrapData,
-  CashflowEntry,
-  Lead,
-  Project,
-  ProjectLog,
-  SessionUser,
-} from '@/types/app'
-
-const NAV_ITEMS = [
-  { key: 'dashboard', label: 'Painel', href: '/app/dashboard', icon: LayoutDashboard },
-  { key: 'commercial', label: 'Comercial', href: '/app/commercial', icon: BriefcaseBusiness },
-  { key: 'operations', label: 'Operações', href: '/app/operations', icon: FolderKanban },
-  { key: 'financial', label: 'Financeiro', href: '/app/financial', icon: CircleDollarSign },
-  { key: 'cashflow', label: 'Fluxo de caixa', href: '/app/cashflow', icon: Landmark },
-]
-
-const leadStages = ['incoming', 'proposal', 'negotiation', 'won', 'lost']
-const projectStages = ['proposal', 'waiting-files', 'in-progress', 'review', 'delivered', 'closed']
-const logTypes = ['pending', 'received_material', 'note', 'delivery', 'revision']
-const partners = ['Matheus', 'Luís', 'Letícia']
-
-const LABELS: Record<string, string> = {
-  dashboard: 'Painel',
-  commercial: 'Comercial',
-  operations: 'Operações',
-  financial: 'Financeiro',
-  cashflow: 'Fluxo de caixa',
-  incoming: 'Entrada',
-  proposal: 'Proposta',
-  negotiation: 'Negociação',
-  won: 'Fechado',
-  lost: 'Não fechado',
-  'waiting-files': 'Aguardando arquivos',
-  'in-progress': 'Em andamento',
-  review: 'Acompanhamento',
-  delivered: 'Entregue',
-  closed: 'Concluído',
-  pending: 'Pendência',
-  received_material: 'Material recebido',
-  note: 'Nota',
-  delivery: 'Entrega',
-  revision: 'Revisão',
-  receipt: 'Recebimento',
-  expense: 'Despesa',
-  payout: 'Repasse',
-  open: 'Aberto',
-  done: 'Concluído',
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
-}
-
-function parseDateValue(value: string | null | undefined) {
-  if (!value) return null
-  const text = String(value)
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(text) ? `${text}T12:00:00` : text
-  const date = new Date(normalized)
-  return Number.isNaN(date.getTime()) ? null : date
-}
-
-function formatDate(value: string | null | undefined) {
-  const date = parseDateValue(value)
-  if (!date) return '—'
-  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(date)
-}
-
-function toDateInputValue(value: string | null | undefined) {
-  if (!value) return ''
-  return String(value).slice(0, 10)
-}
-
-function leadFollowUpMeta(lead: Lead) {
-  if (!lead.next_follow_up_at) {
-    return { label: 'Sem follow-up', tone: 'border-[var(--line)] text-[var(--ink-soft)]' }
-  }
-
-  const followUpDate = parseDateValue(lead.next_follow_up_at)
-  const today = parseDateValue(new Date().toISOString().slice(0, 10))
-  if (!followUpDate || !today) {
-    return { label: formatDate(lead.next_follow_up_at), tone: 'border-[var(--line)] text-[var(--ink-soft)]' }
-  }
-
-  const diffDays = Math.round((followUpDate.getTime() - today.getTime()) / 86400000)
-
-  if (diffDays < 0) return { label: `${Math.abs(diffDays)}d em atraso`, tone: 'border-rose-200 bg-rose-50 text-rose-700' }
-  if (diffDays === 0) return { label: 'Vence hoje', tone: 'border-amber-200 bg-amber-50 text-amber-700' }
-  if (diffDays <= 2) return { label: `${diffDays}d para agir`, tone: 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]' }
-  return { label: `Próximo em ${diffDays}d`, tone: 'border-[var(--line)] text-[var(--ink-soft)]' }
-}
-
-function stageLabel(value: string) {
-  return LABELS[value] || value
-}
-
-function stageTone(stage: string) {
-  const normalized = stage.toLowerCase()
-  if (['won', 'delivered', 'closed', 'done'].includes(normalized)) return 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'
-  if (['lost'].includes(normalized)) return 'bg-rose-500/10 text-rose-700 border-rose-500/20'
-  if (['review', 'waiting-files', 'negotiation'].includes(normalized)) return 'bg-amber-500/10 text-amber-700 border-amber-500/20'
-  return 'bg-[rgba(15,139,141,0.12)] text-[var(--teal)] border-[rgba(15,139,141,0.18)]'
-}
-
-function numericValue(value: unknown) {
-  return Number(value || 0)
-}
-
-function monthTotals(entries: CashflowEntry[]) {
-  const monthKey = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit' }).format(new Date())
-  return entries.reduce(
-    (acc, entry) => {
-      const entryKey = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit' }).format(new Date(entry.entry_date))
-      if (entryKey !== monthKey) return acc
-      if (entry.entry_type === 'receipt') acc.receipts += numericValue(entry.amount)
-      if (entry.entry_type === 'expense') acc.expenses += numericValue(entry.amount)
-      if (entry.entry_type === 'payout') acc.payouts += numericValue(entry.amount)
-      return acc
-    },
-    { receipts: 0, expenses: 0, payouts: 0 },
-  )
-}
-
-function EmptyState({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-[28px] border border-[var(--line)] bg-white/75 p-8 text-sm text-[var(--ink-soft)] shadow-[0_20px_60px_rgba(7,19,21,0.05)]">
-      <div className="font-semibold text-[var(--ink)]">{title}</div>
-      <p className="mt-2 max-w-xl leading-6">{body}</p>
-    </div>
-  )
-}
-
-function Panel({
-  title,
-  subtitle,
-  children,
-  actions,
-}: {
-  title: string
-  subtitle?: string
-  children: ReactNode
-  actions?: ReactNode
-}) {
-  return (
-    <section className="rounded-[28px] border border-[var(--line)] bg-white/78 p-5 shadow-[0_20px_60px_rgba(7,19,21,0.05)] backdrop-blur-sm md:p-6">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-[var(--ink)]">{title}</h2>
-          {subtitle ? <p className="mt-1 text-sm text-[var(--ink-soft)]">{subtitle}</p> : null}
-        </div>
-        {actions}
-      </div>
-      {children}
-    </section>
-  )
-}
-
-function MetricCard({
-  label,
-  value,
-  helper,
-  icon: Icon,
-}: {
-  label: string
-  value: string
-  helper: string
-  icon: ComponentType<{ className?: string }>
-}) {
-  return (
-    <div className="rounded-[24px] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(245,245,242,0.94))] p-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-xs uppercase tracking-[0.2em] text-[var(--ink-soft)]/70">{label}</div>
-          <div className="mt-3 text-3xl font-semibold text-[var(--ink)]">{value}</div>
-        </div>
-        <div className="rounded-2xl border border-[rgba(15,139,141,0.14)] bg-[rgba(15,139,141,0.08)] p-3 text-[var(--teal)]">
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-      <div className="mt-4 text-sm text-[var(--ink-soft)]">{helper}</div>
-    </div>
-  )
-}
-
-type ViewMode = 'list' | 'kanban'
-
-function ViewSwitch({ value, onChange }: { value: ViewMode; onChange: (value: ViewMode) => void }) {
-  return (
-    <div className="inline-flex rounded-full border border-[var(--line)] bg-[var(--paper)] p-1">
-      {(['list', 'kanban'] as ViewMode[]).map((option) => (
-        <button
-          key={option}
-          type="button"
-          className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${value === option ? 'bg-white text-[var(--ink)] shadow-[0_6px_18px_rgba(7,19,21,0.08)]' : 'text-[var(--ink-soft)]'}`}
-          onClick={() => onChange(option)}
-        >
-          {option === 'list' ? 'Lista' : 'Kanban'}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function KanbanColumn({
-  title,
-  count,
-  children,
-}: {
-  title: string
-  count: number
-  children: ReactNode
-}) {
-  return (
-    <div className="min-w-[280px] flex-1 rounded-[24px] border border-[var(--line)] bg-[rgba(245,245,242,0.8)] p-4">
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-3">
-        <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]/75">{title}</div>
-        <div className="rounded-full border border-[var(--line)] bg-white/80 px-2.5 py-1 text-xs font-medium text-[var(--ink)]">{count}</div>
-      </div>
-      <div className="mt-4 space-y-3">{children}</div>
-    </div>
-  )
-}
-
-function LeadKanbanCard({
-  lead,
-  active,
-  onEdit,
-  onStageChange,
-}: {
-  lead: Lead
-  active: boolean
-  onEdit: (leadId: string) => void
-  onStageChange: (leadId: string, stage: string) => void
-}) {
-  const followUp = leadFollowUpMeta(lead)
-
-  return (
-    <div className={`rounded-[22px] border p-4 shadow-[0_16px_40px_rgba(7,19,21,0.04)] ${active ? 'border-[rgba(15,139,141,0.2)] bg-[rgba(15,139,141,0.06)]' : 'border-[var(--line)] bg-white/92'}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="font-medium text-[var(--ink)]">{lead.title}</div>
-          <div className="mt-1 text-sm text-[var(--ink-soft)]">{lead.client_name || 'Cliente não informado'}</div>
-        </div>
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
-          onClick={() => onEdit(lead.id)}
-        >
-          <SquarePen className="h-3.5 w-3.5" /> Editar
-        </button>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--ink-soft)]">
-        <span className="rounded-full border border-[var(--line)] px-2.5 py-1">{formatCurrency(numericValue(lead.estimated_amount))}</span>
-        <span className={`rounded-full border px-2.5 py-1 ${followUp.tone}`}>{followUp.label}</span>
-      </div>
-      <div className="mt-3 text-sm text-[var(--ink-soft)]">{lead.sales_owner || 'Sem responsável'} · Entrada {formatDate(lead.inbound_at || lead.created_at)}</div>
-      <div className="mt-3">
-        <select
-          className="w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)]"
-          value={lead.stage}
-          onChange={(event) => onStageChange(lead.id, event.target.value)}
-        >
-          {leadStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
-        </select>
-      </div>
-    </div>
-  )
-}
-
-function ProjectKanbanCard({
-  project,
-  active,
-  onEdit,
-  onStageChange,
-}: {
-  project: Project
-  active: boolean
-  onEdit: (projectId: string) => void
-  onStageChange: (projectId: string, stage: string) => void
-}) {
-  return (
-    <div className={`rounded-[22px] border p-4 shadow-[0_16px_40px_rgba(7,19,21,0.04)] ${active ? 'border-[rgba(15,139,141,0.2)] bg-[rgba(15,139,141,0.06)]' : 'border-[var(--line)] bg-white/92'}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="font-medium text-[var(--ink)]">{project.name}</div>
-          <div className="mt-1 text-sm text-[var(--ink-soft)]">{project.client_name || 'Cliente não informado'}</div>
-        </div>
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
-          onClick={() => onEdit(project.id)}
-        >
-          <SquarePen className="h-3.5 w-3.5" /> Editar
-        </button>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--ink-soft)]">
-        {project.discipline ? <span className="rounded-full border border-[var(--line)] px-2.5 py-1">{project.discipline}</span> : null}
-        <span className="rounded-full border border-[var(--line)] px-2.5 py-1">{project.pending_count} pendências</span>
-      </div>
-      <div className="mt-3 text-sm text-[var(--ink-soft)]">{formatCurrency(numericValue(project.contract_amount))} · prazo {formatDate(project.next_pending_due || project.deadline)}</div>
-      <div className="mt-3">
-        <select
-          className="w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)]"
-          value={project.stage}
-          onChange={(event) => onStageChange(project.id, event.target.value)}
-        >
-          {projectStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
-        </select>
-      </div>
-    </div>
-  )
-}
-
-type LeadDetailForm = {
-  title: string
-  stage: string
-  source: string
-  estimatedAmount: string
-  salesOwner: string
-  notes: string
-  inboundAt: string
-  firstContactAt: string
-  lastContactAt: string
-  nextFollowUpAt: string
-  proposalSentAt: string
-  closedAt: string
-}
-
-type ProjectDetailForm = {
-  name: string
-  code: string
-  discipline: string
-  stage: string
-  contractAmount: string
-  salesOwner: string
-  deadline: string
-  statusNote: string
-}
-
-type LogDetailForm = {
-  projectId: string
-  logType: string
-  title: string
-  details: string
-  dueDate: string
-  status: string
-}
-
-function LeadDetailCard({
-  lead,
-  draft,
-  onChange,
-  onSave,
-  onTouch,
-}: {
-  lead: Lead
-  draft: LeadDetailForm
-  onChange: (field: keyof LeadDetailForm, value: string) => void
-  onSave: () => void
-  onTouch: () => void
-}) {
-  const followUp = leadFollowUpMeta(lead)
-
-  return (
-    <div className="rounded-[28px] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(245,245,242,0.98))] p-5 shadow-[0_24px_60px_rgba(7,19,21,0.05)]">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--line)] pb-4">
-        <div>
-          <div className="text-xs uppercase tracking-[0.2em] text-[var(--teal)]">Lead aberto</div>
-          <h3 className="mt-2 text-xl font-semibold text-[var(--ink)]">{lead.title}</h3>
-          <div className="mt-2 text-sm text-[var(--ink-soft)]">{lead.client_name || 'Cliente não informado'}</div>
-        </div>
-        <div className={`rounded-full border px-3 py-1 text-xs font-medium ${followUp.tone}`}>
-          {followUp.label}
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--line)] bg-white/80 p-4 text-sm">
-          <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Entrada</div>
-          <div className="mt-2 font-medium text-[var(--ink)]">{formatDate(lead.inbound_at || lead.created_at)}</div>
-        </div>
-        <div className="rounded-2xl border border-[var(--line)] bg-white/80 p-4 text-sm">
-          <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Próxima ação</div>
-          <div className="mt-2 font-medium text-[var(--ink)]">{formatDate(lead.next_follow_up_at)}</div>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <label className="block text-sm font-medium text-[var(--ink)]">
-          Lead
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.title} onChange={(event) => onChange('title', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">
-          Etapa
-          <select className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.stage} onChange={(event) => onChange('stage', event.target.value)}>
-            {leadStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
-          </select>
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">
-          Origem
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.source} onChange={(event) => onChange('source', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">
-          Responsável comercial
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.salesOwner} onChange={(event) => onChange('salesOwner', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">
-          Valor estimado
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="number" value={draft.estimatedAmount} onChange={(event) => onChange('estimatedAmount', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">
-          Próximo follow-up
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.nextFollowUpAt} onChange={(event) => onChange('nextFollowUpAt', event.target.value)} />
-        </label>
-      </div>
-
-      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <label className="block text-sm font-medium text-[var(--ink)]">
-          Data de entrada
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.inboundAt} onChange={(event) => onChange('inboundAt', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">
-          Primeiro contato
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.firstContactAt} onChange={(event) => onChange('firstContactAt', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">
-          Último contato
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.lastContactAt} onChange={(event) => onChange('lastContactAt', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">
-          Proposta enviada
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.proposalSentAt} onChange={(event) => onChange('proposalSentAt', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">
-          Fechamento
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.closedAt} onChange={(event) => onChange('closedAt', event.target.value)} />
-        </label>
-      </div>
-
-      <label className="mt-4 block text-sm font-medium text-[var(--ink)]">
-        Observações
-        <textarea className="mt-2 min-h-28 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.notes} onChange={(event) => onChange('notes', event.target.value)} />
-      </label>
-
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button type="button" className="inline-flex items-center justify-center rounded-2xl border border-[var(--line)] px-4 py-3 text-sm text-[var(--ink)] transition hover:bg-white" onClick={onTouch}>
-          Registrar contato hoje
-        </button>
-        <button type="button" className="inline-flex items-center justify-center rounded-2xl bg-[var(--ink)] px-4 py-3 text-sm text-white transition hover:bg-[var(--ink-soft)]" onClick={onSave}>
-          Salvar lead
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function ProjectDetailCard({
-  project,
-  draft,
-  onChange,
-  onSave,
-}: {
-  project: Project
-  draft: ProjectDetailForm
-  onChange: (field: keyof ProjectDetailForm, value: string) => void
-  onSave: () => void
-}) {
-  return (
-    <div className="rounded-[28px] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(245,245,242,0.98))] p-5 shadow-[0_24px_60px_rgba(7,19,21,0.05)]">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--line)] pb-4">
-        <div>
-          <div className="text-xs uppercase tracking-[0.2em] text-[var(--teal)]">Projeto em edição</div>
-          <h3 className="mt-2 text-xl font-semibold text-[var(--ink)]">{project.name}</h3>
-          <div className="mt-2 text-sm text-[var(--ink-soft)]">{project.client_name || 'Cliente não informado'}</div>
-        </div>
-        <span className={`rounded-full border px-3 py-1 text-xs font-medium ${stageTone(project.stage)}`}>{stageLabel(project.stage)}</span>
-      </div>
-
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <label className="block text-sm font-medium text-[var(--ink)]">Nome do projeto
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.name} onChange={(event) => onChange('name', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">Código
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.code} onChange={(event) => onChange('code', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">Disciplina
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.discipline} onChange={(event) => onChange('discipline', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">Etapa
-          <select className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.stage} onChange={(event) => onChange('stage', event.target.value)}>
-            {projectStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
-          </select>
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">Valor do contrato
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="number" value={draft.contractAmount} onChange={(event) => onChange('contractAmount', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">Responsável comercial
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.salesOwner} onChange={(event) => onChange('salesOwner', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)] md:col-span-2">Prazo
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.deadline} onChange={(event) => onChange('deadline', event.target.value)} />
-        </label>
-      </div>
-
-      <label className="mt-4 block text-sm font-medium text-[var(--ink)]">Observação de status
-        <textarea className="mt-2 min-h-28 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.statusNote} onChange={(event) => onChange('statusNote', event.target.value)} />
-      </label>
-
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-[var(--ink)] px-4 py-3 text-sm text-white transition hover:bg-[var(--ink-soft)]" onClick={onSave}>
-          <SquarePen className="h-4 w-4" /> Salvar projeto
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function LogDetailCard({
-  log,
-  draft,
-  projectOptions,
-  onChange,
-  onSave,
-}: {
-  log: ProjectLog
-  draft: LogDetailForm
-  projectOptions: Array<{ id: string; name: string }>
-  onChange: (field: keyof LogDetailForm, value: string) => void
-  onSave: () => void
-}) {
-  return (
-    <div className="rounded-[28px] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(245,245,242,0.98))] p-5 shadow-[0_24px_60px_rgba(7,19,21,0.05)]">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--line)] pb-4">
-        <div>
-          <div className="text-xs uppercase tracking-[0.2em] text-[var(--teal)]">Movimentação em edição</div>
-          <h3 className="mt-2 text-xl font-semibold text-[var(--ink)]">{log.title}</h3>
-          <div className="mt-2 text-sm text-[var(--ink-soft)]">{log.project_name}</div>
-        </div>
-        <span className={`rounded-full border px-3 py-1 text-xs font-medium ${stageTone(log.status)}`}>{stageLabel(log.log_type)}</span>
-      </div>
-
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <label className="block text-sm font-medium text-[var(--ink)]">Projeto
-          <select className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.projectId} onChange={(event) => onChange('projectId', event.target.value)}>
-            {projectOptions.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-          </select>
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">Tipo
-          <select className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.logType} onChange={(event) => onChange('logType', event.target.value)}>
-            {logTypes.map((item) => <option key={item} value={item}>{stageLabel(item)}</option>)}
-          </select>
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)] md:col-span-2">Título
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.title} onChange={(event) => onChange('title', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">Prazo
-          <input className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={draft.dueDate} onChange={(event) => onChange('dueDate', event.target.value)} />
-        </label>
-        <label className="block text-sm font-medium text-[var(--ink)]">Status
-          <select className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.status} onChange={(event) => onChange('status', event.target.value)}>
-            <option value="open">Aberto</option>
-            <option value="done">Concluído</option>
-          </select>
-        </label>
-      </div>
-
-      <label className="mt-4 block text-sm font-medium text-[var(--ink)]">Detalhes
-        <textarea className="mt-2 min-h-28 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={draft.details} onChange={(event) => onChange('details', event.target.value)} />
-      </label>
-
-      <div className="mt-4 flex flex-wrap gap-3">
-        <button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-[var(--ink)] px-4 py-3 text-sm text-white transition hover:bg-[var(--ink-soft)]" onClick={onSave}>
-          <SquarePen className="h-4 w-4" /> Salvar movimentação
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function ProjectStrip({
-  project,
-  onStageChange,
-  onEdit,
-}: {
-  project: Project
-  onStageChange: (projectId: string, stage: string) => void
-  onEdit?: (projectId: string) => void
-}) {
-  const outstanding = numericValue(project.contract_amount) - numericValue(project.total_received)
-
-  return (
-    <div className="rounded-[26px] border border-[var(--line)] bg-[rgba(255,255,255,0.78)] p-4 md:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--line)] pb-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-lg font-semibold text-[var(--ink)]">{project.name}</h3>
-            <span className={`rounded-full border px-3 py-1 text-xs font-medium ${stageTone(project.stage)}`}>
-              {stageLabel(project.stage)}
-            </span>
-          </div>
-          <div className="mt-2 text-sm text-[var(--ink-soft)]">
-            {project.client_name || 'Cliente não informado'}
-            {project.code ? ` · ${project.code}` : ''}
-            {project.discipline ? ` · ${project.discipline}` : ''}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-end gap-3">
-          {onEdit ? (
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] transition hover:bg-[var(--paper)]"
-              onClick={() => onEdit(project.id)}
-            >
-              <SquarePen className="h-4 w-4" /> Editar
-            </button>
-          ) : null}
-          <label className="text-sm text-[var(--ink-soft)]">
-            <span className="mb-2 block text-xs uppercase tracking-[0.16em]">Etapa</span>
-            <select
-              className="rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none"
-              value={project.stage}
-              onChange={(event) => onStageChange(project.id, event.target.value)}
-            >
-              {projectStages.map((stage) => (
-                <option key={stage} value={stage}>
-                  {stageLabel(stage)}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <div className="rounded-2xl border border-[rgba(15,139,141,0.12)] bg-[rgba(15,139,141,0.06)] p-4">
-          <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/75">Comercial</div>
-          <div className="mt-3 flex items-center justify-between gap-3 text-sm text-[var(--ink)]">
-            <span>Responsável</span>
-            <strong>{project.sales_owner || '—'}</strong>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3 text-sm text-[var(--ink)]">
-            <span>Contrato</span>
-            <strong>{formatCurrency(numericValue(project.contract_amount))}</strong>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-[var(--line)] bg-[rgba(255,255,255,0.85)] p-4">
-          <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/75">Operações</div>
-          <div className="mt-3 flex items-center justify-between gap-3 text-sm text-[var(--ink)]">
-            <span>Pendências</span>
-            <strong>{numericValue(project.pending_count)}</strong>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3 text-sm text-[var(--ink)]">
-            <span>Próximo prazo</span>
-            <strong>{formatDate(project.next_pending_due || project.deadline)}</strong>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-[rgba(7,19,21,0.08)] bg-[rgba(7,19,21,0.04)] p-4">
-          <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/75">Financeiro</div>
-          <div className="mt-3 flex items-center justify-between gap-3 text-sm text-[var(--ink)]">
-            <span>Recebido</span>
-            <strong>{formatCurrency(numericValue(project.total_received))}</strong>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3 text-sm text-[var(--ink)]">
-            <span>Em aberto</span>
-            <strong>{formatCurrency(outstanding)}</strong>
-          </div>
-          <div className="mt-2 flex items-center justify-between gap-3 text-sm text-[var(--ink)]">
-            <span>Repasses</span>
-            <strong>{formatCurrency(numericValue(project.total_payouts))}</strong>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) => Promise<void> }) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault()
-    setSubmitting(true)
-    try {
-      await onLogin(email, password)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f7f6f2_0%,#efeee8_100%)] px-4 py-8 text-[var(--ink)] md:px-8">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-        <section className="relative overflow-hidden rounded-[40px] border border-[var(--line)] bg-[radial-gradient(circle_at_top_left,rgba(15,139,141,0.12),transparent_35%),linear-gradient(180deg,rgba(255,255,255,0.9),rgba(245,245,242,0.88))] p-8 shadow-[0_35px_90px_rgba(7,19,21,0.08)] md:p-10">
-          <div className="max-w-xl">
-            <div className="inline-flex rounded-full border border-[rgba(15,139,141,0.16)] bg-[rgba(15,139,141,0.08)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--teal)]">
-              Apolo / App
-            </div>
-            <h1 className="mt-6 text-4xl font-semibold leading-tight text-[var(--ink)] md:text-5xl">
-              Comercial, operação e caixa no mesmo painel.
-            </h1>
-            <p className="mt-5 text-base leading-7 text-[var(--ink-soft)]">
-              O app mantém a cara da Apolo, mas funciona como uma mesa operacional de verdade: pipeline, andamento dos projetos, recebimentos, despesas e repasses no mesmo lugar.
-            </p>
-          </div>
-
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            <MetricCard label="Comercial" value="Pipeline" helper="Quem vendeu, quanto vale e em que pé está." icon={TrendingUp} />
-            <MetricCard label="Operações" value="Andamento" helper="Materiais recebidos, pendências e prazos." icon={ClipboardList} />
-            <MetricCard label="Financeiro" value="Caixa" helper="Recebimentos, despesas, repasses e fluxo limpo." icon={Banknote} />
-          </div>
-        </section>
-
-        <section className="flex items-center">
-          <form
-            onSubmit={submit}
-            className="w-full rounded-[32px] border border-[var(--line)] bg-white/85 p-8 shadow-[0_25px_70px_rgba(7,19,21,0.08)] backdrop-blur-sm"
-          >
-            <h2 className="text-2xl font-semibold">Entrar na operação</h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">
-              Acesso simples só para os sócios por enquanto. As credenciais vêm das variáveis de ambiente.
-            </p>
-
-            <div className="mt-6 space-y-4">
-              <label className="block text-sm font-medium text-[var(--ink)]">
-                Usuário
-                <input
-                  className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 outline-none transition focus:border-[rgba(15,139,141,0.24)]"
-                  type="text"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="matheus"
-                  required
-                />
-              </label>
-              <label className="block text-sm font-medium text-[var(--ink)]">
-                Senha
-                <input
-                  className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 outline-none transition focus:border-[rgba(15,139,141,0.24)]"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="••••••••"
-                  required
-                />
-              </label>
-            </div>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-4 py-3 font-medium text-white transition hover:bg-[var(--ink-soft)] disabled:opacity-60"
-            >
-              {submitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              Entrar no app
-            </button>
-          </form>
-        </section>
-      </div>
-    </div>
-  )
-}
+import type { BootstrapData, Lead, SessionUser } from '@/types/app'
+import type { ConvertProjectForm, LeadDetailForm, ViewMode } from '@/types/forms'
+import { NAV_ITEMS, leadStages } from '@/lib/constants'
+import {
+  formatCurrency,
+  formatDate,
+  leadFollowUpMeta,
+  numericValue,
+  stageLabel,
+  toDateInputValue,
+} from '@/lib/formatters'
+import { EmptyState, MetricCard, Panel, ViewSwitch } from '@/components/workspace/ui'
+import { DndContext, DragOverlay, closestCenter, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core'
+import { DroppableLeadColumn, DraggableLeadCard, LeadGhostCard } from '@/components/workspace/kanban'
+import { LeadModal, LeadDetailModal, ConvertProjectModal } from '@/components/workspace/commercial-modals'
+import { DashboardProjectRow } from '@/components/workspace/project-strip'
+import { LoginScreen } from '@/components/workspace/login-screen'
+import { OperationsKanbanPage } from '@/pages/OperationsKanbanPage'
+import { FinancialPage } from '@/pages/FinancialPage'
+import { CashflowPage } from '@/pages/CashflowPage'
 
 export function ApoloWorkspace() {
   const location = useLocation()
@@ -809,10 +56,7 @@ export function ApoloWorkspace() {
     nextFollowUpAt: '',
   })
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
-  const [selectedLogId, setSelectedLogId] = useState<string | null>(null)
   const [commercialView, setCommercialView] = useState<ViewMode>('list')
-  const [operationsView, setOperationsView] = useState<ViewMode>('list')
   const [leadDetailForm, setLeadDetailForm] = useState<LeadDetailForm>({
     title: '',
     stage: 'incoming',
@@ -827,63 +71,34 @@ export function ApoloWorkspace() {
     proposalSentAt: '',
     closedAt: '',
   })
-  const [projectForm, setProjectForm] = useState({
+  const [showLeadModal, setShowLeadModal] = useState(false)
+  const [showConvertModal, setShowConvertModal] = useState(false)
+  const [commercialSearch, setCommercialSearch] = useState('')
+  const [showWonLost, setShowWonLost] = useState(false)
+  const [showSalesBreakdown, setShowSalesBreakdown] = useState(false)
+  const [commercialDragId, setCommercialDragId] = useState<string | null>(null)
+  const [commercialStageOverrides, setCommercialStageOverrides] = useState<Record<string, string>>({})
+  const [convertForm, setConvertForm] = useState<ConvertProjectForm>({
+    leadId: '',
     clientName: '',
     name: '',
-    code: '',
-    discipline: '',
-    stage: 'proposal',
     contractAmount: '',
     salesOwner: '',
+    firstContactAt: '',
+    proposalSentAt: '',
+    closedAt: '',
     deadline: '',
-    statusNote: '',
-  })
-  const [projectDetailForm, setProjectDetailForm] = useState<ProjectDetailForm>({
-    name: '',
-    code: '',
-    discipline: '',
-    stage: 'proposal',
-    contractAmount: '',
-    salesOwner: '',
-    deadline: '',
-    statusNote: '',
-  })
-  const [logForm, setLogForm] = useState({
-    projectId: '',
-    logType: 'pending',
-    title: '',
-    details: '',
-    dueDate: '',
-    status: 'open',
-  })
-  const [logDetailForm, setLogDetailForm] = useState<LogDetailForm>({
-    projectId: '',
-    logType: 'pending',
-    title: '',
-    details: '',
-    dueDate: '',
-    status: 'open',
-  })
-  const [receiptForm, setReceiptForm] = useState({ projectId: '', amount: '', bankAccount: '', entryDate: '', note: '' })
-  const [expenseForm, setExpenseForm] = useState({
-    projectId: '',
-    amount: '',
-    category: '',
-    bankAccount: '',
-    vendor: '',
-    entryDate: '',
-    note: '',
-  })
-  const [payoutForm, setPayoutForm] = useState({
-    projectId: '',
-    partnerName: partners[0],
-    amount: '',
-    bankAccount: '',
-    entryDate: '',
-    note: '',
+    subprojects: [],
   })
 
-  const section = location.pathname.replace('/app/', '').replace('/app', '') || 'dashboard'
+  const rawSection = location.pathname.replace('/app/', '').replace('/app', '') || 'dashboard'
+  const legacySectionMap: Record<string, string> = {
+    commercial: 'comercial',
+    operations: 'operacoes',
+    financial: 'financeiro',
+    cashflow: 'fluxo',
+  }
+  const section = legacySectionMap[rawSection] || rawSection
 
   const loadBootstrap = async () => {
     setLoadingData(true)
@@ -917,6 +132,7 @@ export function ApoloWorkspace() {
 
   useEffect(() => {
     if (location.pathname === '/app') navigate('/app/dashboard', { replace: true })
+    if (legacySectionMap[rawSection]) navigate(`/app/${legacySectionMap[rawSection]}`, { replace: true })
   }, [location.pathname, navigate])
 
   const submitMutation = async (
@@ -943,64 +159,14 @@ export function ApoloWorkspace() {
     setLeadDetailForm((current) => ({ ...current, [field]: value }))
   }
 
-  const handleProjectDetailChange = (field: keyof ProjectDetailForm, value: string) => {
-    setProjectDetailForm((current) => ({ ...current, [field]: value }))
-  }
-
-  const handleLogDetailChange = (field: keyof LogDetailForm, value: string) => {
-    setLogDetailForm((current) => ({ ...current, [field]: value }))
-  }
-
   const handleLeadSave = async () => {
     if (!selectedLead) return
-    await submitMutation(
-      'updateLead',
-      {
-        id: selectedLead.id,
-        ...leadDetailForm,
-      },
-      undefined,
-      'Lead atualizado',
-    )
+    await submitMutation('updateLead', { id: selectedLead.id, ...leadDetailForm }, undefined, 'Lead atualizado')
   }
 
   const handleLeadTouch = async () => {
     if (!selectedLead) return
-    await submitMutation(
-      'touchLead',
-      {
-        id: selectedLead.id,
-        nextFollowUpAt: leadDetailForm.nextFollowUpAt || undefined,
-      },
-      undefined,
-      'Contato registrado',
-    )
-  }
-
-  const handleProjectSave = async () => {
-    if (!selectedProject) return
-    await submitMutation(
-      'updateProject',
-      {
-        id: selectedProject.id,
-        ...projectDetailForm,
-      },
-      undefined,
-      'Projeto atualizado',
-    )
-  }
-
-  const handleLogSave = async () => {
-    if (!selectedLog) return
-    await submitMutation(
-      'updateProjectLog',
-      {
-        id: selectedLog.id,
-        ...logDetailForm,
-      },
-      undefined,
-      'Movimentação atualizada',
-    )
+    await submitMutation('touchLead', { id: selectedLead.id, nextFollowUpAt: leadDetailForm.nextFollowUpAt || undefined }, undefined, 'Contato registrado')
   }
 
   const handleLogin = async (email: string, password: string) => {
@@ -1023,51 +189,51 @@ export function ApoloWorkspace() {
     navigate('/app')
   }
 
-  const openProjectOptions = data?.projects.map((project) => ({ id: project.id, name: project.name })) || []
   const selectedLead = useMemo(() => data?.leads?.find((lead) => lead.id === selectedLeadId) || null, [data?.leads, selectedLeadId])
-  const selectedProject = useMemo(() => data?.projects?.find((project) => project.id === selectedProjectId) || null, [data?.projects, selectedProjectId])
-  const selectedLog = useMemo(() => data?.logs?.find((item) => item.id === selectedLogId) || null, [data?.logs, selectedLogId])
+  const leadsWithOverrides = useMemo(
+    () => (data?.leads || []).map((l) => commercialStageOverrides[l.id] ? { ...l, stage: commercialStageOverrides[l.id] } : l),
+    [data?.leads, commercialStageOverrides],
+  )
   const commercialKanban = useMemo(
-    () => Object.fromEntries(leadStages.map((stage) => [stage, (data?.leads || []).filter((lead) => lead.stage === stage)])) as Record<string, Lead[]>,
-    [data?.leads],
+    () => Object.fromEntries(leadStages.map((stage) => [stage, leadsWithOverrides.filter((lead) => lead.stage === stage)])) as Record<string, Lead[]>,
+    [leadsWithOverrides],
   )
-  const operationsKanban = useMemo(
-    () => Object.fromEntries(projectStages.map((stage) => [stage, (data?.projects || []).filter((project) => project.stage === stage)])) as Record<string, Project[]>,
-    [data?.projects],
+  const activeDragLead = useMemo(
+    () => (commercialDragId ? leadsWithOverrides.find((l) => l.id === commercialDragId) ?? null : null),
+    [commercialDragId, leadsWithOverrides],
   )
-  const monthly = useMemo(() => monthTotals(data?.cashflow || []), [data?.cashflow])
 
+  const handleCommercialDragStart = useCallback((event: DragStartEvent) => {
+    setCommercialDragId(String(event.active.id))
+  }, [])
+
+  const handleCommercialDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      setCommercialDragId(null)
+      const leadId = String(event.active.id)
+      const targetStage = event.over ? String(event.over.id) : null
+      const activeStages = ['incoming', 'qualified', 'proposal', 'negotiation']
+      if (!targetStage || !activeStages.includes(targetStage)) return
+      const lead = data?.leads.find((l) => l.id === leadId)
+      if (!lead || lead.stage === targetStage) return
+      setCommercialStageOverrides((prev) => ({ ...prev, [leadId]: targetStage }))
+      void submitMutation(
+        'updateLeadStage',
+        { id: leadId, stage: targetStage },
+        () => setCommercialStageOverrides((prev) => { const next = { ...prev }; delete next[leadId]; return next }),
+        'Etapa atualizada',
+      ).catch(() => {
+        setCommercialStageOverrides((prev) => { const next = { ...prev }; delete next[leadId]; return next })
+      })
+    },
+    [data?.leads, submitMutation],
+  )
   useEffect(() => {
-    if (!data?.leads.length) {
+    if (!data?.leads.length) { setSelectedLeadId(null); return }
+    if (selectedLeadId && !data.leads.some((lead) => lead.id === selectedLeadId)) {
       setSelectedLeadId(null)
-      return
-    }
-
-    const stillExists = selectedLeadId && data.leads.some((lead) => lead.id === selectedLeadId)
-    if (!stillExists) {
-      setSelectedLeadId(data.leads[0].id)
     }
   }, [data?.leads, selectedLeadId])
-
-  useEffect(() => {
-    if (!data?.projects.length) {
-      setSelectedProjectId(null)
-      return
-    }
-    if (!selectedProjectId) return
-    const stillExists = data.projects.some((project) => project.id === selectedProjectId)
-    if (!stillExists) setSelectedProjectId(null)
-  }, [data?.projects, selectedProjectId])
-
-  useEffect(() => {
-    if (!data?.logs.length) {
-      setSelectedLogId(null)
-      return
-    }
-    if (!selectedLogId) return
-    const stillExists = data.logs.some((item) => item.id === selectedLogId)
-    if (!stillExists) setSelectedLogId(null)
-  }, [data?.logs, selectedLogId])
 
   useEffect(() => {
     if (!selectedLead) return
@@ -1086,32 +252,6 @@ export function ApoloWorkspace() {
       closedAt: toDateInputValue(selectedLead.closed_at),
     })
   }, [selectedLead])
-
-  useEffect(() => {
-    if (!selectedProject) return
-    setProjectDetailForm({
-      name: selectedProject.name || '',
-      code: selectedProject.code || '',
-      discipline: selectedProject.discipline || '',
-      stage: selectedProject.stage || 'proposal',
-      contractAmount: String(selectedProject.contract_amount || ''),
-      salesOwner: selectedProject.sales_owner || '',
-      deadline: toDateInputValue(selectedProject.deadline),
-      statusNote: selectedProject.status_note || '',
-    })
-  }, [selectedProject])
-
-  useEffect(() => {
-    if (!selectedLog) return
-    setLogDetailForm({
-      projectId: selectedLog.project_id || '',
-      logType: selectedLog.log_type || 'pending',
-      title: selectedLog.title || '',
-      details: selectedLog.details || '',
-      dueDate: toDateInputValue(selectedLog.due_date),
-      status: selectedLog.status || 'open',
-    })
-  }, [selectedLog])
 
   if (checkingSession) {
     return (
@@ -1142,7 +282,44 @@ export function ApoloWorkspace() {
     )
   }
 
-  const dashboardProjects = data.projects.slice(0, 5)
+  const today = new Date().toISOString().slice(0, 10)
+  const pipelineLeads = data.leads.filter((l) => l.stage !== 'won' && l.stage !== 'lost')
+  const pipelineTotal = pipelineLeads.reduce((s, l) => s + numericValue(l.estimated_amount), 0)
+  const incomingLeadsValue = pipelineLeads
+    .filter((l) => l.stage === 'incoming')
+    .reduce((sum, lead) => sum + numericValue(lead.estimated_amount), 0)
+  const proposalLeadsValue = pipelineLeads
+    .filter((l) => l.stage === 'proposal')
+    .reduce((sum, lead) => sum + numericValue(lead.estimated_amount), 0)
+  const pipelineByStage = ['incoming', 'proposal', 'negotiation'].map((stage) => ({
+    stage,
+    count: pipelineLeads.filter((l) => l.stage === stage).length,
+    value: pipelineLeads.filter((l) => l.stage === stage).reduce((s, l) => s + numericValue(l.estimated_amount), 0),
+  }))
+  const overdueFollowUps = data.leads
+    .filter((l) => l.next_follow_up_at && l.next_follow_up_at < today && l.stage !== 'won' && l.stage !== 'lost')
+    .sort((a, b) => (a.next_follow_up_at ?? '').localeCompare(b.next_follow_up_at ?? ''))
+    .slice(0, 8)
+  const currentYear = today.slice(0, 4)
+  const currentYearSalesProjects = data.projects
+    .filter((project) => (
+      numericValue(project.sale_log_count) > 0
+      && (project.sale_recorded_at || '').slice(0, 4) === currentYear
+    ))
+    .sort((a, b) => {
+      const aDate = a.sale_recorded_at || ''
+      const bDate = b.sale_recorded_at || ''
+      return bDate.localeCompare(aDate)
+    })
+  const currentYearSalesTotal = currentYearSalesProjects.reduce(
+    (sum, project) => sum + numericValue(project.contract_amount),
+    0,
+  )
+  const inProgressCount = data.projects.filter((p) => p.stage === 'em-andamento').length
+  const activeProjects = data.projects
+    .filter((p) => p.stage === 'em-andamento' || p.stage === 'bloqueado')
+    .sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime())
+    .slice(0, 8)
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f7f6f2_0%,#efeee8_100%)] text-[var(--ink)]">
@@ -1197,14 +374,11 @@ export function ApoloWorkspace() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <div className="text-xs uppercase tracking-[0.22em] text-[var(--ink-soft)]/70">{section}</div>
-                <h2 className="mt-2 text-3xl font-semibold capitalize">
-                  {stageLabel(section)}
-                </h2>
+                <h2 className="mt-2 text-3xl font-semibold capitalize">{stageLabel(section)}</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ink-soft)]">
                   O app foi dividido de propósito em comercial, operações e financeiro para a Apolo enxergar o que entrou, o que está travado e o que realmente girou no caixa.
                 </p>
               </div>
-
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-[var(--line)] bg-[rgba(255,255,255,0.85)] px-4 py-3 text-sm">
                   <div className="text-[var(--ink-soft)]">Leads abertos</div>
@@ -1225,531 +399,335 @@ export function ApoloWorkspace() {
           <div className="space-y-6">
             {section === 'dashboard' ? (
               <>
-                <div className="grid gap-4 xl:grid-cols-3 md:grid-cols-2">
-                  <MetricCard label="Contratos ativos" value={formatCurrency(data.summary.activeContractTotal)} helper="Valor em contrato que ainda está rodando na operação." icon={ReceiptText} />
-                  <MetricCard label="Vendas no ano" value={formatCurrency(data.summary.currentYearSales)} helper="Valor contratado no ano corrente, priorizando data de contratação." icon={TrendingUp} />
-                  <MetricCard label="Entregues sem receber" value={formatCurrency(data.summary.deliveredUnpaidTotal)} helper="Valor ainda em aberto nos projetos já entregues." icon={HandCoins} />
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <MetricCard label="Leads no funil" value={String(pipelineLeads.length)} helper={`${formatCurrency(pipelineTotal)} em oportunidades ativas`} icon={TrendingUp} />
+                  <MetricCard label="Em andamento" value={String(inProgressCount)} helper="Projetos nas etapas Em andamento e Acompanhamento" icon={FolderKanban} />
+                  <MetricCard label="Contratos ativos" value={formatCurrency(data.summary.activeContractTotal)} helper="Valor em contrato ainda em execução" icon={ReceiptText} />
+                  <MetricCard label="Vendas no ano" value={formatCurrency(data.summary.currentYearSales)} helper="Valor contratado no ano corrente" icon={CircleDollarSign} />
                 </div>
 
-                <Panel
-                  title="Faixa de projetos"
-                  subtitle="Essa é a assinatura do app: cada projeto mostra comercial, operação e financeiro numa faixa só."
-                >
-                  <div className="space-y-4">
-                    {dashboardProjects.length ? (
-                      dashboardProjects.map((project) => (
-                        <ProjectStrip
-                          key={project.id}
-                          project={project}
-                          onStageChange={(projectId, stage) => {
-                            void submitMutation('updateProjectStage', { id: projectId, stage }, undefined, 'Etapa do projeto atualizada')
-                          }}
-                        />
-                      ))
+                <div className="grid gap-4 xl:grid-cols-[1fr_340px]">
+                  <Panel title="Pipeline comercial" subtitle="Leads ativos por etapa — quantidade e valor estimado.">
+                    {pipelineLeads.length === 0 ? (
+                      <EmptyState title="Funil vazio" body="Nenhum lead ativo no momento." />
                     ) : (
-                      <EmptyState title="Nenhum projeto ainda" body="Crie o primeiro projeto no Comercial e o painel começa a respirar." />
+                      <div className="space-y-5">
+                        {pipelineByStage.map(({ stage, count, value }) => {
+                          const pct = pipelineTotal > 0 ? Math.round((value / pipelineTotal) * 100) : 0
+                          return (
+                            <div key={stage}>
+                              <div className="mb-2 flex items-center justify-between text-sm">
+                                <span className="font-medium text-[var(--ink)]">{stageLabel(stage)}</span>
+                                <span className="text-[var(--ink-soft)]">{count} lead{count !== 1 ? 's' : ''} · {formatCurrency(value)}</span>
+                              </div>
+                              <div className="h-2 w-full overflow-hidden rounded-full bg-[rgba(15,139,141,0.1)]">
+                                <div className="h-2 rounded-full bg-[var(--teal)] transition-all duration-500" style={{ width: `${Math.max(pct, pct > 0 ? 2 : 0)}%` }} />
+                              </div>
+                            </div>
+                          )
+                        })}
+                        <div className="flex items-center justify-between border-t border-[var(--line)] pt-4 text-sm">
+                          <span className="text-[var(--ink-soft)]">Total do funil</span>
+                          <span className="font-semibold text-[var(--ink)]">{formatCurrency(pipelineTotal)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </Panel>
+
+                  <Panel title="Follow-ups vencidos" subtitle="Leads que precisam de ação.">
+                    {overdueFollowUps.length === 0 ? (
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">Nenhum follow-up em atraso. Boa!</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {overdueFollowUps.map((lead) => {
+                          const meta = leadFollowUpMeta(lead)
+                          return (
+                            <div key={lead.id} className="flex items-start justify-between gap-3 rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 text-sm">
+                              <div className="min-w-0">
+                                <div className="truncate font-medium text-[var(--ink)]">{lead.title}</div>
+                                <div className="truncate text-xs text-[var(--ink-soft)]">{lead.client_name ?? '—'}</div>
+                              </div>
+                              <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium ${meta.tone}`}>{meta.label}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </Panel>
+                </div>
+
+                <Panel title="Projetos em andamento" subtitle="Em andamento e Acompanhamento — ordenados por número de pendências.">
+                  <div className="space-y-2">
+                    {activeProjects.length ? (
+                      activeProjects.map((project) => <DashboardProjectRow key={project.id} project={project} />)
+                    ) : (
+                      <EmptyState title="Nenhum projeto em andamento" body="Quando projetos entrarem nas etapas Em andamento ou Acompanhamento eles aparecem aqui." />
                     )}
                   </div>
                 </Panel>
 
                 <Panel title="Movimentação recente" subtitle="Leitura rápida do que realmente girou no caixa.">
-                  <div className="space-y-3">
-                    {data.cashflow.slice(0, 8).map((entry) => (
-                      <div key={`${entry.entry_type}-${entry.id}`} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 text-sm">
-                        <div>
-                          <div className="font-medium text-[var(--ink)]">{entry.project_name}</div>
-                          <div className="text-[var(--ink-soft)]">
-                            {stageLabel(entry.entry_type)} {entry.counterpart ? `· ${entry.counterpart}` : ''}
+                  {data.cashflow.length === 0 ? (
+                    <EmptyState title="Sem movimentação ainda" body="Registre recebimentos e despesas no Financeiro." />
+                  ) : (
+                    <div className="space-y-3">
+                      {data.cashflow.slice(0, 8).map((entry) => (
+                        <div key={`${entry.entry_type}-${entry.id}`} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 text-sm">
+                          <div className="min-w-0">
+                            <div className="truncate font-medium text-[var(--ink)]">{entry.project_name}</div>
+                            <div className="text-[var(--ink-soft)]">{stageLabel(entry.entry_type)}{entry.counterpart ? ` · ${entry.counterpart}` : ''}</div>
+                          </div>
+                          <div className={`shrink-0 font-semibold ${entry.signed_amount >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {entry.signed_amount >= 0 ? '+' : '−'}{formatCurrency(Math.abs(numericValue(entry.signed_amount)))}
                           </div>
                         </div>
-                        <div className={`font-semibold ${entry.signed_amount >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                          {entry.signed_amount >= 0 ? '+' : '-'}
-                          {formatCurrency(Math.abs(numericValue(entry.signed_amount)))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </Panel>
               </>
             ) : null}
 
-            {section === 'commercial' ? (
+            {section === 'comercial' ? (
               <>
-                <div className="grid gap-6 xl:grid-cols-2">
-                  <Panel title="Novo lead" subtitle="Entrada comercial com dono e próxima ação já definida.">
-                    <form
-                      className="grid gap-4 md:grid-cols-2"
-                      onSubmit={(event) => {
-                        event.preventDefault()
-                        void submitMutation('createLead', leadForm, () => {
-                          setLeadForm({
-                            clientName: '',
-                            title: '',
-                            stage: 'incoming',
-                            source: '',
-                            estimatedAmount: '',
-                            salesOwner: '',
-                            notes: '',
-                            inboundAt: new Date().toISOString().slice(0, 10),
-                            nextFollowUpAt: '',
-                          })
-                        }, 'Lead criado')
-                      }}
-                    >
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Nome do cliente" value={leadForm.clientName} onChange={(event) => setLeadForm((current) => ({ ...current, clientName: event.target.value }))} required />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Nome do lead" value={leadForm.title} onChange={(event) => setLeadForm((current) => ({ ...current, title: event.target.value }))} required />
-                      <select className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={leadForm.stage} onChange={(event) => setLeadForm((current) => ({ ...current, stage: event.target.value }))}>
-                        {leadStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
-                      </select>
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Origem" value={leadForm.source} onChange={(event) => setLeadForm((current) => ({ ...current, source: event.target.value }))} />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Valor estimado" type="number" value={leadForm.estimatedAmount} onChange={(event) => setLeadForm((current) => ({ ...current, estimatedAmount: event.target.value }))} />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Responsável comercial" value={leadForm.salesOwner} onChange={(event) => setLeadForm((current) => ({ ...current, salesOwner: event.target.value }))} />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={leadForm.inboundAt} onChange={(event) => setLeadForm((current) => ({ ...current, inboundAt: event.target.value }))} />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={leadForm.nextFollowUpAt} onChange={(event) => setLeadForm((current) => ({ ...current, nextFollowUpAt: event.target.value }))} />
-                      <textarea className="md:col-span-2 min-h-28 rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Observações" value={leadForm.notes} onChange={(event) => setLeadForm((current) => ({ ...current, notes: event.target.value }))} />
-                      <button className="md:col-span-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-4 py-3 text-white" disabled={mutating}>
-                        <Plus className="h-4 w-4" /> Adicionar lead
-                      </button>
-                    </form>
-                  </Panel>
-
-                  <Panel title="Novo projeto" subtitle="Use quando um lead virar trabalho de verdade.">
-                    <form
-                      className="grid gap-4 md:grid-cols-2"
-                      onSubmit={(event) => {
-                        event.preventDefault()
-                        void submitMutation('createProject', projectForm, () => {
-                          setProjectForm({ clientName: '', name: '', code: '', discipline: '', stage: 'proposal', contractAmount: '', salesOwner: '', deadline: '', statusNote: '' })
-                        }, 'Projeto criado')
-                      }}
-                    >
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Nome do cliente" value={projectForm.clientName} onChange={(event) => setProjectForm((current) => ({ ...current, clientName: event.target.value }))} required />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Nome do projeto" value={projectForm.name} onChange={(event) => setProjectForm((current) => ({ ...current, name: event.target.value }))} required />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Código do projeto" value={projectForm.code} onChange={(event) => setProjectForm((current) => ({ ...current, code: event.target.value }))} />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Disciplina" value={projectForm.discipline} onChange={(event) => setProjectForm((current) => ({ ...current, discipline: event.target.value }))} />
-                      <select className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={projectForm.stage} onChange={(event) => setProjectForm((current) => ({ ...current, stage: event.target.value }))}>
-                        {projectStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
-                      </select>
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Valor do contrato" type="number" value={projectForm.contractAmount} onChange={(event) => setProjectForm((current) => ({ ...current, contractAmount: event.target.value }))} />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Responsável comercial" value={projectForm.salesOwner} onChange={(event) => setProjectForm((current) => ({ ...current, salesOwner: event.target.value }))} />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={projectForm.deadline} onChange={(event) => setProjectForm((current) => ({ ...current, deadline: event.target.value }))} />
-                      <textarea className="md:col-span-2 min-h-28 rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Observação de status" value={projectForm.statusNote} onChange={(event) => setProjectForm((current) => ({ ...current, statusNote: event.target.value }))} />
-                      <button className="md:col-span-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-4 py-3 text-white" disabled={mutating}>
-                        <Plus className="h-4 w-4" /> Adicionar projeto
-                      </button>
-                    </form>
-                  </Panel>
+                {/* KPI Bar */}
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <MetricCard label="Leads no funil" value={String(pipelineLeads.length)} helper={`${formatCurrency(pipelineTotal)} em oportunidades`} icon={TrendingUp} />
+                  <MetricCard label="Vendas no ano" value={formatCurrency(currentYearSalesTotal)} helper="Só projetos com Contratação registrada neste ano" icon={CircleDollarSign} onClick={() => setShowSalesBreakdown(!showSalesBreakdown)} />
+                  <MetricCard label="Taxa de conversão" value={data.leads.length > 0 ? `${Math.round((data.leads.filter(l => l.stage === 'won').length / data.leads.length) * 100)}%` : '0%'} helper="Leads fechados / total" icon={ReceiptText} />
+                  <MetricCard label="Follow-ups vencidos" value={String(overdueFollowUps.length)} helper="Precisam de ação agora" icon={Search} />
                 </div>
 
-                <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
-                  <Panel
-                    title="Pipeline comercial"
-                    subtitle="Comercial bom tem data, dono e ação explícita — sem lead órfão."
-                    actions={<ViewSwitch value={commercialView} onChange={setCommercialView} />}
-                  >
-                    {data.leads.length ? (
-                      commercialView === 'list' ? (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2">
+                  <MetricCard label="Valor em entrada" value={formatCurrency(incomingLeadsValue)} helper="Soma dos leads na etapa Entrada" icon={CircleDollarSign} />
+                  <MetricCard label="Valor em proposta" value={formatCurrency(proposalLeadsValue)} helper="Soma dos leads na etapa Proposta" icon={ReceiptText} />
+                </div>
+
+                {showSalesBreakdown ? (
+                  <Panel title="Composição de vendas no ano" subtitle="Projetos que entram no KPI: somente os com Contratação registrada neste ano.">
+                    {currentYearSalesProjects.length ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 text-sm">
+                          <span className="text-[var(--ink-soft)]">Total conferido nesta lista</span>
+                          <span className="font-semibold text-[var(--ink)]">{formatCurrency(currentYearSalesTotal)}</span>
+                        </div>
                         <div className="overflow-x-auto">
                           <table className="min-w-full text-left text-sm">
                             <thead className="text-[var(--ink-soft)]">
-                              <tr>
-                                <th className="pb-3">Lead</th>
-                                <th className="pb-3">Cliente</th>
-                                <th className="pb-3">Valor</th>
-                                <th className="pb-3">Responsável</th>
-                                <th className="pb-3">Entrada</th>
-                                <th className="pb-3">Últ. contato</th>
-                                <th className="pb-3">Próx. follow-up</th>
-                                <th className="pb-3">Etapa</th>
-                                <th className="pb-3 text-right">Ação</th>
-                              </tr>
+                              <tr><th className="pb-3">Projeto</th><th className="pb-3">Cliente</th><th className="pb-3">Responsável</th><th className="pb-3">Data considerada</th><th className="pb-3">Origem</th><th className="pb-3 text-right">Contrato</th></tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--line)]">
-                              {data.leads.map((lead: Lead) => {
-                                const followUp = leadFollowUpMeta(lead)
-                                const isActive = selectedLeadId === lead.id
+                              {currentYearSalesProjects.map((project) => {
+                                const salesDate = project.sale_recorded_at
                                 return (
-                                  <tr key={lead.id} className={isActive ? 'bg-[rgba(15,139,141,0.05)]' : ''}>
-                                    <td className="py-4 font-medium text-[var(--ink)]">{lead.title}</td>
-                                    <td className="py-4 text-[var(--ink-soft)]">{lead.client_name || '—'}</td>
-                                    <td className="py-4 text-[var(--ink-soft)]">{formatCurrency(numericValue(lead.estimated_amount))}</td>
-                                    <td className="py-4 text-[var(--ink-soft)]">{lead.sales_owner || '—'}</td>
-                                    <td className="py-4 text-[var(--ink-soft)]">{formatDate(lead.inbound_at || lead.created_at)}</td>
-                                    <td className="py-4 text-[var(--ink-soft)]">{formatDate(lead.last_contact_at || lead.first_contact_at)}</td>
-                                    <td className="py-4">
-                                      <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${followUp.tone}`}>
-                                        {formatDate(lead.next_follow_up_at)}
-                                      </span>
-                                    </td>
-                                    <td className="py-4">
-                                      <select
-                                        className="rounded-full border border-[var(--line)] bg-white px-3 py-2 text-xs"
-                                        value={lead.stage}
-                                        onChange={(event) => {
-                                          void submitMutation('updateLeadStage', { id: lead.id, stage: event.target.value }, undefined, 'Etapa do lead atualizada')
-                                        }}
-                                      >
-                                        {leadStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
-                                      </select>
-                                    </td>
-                                    <td className="py-4 text-right">
-                                      <button
-                                        type="button"
-                                        className={`rounded-full border px-3 py-2 text-xs font-medium transition ${isActive ? 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]' : 'border-[var(--line)] text-[var(--ink)] hover:bg-white'}`}
-                                        onClick={() => setSelectedLeadId(lead.id)}
-                                      >
-                                        {isActive ? 'Editando' : 'Editar'}
-                                      </button>
-                                    </td>
+                                  <tr key={project.id} className="cursor-pointer transition hover:bg-[rgba(15,139,141,0.04)]">
+                                    <td className="py-3 font-medium text-[var(--ink)]">{project.name}</td>
+                                    <td className="py-3 text-[var(--ink-soft)]">{project.client_name || '—'}</td>
+                                    <td className="py-3 text-[var(--ink-soft)]">{project.sales_owner || '—'}</td>
+                                    <td className="py-3 text-[var(--ink-soft)]">{formatDate(salesDate)}</td>
+                                    <td className="py-3 text-[var(--ink-soft)]">Log de contratação</td>
+                                    <td className="py-3 text-right font-semibold text-[var(--ink)]">{formatCurrency(numericValue(project.contract_amount))}</td>
                                   </tr>
                                 )
                               })}
                             </tbody>
                           </table>
                         </div>
-                      ) : (
-                        <div className="overflow-x-auto pb-2">
-                          <div className="flex gap-4">
-                            {leadStages.map((stage) => (
-                              <KanbanColumn key={stage} title={stageLabel(stage)} count={commercialKanban[stage]?.length || 0}>
-                                {(commercialKanban[stage] || []).length ? (
-                                  (commercialKanban[stage] || []).map((lead) => (
-                                    <LeadKanbanCard
-                                      key={lead.id}
-                                      lead={lead}
-                                      active={selectedLeadId === lead.id}
-                                      onEdit={setSelectedLeadId}
-                                      onStageChange={(leadId, nextStage) => {
-                                        void submitMutation('updateLeadStage', { id: leadId, stage: nextStage }, undefined, 'Etapa do lead atualizada')
-                                      }}
-                                    />
+                      </div>
+                    ) : (
+                      <EmptyState title="Nenhuma venda encontrada" body="Nenhum projeto entrou no cálculo de vendas deste ano com as regras atuais do KPI." />
+                    )}
+                  </Panel>
+                ) : null}
+
+                {/* Toolbar: search + new lead */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-soft)]" />
+                    <input className="w-full rounded-2xl border border-[var(--line)] bg-white/80 py-3 pl-10 pr-4 text-sm" placeholder="Buscar leads..." value={commercialSearch} onChange={(e) => setCommercialSearch(e.target.value)} />
+                  </div>
+                  <button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-[var(--teal)] px-4 py-3 text-sm text-white transition hover:opacity-90" onClick={() => setShowLeadModal(true)}>
+                    <Plus className="h-4 w-4" /> Novo lead
+                  </button>
+                </div>
+
+                {/* Kanban pipeline (active stages only) */}
+                <Panel title="Pipeline" subtitle="Arraste mentalmente: cada lead precisa de dono, data e próxima ação." actions={<ViewSwitch value={commercialView} onChange={setCommercialView} />}>
+                  {commercialView === 'kanban' ? (
+                    <DndContext collisionDetection={closestCenter} onDragStart={handleCommercialDragStart} onDragEnd={handleCommercialDragEnd}>
+                      <div className="overflow-x-auto pb-2">
+                        <div className="flex gap-4">
+                          {(['incoming', 'qualified', 'proposal', 'negotiation'] as const).map((stage) => {
+                            const stageLeads = (commercialKanban[stage] || []).filter((l) => {
+                              if (!commercialSearch) return true
+                              const q = commercialSearch.toLowerCase()
+                              return l.title.toLowerCase().includes(q) || (l.client_name || '').toLowerCase().includes(q)
+                            })
+                            return (
+                              <DroppableLeadColumn key={stage} stage={stage} title={stageLabel(stage)} count={stageLeads.length}>
+                                {stageLeads.length ? (
+                                  stageLeads.map((lead) => (
+                                    <DraggableLeadCard key={lead.id} lead={lead} active={selectedLeadId === lead.id} onClick={setSelectedLeadId} />
                                   ))
                                 ) : (
-                                  <div className="rounded-[20px] border border-dashed border-[var(--line)] bg-white/65 p-4 text-sm text-[var(--ink-soft)]">
-                                    Nada aqui. Milagre ou abandono — você decide.
-                                  </div>
+                                  <div className="rounded-[20px] border border-dashed border-[var(--line)] bg-white/65 p-4 text-sm text-[var(--ink-soft)]">Nenhum lead aqui.</div>
                                 )}
-                              </KanbanColumn>
-                            ))}
-                          </div>
+                              </DroppableLeadColumn>
+                            )
+                          })}
                         </div>
-                      )
-                    ) : (
-                      <EmptyState title="Sem leads ainda" body="Use o formulário acima para o comercial parar de viver em conversa solta e resto de Notion." />
-                    )}
-                  </Panel>
-
-                  {selectedLead ? (
-                    <LeadDetailCard
-                      lead={selectedLead}
-                      draft={leadDetailForm}
-                      onChange={handleLeadDetailChange}
-                      onSave={() => void handleLeadSave()}
-                      onTouch={() => void handleLeadTouch()}
-                    />
-                  ) : (
-                    <EmptyState title="Edite um lead" body="Abra um card na lista ou no kanban para manter as datas do comercial sob controle." />
-                  )}
-                </div>
-              </>
-            ) : null}
-
-            {section === 'operations' ? (
-              <>
-                <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-                  <Panel title="Registrar movimentação" subtitle="Material recebido, pendência, revisão — a bagunça real do projeto entra aqui.">
-                    <form
-                      className="grid gap-4"
-                      onSubmit={(event) => {
-                        event.preventDefault()
-                        void submitMutation('addProjectLog', logForm, () => {
-                          setLogForm({ projectId: '', logType: 'pending', title: '', details: '', dueDate: '', status: 'open' })
-                        }, 'Movimentação registrada')
-                      }}
-                    >
-                      <select className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={logForm.projectId} onChange={(event) => setLogForm((current) => ({ ...current, projectId: event.target.value }))} required>
-                        <option value="">Selecione o projeto</option>
-                        {openProjectOptions.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-                      </select>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <select className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={logForm.logType} onChange={(event) => setLogForm((current) => ({ ...current, logType: event.target.value }))}>
-                          {logTypes.map((item) => <option key={item} value={item}>{stageLabel(item)}</option>)}
-                        </select>
-                        <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={logForm.dueDate} onChange={(event) => setLogForm((current) => ({ ...current, dueDate: event.target.value }))} />
                       </div>
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Título" value={logForm.title} onChange={(event) => setLogForm((current) => ({ ...current, title: event.target.value }))} required />
-                      <textarea className="min-h-28 rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Detalhes" value={logForm.details} onChange={(event) => setLogForm((current) => ({ ...current, details: event.target.value }))} />
-                      <button className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-4 py-3 text-white" disabled={mutating}>
-                        <Plus className="h-4 w-4" /> Adicionar movimentação
-                      </button>
-                    </form>
-                  </Panel>
-
-                  <div className="space-y-6">
-                    <Panel
-                      title="Faixa de projetos"
-                      subtitle="A operação fica mais limpa quando cada projeto mostra o pulso num relance."
-                      actions={<ViewSwitch value={operationsView} onChange={setOperationsView} />}
-                    >
-                      {data.projects.length ? (
-                        operationsView === 'list' ? (
-                          <div className="space-y-4">
-                            {data.projects.map((project) => (
-                              <ProjectStrip key={project.id} project={project} onEdit={setSelectedProjectId} onStageChange={(projectId, stage) => {
-                                void submitMutation('updateProjectStage', { id: projectId, stage }, undefined, 'Etapa do projeto atualizada')
-                              }} />
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="overflow-x-auto pb-2">
-                            <div className="flex gap-4">
-                              {projectStages.map((stage) => (
-                                <KanbanColumn key={stage} title={stageLabel(stage)} count={operationsKanban[stage]?.length || 0}>
-                                  {(operationsKanban[stage] || []).length ? (
-                                    (operationsKanban[stage] || []).map((project) => (
-                                      <ProjectKanbanCard
-                                        key={project.id}
-                                        project={project}
-                                        active={selectedProjectId === project.id}
-                                        onEdit={setSelectedProjectId}
-                                        onStageChange={(projectId, nextStage) => {
-                                          void submitMutation('updateProjectStage', { id: projectId, stage: nextStage }, undefined, 'Etapa do projeto atualizada')
-                                        }}
-                                      />
-                                    ))
-                                  ) : (
-                                    <div className="rounded-[20px] border border-dashed border-[var(--line)] bg-white/65 p-4 text-sm text-[var(--ink-soft)]">
-                                      Coluna limpa. Aproveita enquanto dura.
-                                    </div>
-                                  )}
-                                </KanbanColumn>
-                              ))}
-                            </div>
-                          </div>
-                        )
-                      ) : (
-                        <EmptyState title="Nenhum projeto acompanhado" body="Crie um projeto no Comercial para começar a registrar operação e prazos." />
-                      )}
-                    </Panel>
-
-                    {selectedProject ? (
-                      <ProjectDetailCard
-                        project={selectedProject}
-                        draft={projectDetailForm}
-                        onChange={handleProjectDetailChange}
-                        onSave={() => void handleProjectSave()}
-                      />
-                    ) : (
-                      <EmptyState title="Edite um projeto" body="Use editar na lista ou no kanban para ajustar prazo, etapa e observações operacionais." />
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <Panel title="Registros operacionais recentes" subtitle="Isso vira o diário do projeto em vez de caçar contexto no WhatsApp e no Notion.">
-                    {data.logs.length ? (
-                      <div className="grid gap-3 lg:grid-cols-2">
-                        {data.logs.map((item) => (
-                          <div key={item.id} className="rounded-2xl border border-[var(--line)] bg-white/80 p-4 text-sm">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div className="font-medium text-[var(--ink)]">{item.title}</div>
-                              <div className="flex items-center gap-2">
-                                <span className={`rounded-full border px-3 py-1 text-xs font-medium ${stageTone(item.status)}`}>
-                                  {stageLabel(item.log_type)}
-                                </span>
-                                <button
-                                  type="button"
-                                  className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] px-3 py-1 text-xs font-medium text-[var(--ink)] transition hover:bg-white"
-                                  onClick={() => setSelectedLogId(item.id)}
-                                >
-                                  <SquarePen className="h-3.5 w-3.5" /> Editar
-                                </button>
-                              </div>
-                            </div>
-                            <div className="mt-1 text-[var(--ink-soft)]">{item.project_name}</div>
-                            {item.details ? <p className="mt-3 leading-6 text-[var(--ink-soft)]">{item.details}</p> : null}
-                            <div className="mt-3 flex flex-wrap gap-4 text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]/70">
-                              <span>{formatDate(item.created_at)}</span>
-                              {item.due_date ? <span>Prazo {formatDate(item.due_date)}</span> : null}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <EmptyState title="Sem movimentação operacional ainda" body="Registre materiais recebidos, pendências e revisões aqui para a execução parar de depender da memória." />
-                    )}
-                  </Panel>
-
-                  {selectedLog ? (
-                    <LogDetailCard
-                      log={selectedLog}
-                      draft={logDetailForm}
-                      projectOptions={openProjectOptions}
-                      onChange={handleLogDetailChange}
-                      onSave={() => void handleLogSave()}
-                    />
-                  ) : null}
-                </div>
-              </>
-            ) : null}
-
-            {section === 'financial' ? (
-              <>
-                <div className="grid gap-6 xl:grid-cols-3">
-                  <Panel title="Recebimento de cliente" subtitle="Registre toda entrada, inclusive pagamentos parciais.">
-                    <form
-                      className="grid gap-4"
-                      onSubmit={(event) => {
-                        event.preventDefault()
-                        void submitMutation('addReceipt', receiptForm, () => {
-                          setReceiptForm({ projectId: '', amount: '', bankAccount: '', entryDate: '', note: '' })
-                        }, 'Receipt added')
-                      }}
-                    >
-                      <select className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={receiptForm.projectId} onChange={(event) => setReceiptForm((current) => ({ ...current, projectId: event.target.value }))} required>
-                        <option value="">Selecione o projeto</option>
-                        {openProjectOptions.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-                      </select>
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="number" placeholder="Valor" value={receiptForm.amount} onChange={(event) => setReceiptForm((current) => ({ ...current, amount: event.target.value }))} required />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Conta bancária" value={receiptForm.bankAccount} onChange={(event) => setReceiptForm((current) => ({ ...current, bankAccount: event.target.value }))} />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={receiptForm.entryDate} onChange={(event) => setReceiptForm((current) => ({ ...current, entryDate: event.target.value }))} />
-                      <textarea className="min-h-24 rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Observação" value={receiptForm.note} onChange={(event) => setReceiptForm((current) => ({ ...current, note: event.target.value }))} />
-                      <button className="rounded-2xl bg-[var(--ink)] px-4 py-3 text-white" disabled={mutating}>Salvar recebimento</button>
-                    </form>
-                  </Panel>
-
-                  <Panel title="Despesa do projeto" subtitle="Mantenha as saídas amarradas ao projeto certo.">
-                    <form
-                      className="grid gap-4"
-                      onSubmit={(event) => {
-                        event.preventDefault()
-                        void submitMutation('addExpense', expenseForm, () => {
-                          setExpenseForm({ projectId: '', amount: '', category: '', bankAccount: '', vendor: '', entryDate: '', note: '' })
-                        }, 'Expense added')
-                      }}
-                    >
-                      <select className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={expenseForm.projectId} onChange={(event) => setExpenseForm((current) => ({ ...current, projectId: event.target.value }))} required>
-                        <option value="">Selecione o projeto</option>
-                        {openProjectOptions.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-                      </select>
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="number" placeholder="Valor" value={expenseForm.amount} onChange={(event) => setExpenseForm((current) => ({ ...current, amount: event.target.value }))} required />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Categoria" value={expenseForm.category} onChange={(event) => setExpenseForm((current) => ({ ...current, category: event.target.value }))} />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Fornecedor" value={expenseForm.vendor} onChange={(event) => setExpenseForm((current) => ({ ...current, vendor: event.target.value }))} />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Conta bancária" value={expenseForm.bankAccount} onChange={(event) => setExpenseForm((current) => ({ ...current, bankAccount: event.target.value }))} />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={expenseForm.entryDate} onChange={(event) => setExpenseForm((current) => ({ ...current, entryDate: event.target.value }))} />
-                      <textarea className="min-h-24 rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Observação" value={expenseForm.note} onChange={(event) => setExpenseForm((current) => ({ ...current, note: event.target.value }))} />
-                      <button className="rounded-2xl bg-[var(--ink)] px-4 py-3 text-white" disabled={mutating}>Salvar despesa</button>
-                    </form>
-                  </Panel>
-
-                  <Panel title="Repasse para sócio" subtitle="Repasses parciais ficam em logs, não em total fake.">
-                    <form
-                      className="grid gap-4"
-                      onSubmit={(event) => {
-                        event.preventDefault()
-                        void submitMutation('addPayout', payoutForm, () => {
-                          setPayoutForm({ projectId: '', partnerName: partners[0], amount: '', bankAccount: '', entryDate: '', note: '' })
-                        }, 'Payout added')
-                      }}
-                    >
-                      <select className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={payoutForm.projectId} onChange={(event) => setPayoutForm((current) => ({ ...current, projectId: event.target.value }))} required>
-                        <option value="">Selecione o projeto</option>
-                        {openProjectOptions.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-                      </select>
-                      <select className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" value={payoutForm.partnerName} onChange={(event) => setPayoutForm((current) => ({ ...current, partnerName: event.target.value }))}>
-                        {partners.map((partner) => <option key={partner} value={partner}>{partner}</option>)}
-                      </select>
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="number" placeholder="Valor" value={payoutForm.amount} onChange={(event) => setPayoutForm((current) => ({ ...current, amount: event.target.value }))} required />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Conta bancária" value={payoutForm.bankAccount} onChange={(event) => setPayoutForm((current) => ({ ...current, bankAccount: event.target.value }))} />
-                      <input className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" type="date" value={payoutForm.entryDate} onChange={(event) => setPayoutForm((current) => ({ ...current, entryDate: event.target.value }))} />
-                      <textarea className="min-h-24 rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3" placeholder="Observação" value={payoutForm.note} onChange={(event) => setPayoutForm((current) => ({ ...current, note: event.target.value }))} />
-                      <button className="rounded-2xl bg-[var(--ink)] px-4 py-3 text-white" disabled={mutating}>Salvar repasse</button>
-                    </form>
-                  </Panel>
-                </div>
-
-                <Panel title="Resumo financeiro por projeto" subtitle="O financeiro é baseado em logs, mas essa visão resume a obra sem perder os registros de origem.">
-                  {data.projects.length ? (
-                    <div className="space-y-4">
-                      {data.projects.map((project) => {
-                        const net = numericValue(project.total_received) - numericValue(project.total_expenses) - numericValue(project.total_payouts)
-                        return (
-                          <div key={project.id} className="grid gap-4 rounded-[26px] border border-[var(--line)] bg-white/80 p-5 md:grid-cols-[1.2fr_repeat(4,minmax(0,1fr))]">
-                            <div>
-                              <div className="font-semibold text-[var(--ink)]">{project.name}</div>
-                              <div className="mt-1 text-sm text-[var(--ink-soft)]">{project.client_name || '—'} · {project.sales_owner || 'Sem responsável comercial'}</div>
-                            </div>
-                            <div>
-                              <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Contrato</div>
-                              <div className="mt-2 font-semibold">{formatCurrency(numericValue(project.contract_amount))}</div>
-                            </div>
-                            <div>
-                              <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Recebido</div>
-                              <div className="mt-2 font-semibold text-emerald-700">{formatCurrency(numericValue(project.total_received))}</div>
-                            </div>
-                            <div>
-                              <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Despesas</div>
-                              <div className="mt-2 font-semibold text-rose-700">{formatCurrency(numericValue(project.total_expenses))}</div>
-                            </div>
-                            <div>
-                              <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Net</div>
-                              <div className={`mt-2 font-semibold ${net >= 0 ? 'text-[var(--ink)]' : 'text-rose-700'}`}>{formatCurrency(net)}</div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
+                      <DragOverlay>
+                        {activeDragLead ? <LeadGhostCard lead={activeDragLead} /> : null}
+                      </DragOverlay>
+                    </DndContext>
                   ) : (
-                    <EmptyState title="Sem resumo financeiro ainda" body="Assim que você adicionar projetos e logs, essa página começa a mostrar a anatomia financeira de cada trabalho." />
-                  )}
-                </Panel>
-              </>
-            ) : null}
-
-            {section === 'cashflow' ? (
-              <>
-                <div className="grid gap-4 md:grid-cols-4">
-                  <MetricCard label="Este mês" value={formatCurrency(monthly.receipts)} helper="Dinheiro que entrou dos clientes." icon={ArrowDownCircle} />
-                  <MetricCard label="Despesas" value={formatCurrency(monthly.expenses)} helper="Saídas operacionais do mês." icon={ArrowUpCircle} />
-                  <MetricCard label="Repasses" value={formatCurrency(monthly.payouts)} helper="Repasses aos sócios neste mês." icon={HandCoins} />
-                  <MetricCard label="Net" value={formatCurrency(monthly.receipts - monthly.expenses - monthly.payouts)} helper="Movimentação líquida do mês." icon={Landmark} />
-                </div>
-
-                <Panel title="Livro-caixa unificado" subtitle="Recebimentos, despesas e repasses vivem na mesma linha da verdade.">
-                  {data.cashflow.length ? (
                     <div className="overflow-x-auto">
                       <table className="min-w-full text-left text-sm">
                         <thead className="text-[var(--ink-soft)]">
-                          <tr>
-                            <th className="pb-3">Date</th>
-                            <th className="pb-3">Projeto</th>
-                            <th className="pb-3">Tipo</th>
-                            <th className="pb-3">Contraparte</th>
-                            <th className="pb-3">Conta</th>
-                            <th className="pb-3 text-right">Valor</th>
-                          </tr>
+                          <tr><th className="pb-3">Lead</th><th className="pb-3">Cliente</th><th className="pb-3">Valor</th><th className="pb-3">Responsável</th><th className="pb-3">Origem</th><th className="pb-3">Próx. follow-up</th><th className="pb-3">Etapa</th></tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--line)]">
-                          {data.cashflow.map((entry) => (
-                            <tr key={`${entry.entry_type}-${entry.id}`}>
-                              <td className="py-4 text-[var(--ink-soft)]">{formatDate(entry.entry_date)}</td>
-                              <td className="py-4 font-medium text-[var(--ink)]">{entry.project_name}</td>
-                              <td className="py-4 text-[var(--ink-soft)]">{stageLabel(entry.entry_type)}</td>
-                              <td className="py-4 text-[var(--ink-soft)]">{entry.counterpart || '—'}</td>
-                              <td className="py-4 text-[var(--ink-soft)]">{entry.bank_account || '—'}</td>
-                              <td className={`py-4 text-right font-semibold ${entry.signed_amount >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                                {entry.signed_amount >= 0 ? '+' : '-'}{formatCurrency(Math.abs(numericValue(entry.signed_amount)))}
-                              </td>
-                            </tr>
-                          ))}
+                          {pipelineLeads
+                            .filter((l) => {
+                              if (!commercialSearch) return true
+                              const q = commercialSearch.toLowerCase()
+                              return l.title.toLowerCase().includes(q) || (l.client_name || '').toLowerCase().includes(q)
+                            })
+                            .map((lead) => {
+                              const followUp = leadFollowUpMeta(lead)
+                              return (
+                                <tr key={lead.id} className="cursor-pointer transition hover:bg-[rgba(15,139,141,0.04)]" onClick={() => setSelectedLeadId(lead.id)}>
+                                  <td className="py-4 font-medium text-[var(--ink)]">{lead.title}</td>
+                                  <td className="py-4 text-[var(--ink-soft)]">{lead.client_name || '—'}</td>
+                                  <td className="py-4 text-[var(--ink-soft)]">{formatCurrency(numericValue(lead.estimated_amount))}</td>
+                                  <td className="py-4 text-[var(--ink-soft)]">{lead.sales_owner || '—'}</td>
+                                  <td className="py-4 text-[var(--ink-soft)]">{stageLabel(lead.source || '') || '—'}</td>
+                                  <td className="py-4"><span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${followUp.tone}`}>{formatDate(lead.next_follow_up_at)}</span></td>
+                                  <td className="py-4"><span className="rounded-full border border-[var(--line)] bg-white px-3 py-1 text-xs font-medium">{stageLabel(lead.stage)}</span></td>
+                                </tr>
+                              )
+                            })}
                         </tbody>
                       </table>
                     </div>
-                  ) : (
-                    <EmptyState title="Sem fluxo de caixa ainda" body="Registre recebimentos, despesas e repasses no Financeiro e esse livro-caixa vira a página em que você confia." />
                   )}
                 </Panel>
+
+                {/* Won/lost history (collapsed) */}
+                <div className="rounded-[28px] border border-[var(--line)] bg-white/70">
+                  <button type="button" className="flex w-full items-center justify-between px-5 py-4 text-left text-sm font-medium text-[var(--ink)]" onClick={() => setShowWonLost(!showWonLost)}>
+                    <span>Histórico (Fechados / Não fechados)</span>
+                    <ChevronDown className={`h-4 w-4 transition ${showWonLost ? 'rotate-180' : ''}`} />
+                  </button>
+                  {showWonLost && (
+                    <div className="border-t border-[var(--line)] px-5 py-4">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-left text-sm">
+                          <thead className="text-[var(--ink-soft)]">
+                            <tr><th className="pb-3">Lead</th><th className="pb-3">Cliente</th><th className="pb-3">Valor</th><th className="pb-3">Responsável</th><th className="pb-3">Fechado em</th><th className="pb-3">Resultado</th></tr>
+                          </thead>
+                          <tbody className="divide-y divide-[var(--line)]">
+                            {data.leads
+                              .filter((l) => l.stage === 'won' || l.stage === 'lost')
+                              .filter((l) => {
+                                if (!commercialSearch) return true
+                                const q = commercialSearch.toLowerCase()
+                                return l.title.toLowerCase().includes(q) || (l.client_name || '').toLowerCase().includes(q)
+                              })
+                              .map((lead) => (
+                                <tr key={lead.id} className="cursor-pointer transition hover:bg-[rgba(15,139,141,0.04)]" onClick={() => setSelectedLeadId(lead.id)}>
+                                  <td className="py-3 font-medium text-[var(--ink)]">{lead.title}</td>
+                                  <td className="py-3 text-[var(--ink-soft)]">{lead.client_name || '—'}</td>
+                                  <td className="py-3 text-[var(--ink-soft)]">{formatCurrency(numericValue(lead.estimated_amount))}</td>
+                                  <td className="py-3 text-[var(--ink-soft)]">{lead.sales_owner || '—'}</td>
+                                  <td className="py-3 text-[var(--ink-soft)]">{formatDate(lead.closed_at)}</td>
+                                  <td className="py-3">
+                                    <span className={`rounded-full border px-3 py-1 text-xs font-medium ${lead.stage === 'won' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+                                      {stageLabel(lead.stage)}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Modals */}
+                <LeadModal
+                  open={showLeadModal}
+                  onClose={() => setShowLeadModal(false)}
+                  form={leadForm}
+                  setForm={setLeadForm}
+                  onSubmit={() => {
+                    void submitMutation('createLead', leadForm, () => {
+                      setLeadForm({ clientName: '', title: '', stage: 'incoming', source: '', estimatedAmount: '', salesOwner: '', notes: '', inboundAt: new Date().toISOString().slice(0, 10), nextFollowUpAt: '' })
+                      setShowLeadModal(false)
+                    }, 'Lead criado')
+                  }}
+                  mutating={mutating}
+                />
+
+                {selectedLead && (
+                  <LeadDetailModal
+                    open={!!selectedLeadId}
+                    onClose={() => setSelectedLeadId(null)}
+                    lead={selectedLead}
+                    draft={leadDetailForm}
+                    onChange={handleLeadDetailChange}
+                    onSave={() => void handleLeadSave()}
+                    onTouch={() => void handleLeadTouch()}
+                    onConvert={() => {
+                      setConvertForm({
+                        leadId: selectedLead.id,
+                        clientName: selectedLead.client_name || '',
+                        name: selectedLead.title,
+                        contractAmount: String(selectedLead.estimated_amount || ''),
+                        salesOwner: selectedLead.sales_owner || '',
+                        firstContactAt: toDateInputValue(selectedLead.first_contact_at),
+                        proposalSentAt: toDateInputValue(selectedLead.proposal_sent_at),
+                        closedAt: toDateInputValue(selectedLead.closed_at) || new Date().toISOString().slice(0, 10),
+                        deadline: '',
+                        subprojects: [{ discipline: '', amount: String(selectedLead.estimated_amount || ''), responsiblePartner: '' }],
+                      })
+                      setShowConvertModal(true)
+                    }}
+                    onStageChange={(stage: string) => {
+                      void submitMutation('updateLeadStage', { id: selectedLead.id, stage }, undefined, 'Etapa atualizada')
+                    }}
+                    mutating={mutating}
+                  />
+                )}
+
+                <ConvertProjectModal
+                  open={showConvertModal}
+                  onClose={() => setShowConvertModal(false)}
+                  form={convertForm}
+                  setForm={setConvertForm}
+                  onSubmit={() => {
+                    void submitMutation('createProjectFromLead', convertForm, () => {
+                      setShowConvertModal(false)
+                      setSelectedLeadId(null)
+                    }, 'Projeto criado com sucesso')
+                  }}
+                  mutating={mutating}
+                />
               </>
+            ) : null}
+
+            {section === 'operacoes' ? (
+              <OperationsKanbanPage data={data} submitMutation={submitMutation} mutating={mutating} />
+            ) : null}
+
+            {section === 'financeiro' ? (
+              <FinancialPage data={data} />
+            ) : null}
+
+            {section === 'fluxo' ? (
+              <CashflowPage data={data} submitMutation={submitMutation} mutating={mutating} />
             ) : null}
           </div>
         </main>
