@@ -129,7 +129,7 @@ function splitDisciplines(value) {
 function subprojectStage(status) {
   switch (status) {
     case 'Concluído': return 'concluído'
-    case 'Entregue sem pagamento': return 'concluído'
+    case 'Entregue sem pagamento': return 'concluído-aguardando-pagamento'
     case 'Em andamento': return 'em-andamento'
     case 'Acompanhamentos': return 'aguardando-revisao'
     case 'Pendências terceiros': return 'bloqueado'

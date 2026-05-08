@@ -1,10 +1,13 @@
 import { useState, useMemo, useCallback } from 'react'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import {
   DndContext,
   useDroppable,
   useDraggable,
+  PointerSensor,
   pointerWithin,
+  useSensor,
+  useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core'
 import {
@@ -121,7 +124,7 @@ export function DraggableOpsCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 cursor-pointer" onClick={onClick}>
-          <div className="truncate font-medium text-[var(--ink)]">{project.name}</div>
+          <div className="truncate text-sm font-semibold text-[var(--ink)]">{project.name}</div>
           <div className="mt-0.5 truncate text-sm text-[var(--ink-soft)]">{project.client_name || 'Cliente não informado'}</div>
         </div>
         <button
@@ -177,10 +180,14 @@ function DraggableSubprojectCard({
   ghost?: boolean
 }) {
   const { Icon, className } = disciplineMeta(subproject.discipline)
+  const hasAmount = numericValue(subproject.amount) > 0
+  const hasDeadline = Boolean(project.deadline)
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: subproject.id })
-  const style = transform
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
-    : undefined
+  const style: CSSProperties = {
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    willChange: 'transform',
+    zIndex: isDragging ? 30 : undefined,
+  }
 
   return (
     <div
@@ -207,13 +214,25 @@ function DraggableSubprojectCard({
           <GripVertical className="h-4 w-4" />
         </button>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs">
-        <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">{project.client_name || project.name}</span>
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
         {subproject.responsible_partner ? (
-          <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">{subproject.responsible_partner}</span>
+          <span className="rounded-full border border-[var(--line)] bg-[var(--paper)] px-2.5 py-1 font-medium text-[var(--ink-soft)]">{subproject.responsible_partner}</span>
         ) : null}
+        <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">{stageLabel(subproject.stage)}</span>
       </div>
-      {(project.deadline || subproject.amount > 0) ? (
+      {(hasDeadline || hasAmount) ? (
+        <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-soft)]/70">Valor</div>
+            <div className="mt-1 truncate text-sm font-semibold text-[var(--ink)]">{hasAmount ? formatCurrency(numericValue(subproject.amount)) : '—'}</div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-soft)]/70">Prazo</div>
+            <div className="mt-1 truncate text-sm font-semibold text-[var(--ink)]">{hasDeadline ? formatDate(project.deadline) : '—'}</div>
+          </div>
+        </div>
+      ) : null}
+      {false ? (
         <div className="mt-3 text-xs text-[var(--ink-soft)]">
           {subproject.amount > 0 ? formatCurrency(numericValue(subproject.amount)) : null}
           {subproject.amount > 0 && project.deadline ? ' Â· ' : null}
@@ -611,6 +630,11 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [completionDraft, setCompletionDraft] = useState<{ subprojectId: string; projectId: string } | null>(null)
   const [completionDate, setCompletionDate] = useState(new Date().toISOString().slice(0, 10))
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+  )
 
   const projectsById = useMemo(
     () => new Map(data.projects.map((project) => [project.id, project])),
@@ -685,14 +709,16 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
       }
 
       setStageOverrides((prev) => ({ ...prev, [subprojectId]: targetStage }))
-      void submitMutation(
-        'updateSubprojectStage',
-        { id: subprojectId, projectId: subproject.project_id, stage: targetStage },
-        () => setStageOverrides((prev) => { const next = { ...prev }; delete next[subprojectId]; return next }),
-        'Etapa atualizada',
-      ).catch(() => {
-        setStageOverrides((prev) => { const next = { ...prev }; delete next[subprojectId]; return next })
-      })
+      window.setTimeout(() => {
+        void submitMutation(
+          'updateSubprojectStage',
+          { id: subprojectId, projectId: subproject.project_id, stage: targetStage },
+          () => setStageOverrides((prev) => { const next = { ...prev }; delete next[subprojectId]; return next }),
+          'Etapa atualizada',
+        ).catch(() => {
+          setStageOverrides((prev) => { const next = { ...prev }; delete next[subprojectId]; return next })
+        })
+      }, 0)
     },
     [data.subprojects, submitMutation],
   )
@@ -701,17 +727,19 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
     if (!completionDraft || !completionDate) return
     const { subprojectId, projectId } = completionDraft
     setStageOverrides((prev) => ({ ...prev, [subprojectId]: 'concluído' }))
-    void submitMutation(
-      'updateSubprojectStage',
-      { id: subprojectId, projectId, stage: 'concluído', completedAt: completionDate },
-      () => {
-        setCompletionDraft(null)
+    window.setTimeout(() => {
+      void submitMutation(
+        'updateSubprojectStage',
+        { id: subprojectId, projectId, stage: 'concluído', completedAt: completionDate },
+        () => {
+          setCompletionDraft(null)
+          setStageOverrides((prev) => { const next = { ...prev }; delete next[subprojectId]; return next })
+        },
+        'Subprojeto concluído',
+      ).catch(() => {
         setStageOverrides((prev) => { const next = { ...prev }; delete next[subprojectId]; return next })
-      },
-      'Subprojeto concluído',
-    ).catch(() => {
-      setStageOverrides((prev) => { const next = { ...prev }; delete next[subprojectId]; return next })
-    })
+      })
+    }, 0)
   }, [completionDate, completionDraft, submitMutation])
 
   const handleProjectSave = useCallback(
@@ -782,6 +810,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
           />
         ) : (
           <DndContext
+            sensors={sensors}
             collisionDetection={pointerWithin}
             onDragEnd={handleDragEnd}
           >

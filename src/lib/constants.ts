@@ -16,7 +16,7 @@ export const NAV_ITEMS = [
 
 export const leadStages = ['incoming', 'qualified', 'proposal', 'negotiation', 'won', 'lost'] as const
 export const projectStages = ['aguardar', 'em-andamento', 'bloqueado', 'concluído-aguardando-pagamento', 'concluído'] as const
-export const subprojectStages = ['a-fazer', 'em-andamento', 'aguardando-revisao', 'bloqueado', 'concluído'] as const
+export const subprojectStages = ['a-fazer', 'em-andamento', 'aguardando-revisao', 'bloqueado', 'concluído-aguardando-pagamento', 'concluído'] as const
 export const logTypes = ['pending', 'received_material', 'note', 'delivery', 'revision'] as const
 export const partners: string[] = ['Matheus', 'Luís', 'Letícia']
 export const leadSources = ['indicacao', 'site', 'instagram', 'linkedin', 'repete', 'parceiro', 'outro'] as const
