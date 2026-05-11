@@ -6,11 +6,13 @@ import {
   CircleDollarSign,
   FolderKanban,
   LoaderCircle,
+  Menu,
   LogOut,
   Plus,
   ReceiptText,
   Search,
   TrendingUp,
+  X,
 } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
 import { getBootstrap, getSession, login, logout, mutate } from '@/lib/app-api'
@@ -43,6 +45,7 @@ export function ApoloWorkspace() {
   const [data, setData] = useState<BootstrapData | null>(null)
   const [loadingData, setLoadingData] = useState(false)
   const [mutating, setMutating] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   const [leadForm, setLeadForm] = useState({
     clientName: '',
@@ -134,6 +137,10 @@ export function ApoloWorkspace() {
     if (location.pathname === '/app') navigate('/app/dashboard', { replace: true })
     if (legacySectionMap[rawSection]) navigate(`/app/${legacySectionMap[rawSection]}`, { replace: true })
   }, [location.pathname, navigate])
+
+  useEffect(() => {
+    setMobileNavOpen(false)
+  }, [location.pathname])
 
   const submitMutation = async (
     action: string,
@@ -324,8 +331,26 @@ export function ApoloWorkspace() {
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f7f6f2_0%,#efeee8_100%)] text-[var(--ink)]">
       <div className="mx-auto grid min-h-screen max-w-[1600px] lg:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="border-b border-[var(--line)] px-5 py-6 lg:border-b-0 lg:border-r lg:px-6 lg:py-8">
-          <div className="rounded-[28px] border border-[var(--line)] bg-white/70 p-5 shadow-[0_20px_60px_rgba(7,19,21,0.05)]">
+        <aside className="border-b border-[var(--line)] px-4 py-4 sm:px-5 sm:py-6 lg:border-b-0 lg:border-r lg:px-6 lg:py-8">
+          <div className="flex items-center justify-between gap-3 lg:hidden">
+            <div>
+              <div className="text-xs uppercase tracking-[0.22em] text-[var(--teal)]">Apolo / App</div>
+              <div className="mt-1 text-lg font-semibold text-[var(--ink)]">{stageLabel(section)}</div>
+            </div>
+            <button
+              type="button"
+              aria-expanded={mobileNavOpen}
+              aria-label={mobileNavOpen ? 'Fechar navegação' : 'Abrir navegação'}
+              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-3 text-sm font-medium text-[var(--ink)] shadow-[0_12px_30px_rgba(7,19,21,0.06)]"
+              onClick={() => setMobileNavOpen((current) => !current)}
+            >
+              {mobileNavOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+              {mobileNavOpen ? 'Fechar' : 'Menu'}
+            </button>
+          </div>
+
+          <div className={`mt-4 space-y-6 lg:mt-0 ${mobileNavOpen ? 'block' : 'hidden lg:block'}`}>
+          <div className="hidden rounded-[28px] border border-[var(--line)] bg-white/70 p-5 shadow-[0_20px_60px_rgba(7,19,21,0.05)] lg:block">
             <div className="text-xs uppercase tracking-[0.22em] text-[var(--teal)]">Apolo / App</div>
             <h1 className="mt-3 text-2xl font-semibold">Central da Apolo</h1>
             <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">
@@ -333,7 +358,40 @@ export function ApoloWorkspace() {
             </p>
           </div>
 
-          <nav className="mt-6 space-y-2">
+          <div className="rounded-[28px] border border-[var(--line)] bg-white/72 p-3 shadow-[0_20px_60px_rgba(7,19,21,0.05)] lg:hidden">
+            <div className="px-2 pb-3">
+              <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]/70">Navegação</div>
+              <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">
+                Comercial, operação e caixa sem ficar caçando tela.
+              </p>
+            </div>
+            <nav className="space-y-2">
+              {NAV_ITEMS.map((item) => {
+                const Icon = item.icon
+                return (
+                  <NavLink
+                    key={item.key}
+                    to={item.href}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm transition ${
+                        isActive
+                          ? 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]'
+                          : 'border-transparent text-[var(--ink-soft)] hover:border-[var(--line)] hover:bg-white/70'
+                      }`
+                    }
+                  >
+                    <span className="flex items-center gap-3">
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                    </span>
+                    <span className="text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]/55">abrir</span>
+                  </NavLink>
+                )
+              })}
+            </nav>
+          </div>
+
+          <nav className="hidden lg:block lg:space-y-2">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon
               return (
@@ -355,7 +413,7 @@ export function ApoloWorkspace() {
             })}
           </nav>
 
-          <div className="mt-6 rounded-[28px] border border-[var(--line)] bg-white/70 p-5 text-sm shadow-[0_20px_60px_rgba(7,19,21,0.05)]">
+          <div className="rounded-[28px] border border-[var(--line)] bg-white/70 p-5 text-sm shadow-[0_20px_60px_rgba(7,19,21,0.05)]">
             <div className="font-medium text-[var(--ink)]">Sessão ativa</div>
             <div className="mt-2 text-[var(--ink-soft)]">{user.name}</div>
             <div className="text-xs text-[var(--ink-soft)]/80">{user.email}</div>
@@ -367,19 +425,20 @@ export function ApoloWorkspace() {
               Sair
             </button>
           </div>
+          </div>
         </aside>
 
-        <main className="px-5 py-6 md:px-8 md:py-8">
-          <header className="mb-6 rounded-[32px] border border-[var(--line)] bg-white/70 p-6 shadow-[0_20px_60px_rgba(7,19,21,0.04)]">
+        <main className="min-w-0 px-4 py-5 sm:px-5 md:px-8 md:py-8">
+          <header className="mb-6 rounded-[28px] border border-[var(--line)] bg-white/70 p-5 shadow-[0_20px_60px_rgba(7,19,21,0.04)] sm:rounded-[32px] sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <div className="text-xs uppercase tracking-[0.22em] text-[var(--ink-soft)]/70">{section}</div>
-                <h2 className="mt-2 text-3xl font-semibold capitalize">{stageLabel(section)}</h2>
+                <h2 className="mt-2 text-2xl font-semibold capitalize sm:text-3xl">{stageLabel(section)}</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ink-soft)]">
                   O app foi dividido de propósito em comercial, operações e financeiro para a Apolo enxergar o que entrou, o que está travado e o que realmente girou no caixa.
                 </p>
               </div>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid w-full gap-3 sm:grid-cols-3 xl:w-auto">
                 <div className="rounded-2xl border border-[var(--line)] bg-[rgba(255,255,255,0.85)] px-4 py-3 text-sm">
                   <div className="text-[var(--ink-soft)]">Leads abertos</div>
                   <div className="mt-1 font-semibold">{data.summary.openLeads}</div>
