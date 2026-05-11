@@ -74,6 +74,14 @@ export type ProjectLog = {
   project_name: string
 }
 
+export type ClientTimelineItem = {
+  id: string
+  date: string
+  title: string
+  detail: string
+  kind: 'lead' | 'project' | 'log' | 'receipt' | 'expense' | 'payout' | 'deadline'
+}
+
 export type Receipt = {
   id: string
   client_id: string

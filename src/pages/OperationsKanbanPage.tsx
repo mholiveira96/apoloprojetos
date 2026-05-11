@@ -30,10 +30,11 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
-import type { BootstrapData, Lead, Project, Subproject } from '@/types/app'
+import type { BootstrapData, ClientTimelineItem, Lead, Project, Subproject } from '@/types/app'
 import { Panel, EmptyState } from '@/components/workspace/ui'
 import { formatCurrency, formatDate, numericValue, stageLabel, toDateInputValue } from '@/lib/formatters'
 import { projectStages, subprojectStages, partners, disciplines, LABELS } from '@/lib/constants'
+import { buildClientTimeline } from '@/lib/client-timeline'
 
 const OPS_STAGES = subprojectStages
 type OpsSortKey = 'latest' | 'updated' | 'deadline' | 'value'
@@ -232,13 +233,6 @@ function DraggableSubprojectCard({
           </div>
         </div>
       ) : null}
-      {false ? (
-        <div className="mt-3 text-xs text-[var(--ink-soft)]">
-          {subproject.amount > 0 ? formatCurrency(numericValue(subproject.amount)) : null}
-          {subproject.amount > 0 && project.deadline ? ' Â· ' : null}
-          {project.deadline ? `Prazo ${formatDate(project.deadline)}` : null}
-        </div>
-      ) : null}
       <button
         type="button"
         onClick={onClick}
@@ -324,6 +318,7 @@ function CompletionDateModal({
 
 interface ProjectModalProps {
   project: Project
+  timelineItems: ClientTimelineItem[]
   onClose: () => void
   onSave: (form: ProjectModalForm) => void
   mutating: boolean
@@ -341,7 +336,15 @@ interface ProjectModalForm {
   notes: string
 }
 
-function ProjectDetailModal({ project, onClose, onSave, mutating }: ProjectModalProps) {
+function timelineTone(kind: ClientTimelineItem['kind']) {
+  if (kind === 'receipt') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  if (kind === 'expense' || kind === 'payout') return 'border-rose-200 bg-rose-50 text-rose-700'
+  if (kind === 'deadline') return 'border-amber-200 bg-amber-50 text-amber-700'
+  if (kind === 'log') return 'border-sky-200 bg-sky-50 text-sky-700'
+  return 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]'
+}
+
+function ProjectDetailModal({ project, timelineItems, onClose, onSave, mutating }: ProjectModalProps) {
   const [form, setForm] = useState<ProjectModalForm>({
     name: project.name || '',
     code: project.code || '',
@@ -419,6 +422,35 @@ function ProjectDetailModal({ project, onClose, onSave, mutating }: ProjectModal
           <div className="md:col-span-2">
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Nota de status</label>
             <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.statusNote} onChange={set('statusNote')} placeholder="Observação rápida sobre o estado atual" />
+          </div>
+
+          <div className="md:col-span-2 rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.82)] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Timeline</div>
+                <div className="mt-1 text-sm font-medium text-[var(--ink)]">Histórico comercial, operacional e financeiro</div>
+              </div>
+              <div className="text-xs text-[var(--ink-soft)]">{timelineItems.length} evento{timelineItems.length !== 1 ? 's' : ''}</div>
+            </div>
+            <div className="mt-4 space-y-3">
+              {timelineItems.slice(0, 12).map((item) => (
+                <div key={item.id} className="flex gap-3 rounded-2xl border border-[var(--line)] bg-white/85 px-3 py-3 text-sm">
+                  <div className="w-20 shrink-0 text-xs font-medium text-[var(--ink-soft)]">{formatDate(item.date)}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium text-[var(--ink)]">{item.title}</span>
+                      <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${timelineTone(item.kind)}`}>{stageLabel(item.kind)}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-[var(--ink-soft)]">{item.detail}</div>
+                  </div>
+                </div>
+              ))}
+              {timelineItems.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/75 px-4 py-3 text-sm text-[var(--ink-soft)]">
+                  Ainda não há histórico suficiente para esse projeto.
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div className="md:col-span-2">
@@ -679,6 +711,10 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
     () => data.projects.find((p) => p.id === selectedProjectId) ?? null,
     [data.projects, selectedProjectId],
   )
+  const selectedProjectTimeline = useMemo(
+    () => selectedProject ? buildClientTimeline(data, selectedProject.client_name, { projectId: selectedProject.id }) : [],
+    [data, selectedProject],
+  )
 
   const completionSubproject = completionDraft ? data.subprojects.find((item) => item.id === completionDraft.subprojectId) ?? null : null
   const completionProject = completionDraft ? projectsById.get(completionDraft.projectId) ?? null : null
@@ -852,6 +888,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
       {selectedProject ? (
         <ProjectDetailModal
           project={selectedProject}
+          timelineItems={selectedProjectTimeline}
           onClose={() => setSelectedProjectId(null)}
           onSave={handleProjectSave}
           mutating={mutating}

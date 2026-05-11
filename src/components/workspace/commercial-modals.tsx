@@ -1,9 +1,17 @@
 import { useState } from 'react'
 import { X, Plus, ArrowRight } from 'lucide-react'
-import type { Lead } from '@/types/app'
+import type { ClientTimelineItem, Lead } from '@/types/app'
 import type { LeadDetailForm, LeadForm, ConvertProjectForm, SubprojectEntry } from '@/types/forms'
 import { formatDate, formatCurrency, leadFollowUpMeta, stageLabel, numericValue } from '@/lib/formatters'
 import { leadStages, leadSources, partners, disciplines, LABELS } from '@/lib/constants'
+
+function timelineTone(kind: ClientTimelineItem['kind']) {
+  if (kind === 'receipt') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  if (kind === 'expense' || kind === 'payout') return 'border-rose-200 bg-rose-50 text-rose-700'
+  if (kind === 'deadline') return 'border-amber-200 bg-amber-50 text-amber-700'
+  if (kind === 'log') return 'border-sky-200 bg-sky-50 text-sky-700'
+  return 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]'
+}
 
 /* ─── shared modal shell ─── */
 function Modal({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
@@ -126,6 +134,7 @@ export function LeadDetailModal({
   onTouch,
   onConvert,
   onStageChange,
+  timelineItems,
   mutating,
 }: {
   open: boolean
@@ -137,6 +146,7 @@ export function LeadDetailModal({
   onTouch: () => void
   onConvert: () => void
   onStageChange: (stage: string) => void
+  timelineItems: ClientTimelineItem[]
   mutating: boolean
 }) {
   const followUp = leadFollowUpMeta(lead)
@@ -192,6 +202,35 @@ export function LeadDetailModal({
         <span className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Observações</span>
         <textarea className="mt-1 min-h-20 w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)]" value={draft.notes} onChange={(e) => onChange('notes', e.target.value)} />
       </label>
+
+      <div className="mt-4 rounded-[24px] border border-[var(--line)] bg-white/70 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Timeline</div>
+            <div className="mt-1 text-sm font-medium text-[var(--ink)]">Leituras recentes do cliente</div>
+          </div>
+          <div className="text-xs text-[var(--ink-soft)]">{timelineItems.length} evento{timelineItems.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div className="mt-4 space-y-3">
+          {timelineItems.slice(0, 12).map((item) => (
+            <div key={item.id} className="flex gap-3 rounded-2xl border border-[var(--line)] bg-[rgba(255,255,255,0.85)] px-3 py-3 text-sm">
+              <div className="w-20 shrink-0 text-xs font-medium text-[var(--ink-soft)]">{formatDate(item.date)}</div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium text-[var(--ink)]">{item.title}</span>
+                  <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${timelineTone(item.kind)}`}>{stageLabel(item.kind)}</span>
+                </div>
+                <div className="mt-1 text-xs text-[var(--ink-soft)]">{item.detail}</div>
+              </div>
+            </div>
+          ))}
+          {timelineItems.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/75 px-4 py-3 text-sm text-[var(--ink-soft)]">
+              Ainda não há histórico suficiente para esse cliente.
+            </div>
+          ) : null}
+        </div>
+      </div>
 
       <div className="mt-5 flex flex-wrap gap-3 border-t border-[var(--line)] pt-4">
         <button type="button" className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] px-4 py-2.5 text-sm text-[var(--ink)] transition hover:bg-white" onClick={onTouch}>

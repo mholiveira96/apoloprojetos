@@ -75,6 +75,10 @@ export const LABELS: Record<string, string> = {
   delivery: 'Entrega',
   revision: 'Revisão',
   // Financial types
+  lead: 'Lead',
+  project: 'Projeto',
+  log: 'Log',
+  deadline: 'Prazo',
   receipt: 'Recebimento',
   expense: 'Despesa',
   payout: 'Repasse',

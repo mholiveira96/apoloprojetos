@@ -36,6 +36,7 @@ import { LoginScreen } from '@/components/workspace/login-screen'
 import { OperationsKanbanPage } from '@/pages/OperationsKanbanPage'
 import { FinancialPage } from '@/pages/FinancialPage'
 import { CashflowPage } from '@/pages/CashflowPage'
+import { buildClientTimeline } from '@/lib/client-timeline'
 
 export function ApoloWorkspace() {
   const location = useLocation()
@@ -323,10 +324,18 @@ export function ApoloWorkspace() {
     0,
   )
   const inProgressCount = data.projects.filter((p) => p.stage === 'em-andamento').length
+  const blockedCount = data.projects.filter((p) => p.stage === 'bloqueado').length
   const activeProjects = data.projects
-    .filter((p) => p.stage === 'em-andamento' || p.stage === 'bloqueado')
+    .filter((p) => p.stage === 'em-andamento')
     .sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime())
     .slice(0, 8)
+  const blockedProjects = data.projects
+    .filter((p) => p.stage === 'bloqueado')
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    .slice(0, 6)
+  const selectedLeadTimeline = selectedLead
+    ? buildClientTimeline(data, selectedLead.client_name, { leadId: selectedLead.id })
+    : []
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f7f6f2_0%,#efeee8_100%)] text-[var(--ink)]">
@@ -458,9 +467,10 @@ export function ApoloWorkspace() {
           <div className="space-y-6">
             {section === 'dashboard' ? (
               <>
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                   <MetricCard label="Leads no funil" value={String(pipelineLeads.length)} helper={`${formatCurrency(pipelineTotal)} em oportunidades ativas`} icon={TrendingUp} />
-                  <MetricCard label="Em andamento" value={String(inProgressCount)} helper="Projetos nas etapas Em andamento e Acompanhamento" icon={FolderKanban} />
+                  <MetricCard label="Em andamento" value={String(inProgressCount)} helper="Somente projetos em execução" icon={FolderKanban} />
+                  <MetricCard label="Bloqueados" value={String(blockedCount)} helper="Projetos que exigem destravamento" icon={Search} />
                   <MetricCard label="Contratos ativos" value={formatCurrency(data.summary.activeContractTotal)} helper="Valor em contrato ainda em execução" icon={ReceiptText} />
                   <MetricCard label="Vendas no ano" value={formatCurrency(data.summary.currentYearSales)} helper="Valor contratado no ano corrente" icon={CircleDollarSign} />
                 </div>
@@ -515,15 +525,29 @@ export function ApoloWorkspace() {
                   </Panel>
                 </div>
 
-                <Panel title="Projetos em andamento" subtitle="Em andamento e Acompanhamento — ordenados por número de pendências.">
-                  <div className="space-y-2">
-                    {activeProjects.length ? (
-                      activeProjects.map((project) => <DashboardProjectRow key={project.id} project={project} />)
-                    ) : (
-                      <EmptyState title="Nenhum projeto em andamento" body="Quando projetos entrarem nas etapas Em andamento ou Acompanhamento eles aparecem aqui." />
-                    )}
-                  </div>
-                </Panel>
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+                  <Panel title="Projetos em andamento" subtitle="Somente projetos em execução — ordenados por atualização.">
+                    <div className="space-y-2">
+                      {activeProjects.length ? (
+                        activeProjects.map((project) => <DashboardProjectRow key={project.id} project={project} />)
+                      ) : (
+                        <EmptyState title="Nenhum projeto em andamento" body="Quando projetos entrarem em execução eles aparecem aqui." />
+                      )}
+                    </div>
+                  </Panel>
+
+                  <Panel title="Projetos bloqueados" subtitle="Fila rápida do que precisa destravar.">
+                    <div className="space-y-2">
+                      {blockedProjects.length ? (
+                        blockedProjects.map((project) => <DashboardProjectRow key={project.id} project={project} />)
+                      ) : (
+                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                          Nada bloqueado agora.
+                        </div>
+                      )}
+                    </div>
+                  </Panel>
+                </div>
 
                 <Panel title="Movimentação recente" subtitle="Leitura rápida do que realmente girou no caixa.">
                   {data.cashflow.length === 0 ? (
@@ -757,6 +781,7 @@ export function ApoloWorkspace() {
                     onStageChange={(stage: string) => {
                       void submitMutation('updateLeadStage', { id: selectedLead.id, stage }, undefined, 'Etapa atualizada')
                     }}
+                    timelineItems={selectedLeadTimeline}
                     mutating={mutating}
                   />
                 )}
