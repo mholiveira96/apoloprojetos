@@ -2,143 +2,145 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #071315;
-  --ink-soft: #102427;
-  --teal: #0f8b8d;
-  --teal-bright: #16b3b6;
-  --teal-wash: #dff7f6;
-  --paper: #f5f5f2;
-  --sand: #e8e6df;
-  --line: rgba(7, 19, 21, 0.1);
+  /* Light mode — white + teal gradient world, teal accent */
+  --ink: #0a1a1a;
+  --ink-soft: #4a7070;
+  --teal: #0d9488;
+  --teal-bright: #14b8a6;
+  --teal-wash: #f0fdfa;
+  --paper: #ffffff;
+  --sand: #f0fdfa;
+  --line: rgba(13, 148, 136, 0.14);
 
-  --bg-card: rgba(255, 255, 255, 0.8);
-  --bg-card-70: rgba(255, 255, 255, 0.7);
-  --bg-card-75: rgba(255, 255, 255, 0.75);
-  --bg-card-78: rgba(255, 255, 255, 0.78);
-  --bg-card-82: rgba(255, 255, 255, 0.82);
-  --bg-card-85: rgba(255, 255, 255, 0.85);
+  --bg-card: rgba(255, 255, 255, 0.7);
+  --bg-card-70: rgba(255, 255, 255, 0.6);
+  --bg-card-75: rgba(255, 255, 255, 0.65);
+  --bg-card-78: rgba(255, 255, 255, 0.68);
+  --bg-card-82: rgba(255, 255, 255, 0.72);
+  --bg-card-85: rgba(255, 255, 255, 0.75);
   --bg-card-solid: #ffffff;
-  --bg-body-workspace: linear-gradient(180deg, #f7f6f2 0%, #efeee8 100%);
-  --bg-metric: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(245,245,242,0.94));
-  --ink-paragraph: rgba(7, 19, 21, 0.72);
-  --ink-paragraph-78: rgba(7, 19, 21, 0.78);
-  --ink-paragraph-70: rgba(7, 19, 21, 0.70);
-  --shadow-panel: 0 20px 60px rgba(7,19,21,0.05);
-  --shadow-panel-sm: 0 12px 30px rgba(7,19,21,0.06);
-  --shadow-panel-xs: 0 20px 60px rgba(7,19,21,0.04);
-  --border-line-subtle: rgba(7, 19, 21, 0.08);
-  --border-black-5: rgba(0, 0, 0, 0.05);
-  --border-black-6: rgba(0, 0, 0, 0.06);
-  --border-black-8: rgba(0, 0, 0, 0.08);
-  --teal-active-bg: rgba(15,139,141,0.08);
-  --teal-active-border: rgba(15,139,141,0.18);
+  --bg-body-workspace: linear-gradient(160deg, #ffffff 0%, #f0fdfa 60%, #ccfbf1 100%);
+  --bg-metric: transparent;
+  --ink-paragraph: rgba(10, 26, 26, 0.70);
+  --ink-paragraph-78: rgba(10, 26, 26, 0.78);
+  --ink-paragraph-70: rgba(10, 26, 26, 0.70);
+  --shadow-panel: none;
+  --shadow-panel-sm: none;
+  --shadow-panel-xs: none;
+  --border-line-subtle: rgba(13, 148, 136, 0.08);
+  --border-black-5: rgba(13, 148, 136, 0.05);
+  --border-black-6: rgba(13, 148, 136, 0.07);
+  --border-black-8: rgba(13, 148, 136, 0.10);
+  --teal-active-bg: rgba(13, 148, 136, 0.07);
+  --teal-active-border: rgba(13, 148, 136, 0.22);
   --emerald-bg: #ecfdf5;
   --emerald-border: #bbf7d0;
   --emerald-text: #047857;
   --rose-bg: #fff1f2;
   --rose-border: #fecdd3;
   --rose-text: #be123c;
-  --hero-card-bg: rgba(7,19,21,0.78);
-  --grid-line: rgba(7, 19, 21, 0.05);
-  --noise-opacity: 0.06;
-  --shadow-2xl: rgba(7,19,21,0.18);
-  --scrollbar-thumb: rgba(7,19,21,0.18);
-  --ink-deep: #071315;
-  --bg-card-92: rgba(255, 255, 255, 0.92);
-  --bg-card-80: rgba(255, 255, 255, 0.8);
-  --bg-card-65: rgba(255, 255, 255, 0.65);
-  --bg-card-60: rgba(255, 255, 255, 0.6);
-  --amber-bg: rgba(217,119,6,0.1);
-  --amber-border: rgba(217,119,6,0.2);
+  --hero-card-bg: rgba(10,26,26,0.78);
+  --grid-line: rgba(13, 148, 136, 0.06);
+  --noise-opacity: 0.03;
+  --shadow-2xl: rgba(10,26,26,0.10);
+  --scrollbar-thumb: rgba(13,148,136,0.18);
+  --ink-deep: #0a1a1a;
+  --bg-card-92: rgba(255, 255, 255, 0.82);
+  --bg-card-80: rgba(255, 255, 255, 0.70);
+  --bg-card-65: rgba(255, 255, 255, 0.55);
+  --bg-card-60: rgba(255, 255, 255, 0.50);
+  --amber-bg: rgba(217,119,6,0.08);
+  --amber-border: rgba(217,119,6,0.18);
   --amber-text: #b45309;
-  --sky-bg: rgba(14,165,233,0.1);
-  --sky-border: rgba(14,165,233,0.2);
-  --sky-text: #0369a1;
-  --yellow-bg: rgba(234,179,8,0.1);
-  --yellow-border: rgba(234,179,8,0.2);
+  --sky-bg: rgba(13,148,136,0.07);
+  --sky-border: rgba(13,148,136,0.16);
+  --sky-text: #0f766e;
+  --yellow-bg: rgba(234,179,8,0.08);
+  --yellow-border: rgba(234,179,8,0.18);
   --yellow-text: #a16207;
-  --violet-bg: rgba(139,92,246,0.1);
-  --violet-border: rgba(139,92,246,0.2);
+  --violet-bg: rgba(139,92,246,0.08);
+  --violet-border: rgba(139,92,246,0.18);
   --violet-text: #7c3aed;
-  --cyan-bg: rgba(6,182,212,0.1);
-  --cyan-border: rgba(6,182,212,0.2);
+  --cyan-bg: rgba(6,182,212,0.08);
+  --cyan-border: rgba(6,182,212,0.18);
   --cyan-text: #0e7490;
-  --indigo-bg: rgba(99,102,241,0.1);
-  --indigo-border: rgba(99,102,241,0.2);
+  --indigo-bg: rgba(99,102,241,0.08);
+  --indigo-border: rgba(99,102,241,0.18);
   --indigo-text: #4f46e5;
-  --stone-bg: rgba(120,113,108,0.1);
-  --stone-border: rgba(120,113,108,0.2);
+  --stone-bg: rgba(120,113,108,0.08);
+  --stone-border: rgba(120,113,108,0.18);
   --stone-text: #57534e;
 }
 
 .dark {
-  --ink: #e2e0db;
-  --ink-soft: #9d9b96;
-  --teal: #2dd4d8;
-  --teal-bright: #5eeae4;
-  --teal-wash: rgba(45,212,216,0.14);
-  --paper: #1a1b1f;
-  --sand: #252628;
-  --line: rgba(255, 255, 255, 0.1);
+  /* Dark mode — neutral dark grey, no green cast. Teal only as accent. */
+  --ink: #e8e8ea;
+  --ink-soft: #8a8a96;
+  --teal: #2dd4bf;
+  --teal-bright: #5eead4;
+  --teal-wash: rgba(45, 212, 191, 0.12);
+  --paper: #111113;
+  --sand: #1a1a1e;
+  --line: rgba(255, 255, 255, 0.08);
 
-  --bg-card: rgba(36, 38, 44, 0.8);
-  --bg-card-70: rgba(36, 38, 44, 0.7);
-  --bg-card-75: rgba(36, 38, 44, 0.75);
-  --bg-card-78: rgba(36, 38, 44, 0.78);
-  --bg-card-82: rgba(36, 38, 44, 0.82);
-  --bg-card-85: rgba(36, 38, 44, 0.85);
-  --bg-card-solid: #24262c;
-  --bg-body-workspace: linear-gradient(180deg, #111214 0%, #1a1b1f 100%);
-  --bg-metric: linear-gradient(180deg, rgba(36,38,44,0.9), rgba(30,31,35,0.94));
-  --ink-paragraph: rgba(226, 224, 219, 0.72);
-  --ink-paragraph-78: rgba(226, 224, 219, 0.78);
-  --ink-paragraph-70: rgba(226, 224, 219, 0.70);
-  --shadow-panel: 0 20px 60px rgba(0,0,0,0.25);
-  --shadow-panel-sm: 0 12px 30px rgba(0,0,0,0.3);
-  --shadow-panel-xs: 0 20px 60px rgba(0,0,0,0.2);
+  --bg-card: rgba(30, 30, 34, 0.85);
+  --bg-card-70: rgba(28, 28, 32, 0.70);
+  --bg-card-75: rgba(28, 28, 32, 0.75);
+  --bg-card-78: rgba(28, 28, 32, 0.78);
+  --bg-card-82: rgba(28, 28, 32, 0.82);
+  --bg-card-85: rgba(28, 28, 32, 0.85);
+  --bg-card-solid: #1c1c20;
+  --bg-body-workspace: linear-gradient(180deg, #111113 0%, #1a1a1e 100%);
+  --bg-metric: transparent;
+  --ink-paragraph: rgba(232, 232, 234, 0.70);
+  --ink-paragraph-78: rgba(232, 232, 234, 0.78);
+  --ink-paragraph-70: rgba(232, 232, 234, 0.70);
+  --shadow-panel: none;
+  --shadow-panel-sm: none;
+  --shadow-panel-xs: none;
   --border-line-subtle: rgba(255, 255, 255, 0.06);
-  --border-black-5: rgba(255, 255, 255, 0.06);
-  --border-black-6: rgba(255, 255, 255, 0.08);
-  --border-black-8: rgba(255, 255, 255, 0.1);
-  --teal-active-bg: rgba(45,212,216,0.12);
-  --teal-active-border: rgba(45,212,216,0.22);
-  --emerald-bg: rgba(4,120,87,0.18);
-  --emerald-border: rgba(4,120,87,0.3);
+  --border-black-5: rgba(255, 255, 255, 0.04);
+  --border-black-6: rgba(255, 255, 255, 0.06);
+  --border-black-8: rgba(255, 255, 255, 0.08);
+  --teal-active-bg: rgba(45, 212, 191, 0.08);
+  --teal-active-border: rgba(45, 212, 191, 0.28);
+  --emerald-bg: rgba(4,120,87,0.16);
+  --emerald-border: rgba(4,120,87,0.28);
   --emerald-text: #34d399;
-  --rose-bg: rgba(190,18,60,0.18);
-  --rose-border: rgba(190,18,60,0.3);
+  --rose-bg: rgba(190,18,60,0.16);
+  --rose-border: rgba(190,18,60,0.28);
   --rose-text: #fb7185;
-  --hero-card-bg: rgba(20,22,28,0.88);
+  --hero-card-bg: rgba(17,17,19,0.88);
   --grid-line: rgba(255, 255, 255, 0.04);
-  --noise-opacity: 0.03;
-  --shadow-2xl: rgba(0,0,0,0.4);
-  --scrollbar-thumb: rgba(255,255,255,0.2);
-  --ink-deep: #0d0e11;
-  --bg-card-92: rgba(36, 38, 44, 0.92);
-  --bg-card-80: rgba(36, 38, 44, 0.8);
-  --bg-card-65: rgba(36, 38, 44, 0.65);
-  --bg-card-60: rgba(36, 38, 44, 0.6);
-  --amber-bg: rgba(217,119,6,0.15);
-  --amber-border: rgba(217,119,6,0.25);
+  --noise-opacity: 0.025;
+  --shadow-2xl: rgba(0,0,0,0.5);
+  --scrollbar-thumb: rgba(255,255,255,0.14);
+  --ink-deep: #0a0a0c;
+  --bg-card-92: rgba(30, 30, 34, 0.92);
+  --bg-card-80: rgba(28, 28, 32, 0.80);
+  --bg-card-65: rgba(26, 26, 30, 0.65);
+  --bg-card-60: rgba(26, 26, 30, 0.60);
+  --amber-bg: rgba(217,119,6,0.14);
+  --amber-border: rgba(217,119,6,0.24);
   --amber-text: #fbbf24;
-  --sky-bg: rgba(14,165,233,0.15);
-  --sky-border: rgba(14,165,233,0.25);
-  --sky-text: #38bdf8;
-  --yellow-bg: rgba(234,179,8,0.15);
-  --yellow-border: rgba(234,179,8,0.25);
+  --sky-bg: rgba(45,212,191,0.08);
+  --sky-border: rgba(45,212,191,0.18);
+  --sky-text: #5eead4;
+  --yellow-bg: rgba(234,179,8,0.14);
+  --yellow-border: rgba(234,179,8,0.24);
   --yellow-text: #facc15;
-  --violet-bg: rgba(139,92,246,0.15);
-  --violet-border: rgba(139,92,246,0.25);
+  --violet-bg: rgba(139,92,246,0.14);
+  --violet-border: rgba(139,92,246,0.24);
   --violet-text: #a78bfa;
-  --cyan-bg: rgba(6,182,212,0.15);
-  --cyan-border: rgba(6,182,212,0.25);
-  --cyan-text: #22d3ee;
-  --indigo-bg: rgba(99,102,241,0.15);
-  --indigo-border: rgba(99,102,241,0.25);
+  --cyan-bg: rgba(45,212,191,0.10);
+  --cyan-border: rgba(45,212,191,0.20);
+  --cyan-text: #2dd4bf;
+  --indigo-bg: rgba(99,102,241,0.14);
+  --indigo-border: rgba(99,102,241,0.24);
   --indigo-text: #818cf8;
-  --stone-bg: rgba(168,162,158,0.12);
-  --stone-border: rgba(168,162,158,0.2);
-  --stone-text: #a8a29e;
+  --stone-bg: rgba(138,138,150,0.10);
+  --stone-border: rgba(138,138,150,0.18);
+  --stone-text: #8a8a96;
 }
 
 html {
@@ -150,16 +152,13 @@ body {
   font-family: 'Manrope', system-ui, sans-serif;
   color: var(--ink);
   background:
-    radial-gradient(circle at top left, rgba(15, 139, 141, 0.09), transparent 30%),
-    linear-gradient(180deg, #fbfbf9 0%, #f2f2ee 100%);
+    linear-gradient(160deg, #ffffff 0%, #f0fdfa 55%, #ccfbf1 100%);
   -webkit-font-smoothing: antialiased;
   transition: background 0.3s ease, color 0.3s ease;
 }
 
 .dark body {
-  background:
-    radial-gradient(circle at top left, rgba(15, 139, 141, 0.06), transparent 30%),
-    linear-gradient(180deg, #0e0f11 0%, #17181c 100%);
+  background: linear-gradient(180deg, #111113 0%, #1a1a1e 100%);
 }
 
 * {
@@ -172,11 +171,11 @@ img {
 }
 
 ::selection {
-  background: rgba(15, 139, 141, 0.18);
+  background: rgba(13, 148, 136, 0.20);
 }
 
 .dark ::selection {
-  background: rgba(45, 212, 216, 0.25);
+  background: rgba(45, 212, 191, 0.25);
 }
 
 .font-display {
@@ -197,8 +196,8 @@ img {
   pointer-events: none;
   opacity: var(--noise-opacity);
   background-image:
-    radial-gradient(circle at 20% 20%, rgba(7, 19, 21, 0.55) 0.7px, transparent 0.8px),
-    radial-gradient(circle at 80% 40%, rgba(7, 19, 21, 0.45) 0.7px, transparent 0.8px),
-    radial-gradient(circle at 30% 75%, rgba(7, 19, 21, 0.55) 0.7px, transparent 0.8px);
+    radial-gradient(circle at 20% 20%, rgba(10, 26, 26, 0.5) 0.7px, transparent 0.8px),
+    radial-gradient(circle at 80% 40%, rgba(10, 26, 26, 0.4) 0.7px, transparent 0.8px),
+    radial-gradient(circle at 30% 75%, rgba(10, 26, 26, 0.5) 0.7px, transparent 0.8px);
   background-size: 18px 18px, 24px 24px, 20px 20px;
 }

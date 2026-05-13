@@ -88,7 +88,7 @@ function DroppableColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`min-w-[280px] flex-1 rounded-[24px] border bg-[var(--bg-card-80)] p-4 transition-all duration-150 ${
+      className={`min-w-[280px] flex-1 [] border bg-[var(--bg-card-80)] p-4 transition-all duration-150 ${
         isOver ? 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)]' : 'border-[var(--line)]'
       }`}
     >
@@ -123,7 +123,7 @@ export function DraggableOpsCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`select-none rounded-[22px] border border-[var(--line)] bg-[var(--bg-card-92)] p-4 shadow-[var(--shadow-panel-xs)] transition-opacity ${
+      className={`select-none [] border border-[var(--line)] bg-[var(--bg-card-92)] p-4 shadow-[var(--shadow-panel-xs)] transition-opacity ${
         isDragging && !ghost ? 'opacity-40' : 'opacity-100'
       }`}
     >
@@ -198,7 +198,7 @@ function DraggableSubprojectCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`select-none rounded-[22px] border border-[var(--line)] bg-[var(--bg-card-92)] p-4 shadow-[var(--shadow-panel-xs)] transition-opacity ${
+      className={`select-none [] border border-[var(--line)] bg-[var(--bg-card-92)] p-4 shadow-[var(--shadow-panel-xs)] transition-opacity ${
         isDragging && !ghost ? 'opacity-40' : 'opacity-100'
       }`}
     >
@@ -226,7 +226,7 @@ function DraggableSubprojectCard({
         <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">{stageLabel(subproject.stage)}</span>
       </div>
       {(hasDeadline || hasAmount) ? (
-        <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2">
+        <div className="mt-4 grid grid-cols-2 gap-2 border border-[var(--line)] bg-[var(--paper)] px-3 py-2">
           <div>
             <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-soft)]/70">Valor</div>
             <div className="mt-1 truncate text-sm font-semibold text-[var(--ink)]">{hasAmount ? formatCurrency(numericValue(subproject.amount)) : '—'}</div>
@@ -250,7 +250,7 @@ function DraggableSubprojectCard({
 
 export function GhostCard({ project }: { project: Project }) {
   return (
-    <div className="rounded-[22px] border border-[rgba(15,139,141,0.25)] bg-[rgba(15,139,141,0.08)] p-4 shadow-[0_24px_60px_rgba(7,19,21,0.12)]">
+    <div className="[] border border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] p-4 shadow-[0_24px_60px_rgba(12,26,26,0.08)]">
       <div className="font-medium text-[var(--ink)]">{project.name}</div>
       <div className="mt-0.5 text-sm text-[var(--ink-soft)]">{project.client_name || 'Cliente não informado'}</div>
     </div>
@@ -335,13 +335,13 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
         <button
           type="button"
           onClick={goToday}
-          className="ml-1 rounded-2xl border border-[var(--line)] px-3 py-1 text-xs font-medium text-[var(--ink-soft)] transition hover:bg-[var(--paper)]"
+          className="ml-1 border border-[var(--line)] px-3 py-1 text-xs font-medium text-[var(--ink-soft)] transition hover:bg-[var(--paper)]"
         >
           Hoje
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-[20px] border border-[var(--line)]">
+      <div className="overflow-hidden [] border border-[var(--line)]">
         <div className="grid grid-cols-7 border-b border-[var(--line)] bg-[var(--paper)]">
           {dayLabels.map((d) => (
             <div key={d} className="py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ink-soft)]">{d}</div>
@@ -397,7 +397,7 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
               return (
                 <div
                   key={sp.id}
-                  className="cursor-pointer rounded-[22px] border border-[var(--line)] bg-[var(--bg-card-solid)] p-4 transition hover:shadow-[var(--shadow-panel-xs)]"
+                  className="cursor-pointer [] border border-[var(--line)] bg-[var(--bg-card-solid)] p-4 transition hover:shadow-[var(--shadow-panel-xs)]"
                   onClick={() => onCardClick(project.id, sp.id)}
                 >
                   <div className="truncate font-medium text-[var(--ink)]">{project.name}</div>
@@ -439,7 +439,7 @@ function CompletionDateModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onCancel}>
       <div className="absolute inset-0 bg-[var(--ink)]/20 backdrop-blur-sm" />
       <div
-        className="relative z-10 w-full max-w-md rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[var(--shadow-panel)]"
+        className="relative z-10 w-full max-w-md [] border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[var(--shadow-panel)]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
@@ -455,21 +455,21 @@ function CompletionDateModal({
         <label className="mt-5 block text-sm font-medium text-[var(--ink)]">
           Data de conclusão
           <input
-            className="mt-2 w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3"
+            className="mt-2 w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-3"
             type="date"
             value={value}
             onChange={(event) => onChange(event.target.value)}
           />
         </label>
         <div className="mt-5 flex justify-end gap-3">
-          <button type="button" onClick={onCancel} className="rounded-2xl border border-[var(--line)] px-5 py-2.5 text-sm text-[var(--ink)] transition hover:bg-[var(--paper)]">
+          <button type="button" onClick={onCancel} className="border border-[var(--line)] px-5 py-2.5 text-sm text-[var(--ink)] transition hover:bg-[var(--paper)]">
             Cancelar
           </button>
           <button
             type="button"
             onClick={onConfirm}
             disabled={mutating || !value}
-            className="rounded-2xl bg-[var(--ink)] px-5 py-2.5 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
+            className="bg-[var(--ink)] px-5 py-2.5 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
           >
             Concluir
           </button>
@@ -529,7 +529,7 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-[var(--ink)]/20 backdrop-blur-sm" />
       <div
-        className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-solid)] shadow-[var(--shadow-panel)]"
+        className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto [] border border-[var(--line)] bg-[var(--bg-card-solid)] shadow-[var(--shadow-panel)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] p-6">
@@ -549,46 +549,46 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
         <div className="grid gap-4 p-6 md:grid-cols-2">
           <div className="md:col-span-2">
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Nome</label>
-            <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.name} onChange={set('name')} />
+            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.name} onChange={set('name')} />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Código</label>
-            <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.code} onChange={set('code')} />
+            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.code} onChange={set('code')} />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Disciplina</label>
-            <select className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.discipline} onChange={set('discipline')}>
+            <select className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.discipline} onChange={set('discipline')}>
               <option value="">Sem disciplina</option>
               {disciplines.map((d) => <option key={d} value={d}>{LABELS[d]}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Etapa</label>
-            <select className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.stage} onChange={set('stage')}>
+            <select className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.stage} onChange={set('stage')}>
               {projectStages.map((s) => <option key={s} value={s}>{stageLabel(s)}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Responsável</label>
-            <select className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.salesOwner} onChange={set('salesOwner')}>
+            <select className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.salesOwner} onChange={set('salesOwner')}>
               <option value="">Sem responsável</option>
               {partners.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do contrato</label>
-            <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" value={form.contractAmount} onChange={set('contractAmount')} />
+            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" value={form.contractAmount} onChange={set('contractAmount')} />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Prazo</label>
-            <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="date" value={form.deadline} onChange={set('deadline')} />
+            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="date" value={form.deadline} onChange={set('deadline')} />
           </div>
           <div className="md:col-span-2">
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Nota de status</label>
-            <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.statusNote} onChange={set('statusNote')} placeholder="Observação rápida sobre o estado atual" />
+            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.statusNote} onChange={set('statusNote')} placeholder="Observação rápida sobre o estado atual" />
           </div>
 
-          <div className="md:col-span-2 rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-82)] p-4">
+          <div className="md:col-span-2 [] border border-[var(--line)] bg-[var(--bg-card-82)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Timeline</div>
@@ -598,7 +598,7 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
             </div>
             <div className="mt-4 space-y-3">
               {timelineItems.slice(0, 12).map((item) => (
-                <div key={item.id} className="flex gap-3 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-85)] px-3 py-3 text-sm">
+                <div key={item.id} className="flex gap-3 border border-[var(--line)] bg-[var(--bg-card-85)] px-3 py-3 text-sm">
                   <div className="w-20 shrink-0 text-xs font-medium text-[var(--ink-soft)]">{formatDate(item.date)}</div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -610,7 +610,7 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
                 </div>
               ))}
               {timelineItems.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[var(--bg-card-75)] px-4 py-3 text-sm text-[var(--ink-soft)]">
+                <div className="border border-dashed border-[var(--line)] bg-[var(--bg-card-75)] px-4 py-3 text-sm text-[var(--ink-soft)]">
                   Ainda não há histórico suficiente para esse projeto.
                 </div>
               ) : null}
@@ -639,13 +639,13 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
             </div>
             {notesTab === 'edit' ? (
               <textarea
-                className="min-h-[180px] w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 font-mono text-sm"
+                className="min-h-[180px] w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-3 font-mono text-sm"
                 placeholder="Suporta Markdown: **negrito**, _itálico_, `código`, tabelas, listas…"
                 value={form.notes}
                 onChange={set('notes')}
               />
             ) : (
-              <div className="prose prose-sm min-h-[180px] max-w-none rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3">
+              <div className="prose prose-sm min-h-[180px] max-w-none border border-[var(--line)] bg-[var(--paper)] px-4 py-3">
                 {form.notes ? (
                   <ReactMarkdown>{form.notes}</ReactMarkdown>
                 ) : (
@@ -660,7 +660,7 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
           <button
             type="button"
             onClick={onClose}
-            className="rounded-2xl border border-[var(--line)] px-5 py-2.5 text-sm text-[var(--ink)] transition hover:bg-[var(--paper)]"
+            className="border border-[var(--line)] px-5 py-2.5 text-sm text-[var(--ink)] transition hover:bg-[var(--paper)]"
           >
             Cancelar
           </button>
@@ -668,7 +668,7 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
             type="button"
             onClick={() => onSave(form)}
             disabled={mutating}
-            className="rounded-2xl bg-[var(--ink)] px-5 py-2.5 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
+            className="bg-[var(--ink)] px-5 py-2.5 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
           >
             Salvar
           </button>
@@ -721,7 +721,7 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-[var(--ink)]/20 backdrop-blur-sm" />
       <div
-        className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-solid)] shadow-[var(--shadow-panel)]"
+        className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto [] border border-[var(--line)] bg-[var(--bg-card-solid)] shadow-[var(--shadow-panel)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] p-6">
@@ -737,31 +737,31 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
         <div className="space-y-4 p-6">
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Cliente</label>
-            <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.clientName} onChange={set('clientName')} placeholder="Nome do cliente" />
+            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.clientName} onChange={set('clientName')} placeholder="Nome do cliente" />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Nome do projeto *</label>
-            <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.name} onChange={set('name')} required />
+            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.name} onChange={set('name')} required />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Código</label>
-              <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.code} onChange={set('code')} />
+              <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.code} onChange={set('code')} />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Responsável</label>
-              <select className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.salesOwner} onChange={set('salesOwner')}>
+              <select className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.salesOwner} onChange={set('salesOwner')}>
                 <option value="">—</option>
                 {partners.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do contrato</label>
-              <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" value={form.contractAmount} onChange={set('contractAmount')} />
+              <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" value={form.contractAmount} onChange={set('contractAmount')} />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Prazo</label>
-              <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="date" value={form.deadline} onChange={set('deadline')} />
+              <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="date" value={form.deadline} onChange={set('deadline')} />
             </div>
           </div>
 
@@ -778,7 +778,7 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
             </div>
             <div className="space-y-2">
               {form.subprojects.map((sp, idx) => (
-                <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-3">
+                <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 border border-[var(--line)] bg-[var(--paper)] p-3">
                   <select className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" value={sp.discipline} onChange={setSp(idx, 'discipline')}>
                     <option value="">Disciplina</option>
                     {disciplines.map((d) => <option key={d} value={d}>{LABELS[d]}</option>)}
@@ -804,14 +804,14 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
         </div>
 
         <div className="flex justify-end gap-3 border-t border-[var(--line)] px-6 py-4">
-          <button type="button" onClick={onClose} className="rounded-2xl border border-[var(--line)] px-5 py-2.5 text-sm text-[var(--ink)] transition hover:bg-[var(--paper)]">
+          <button type="button" onClick={onClose} className="border border-[var(--line)] px-5 py-2.5 text-sm text-[var(--ink)] transition hover:bg-[var(--paper)]">
             Cancelar
           </button>
           <button
             type="button"
             onClick={() => onCreate(form)}
             disabled={mutating || !form.name.trim()}
-            className="rounded-2xl bg-[var(--ink)] px-5 py-2.5 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
+            className="bg-[var(--ink)] px-5 py-2.5 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
           >
             Criar projeto
           </button>
@@ -871,7 +871,7 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-[var(--ink)]/20 backdrop-blur-sm" />
       <div
-        className="relative z-10 w-full max-w-lg rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-solid)] shadow-[var(--shadow-panel)]"
+        className="relative z-10 w-full max-w-lg [] border border-[var(--line)] bg-[var(--bg-card-solid)] shadow-[var(--shadow-panel)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] p-6">
@@ -893,7 +893,7 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
             <div>
               <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Lead de origem</label>
               <select
-                className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm"
+                className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm"
                 value={selectedLeadId}
                 onChange={(e) => handleLeadChange(e.target.value)}
               >
@@ -906,34 +906,34 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Nome do projeto</label>
-              <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.name} onChange={set('name')} required />
+              <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.name} onChange={set('name')} required />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Código</label>
-                <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.code} onChange={set('code')} />
+                <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.code} onChange={set('code')} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Disciplina</label>
-                <select className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.discipline} onChange={set('discipline')}>
+                <select className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.discipline} onChange={set('discipline')}>
                   <option value="">Sem disciplina</option>
                   {disciplines.map((d) => <option key={d} value={d}>{LABELS[d]}</option>)}
                 </select>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Responsável</label>
-                <select className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.salesOwner} onChange={set('salesOwner')}>
+                <select className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.salesOwner} onChange={set('salesOwner')}>
                   <option value="">Sem responsável</option>
                   {partners.map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do contrato</label>
-                <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" value={form.contractAmount} onChange={set('contractAmount')} />
+                <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" value={form.contractAmount} onChange={set('contractAmount')} />
               </div>
               <div className="col-span-2">
                 <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Prazo</label>
-                <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="date" value={form.deadline} onChange={set('deadline')} />
+                <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="date" value={form.deadline} onChange={set('deadline')} />
               </div>
             </div>
           </div>
@@ -941,14 +941,14 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
 
         {wonLeads.length > 0 ? (
           <div className="flex justify-end gap-3 border-t border-[var(--line)] px-6 py-4">
-            <button type="button" onClick={onClose} className="rounded-2xl border border-[var(--line)] px-5 py-2.5 text-sm text-[var(--ink)] transition hover:bg-[var(--paper)]">
+            <button type="button" onClick={onClose} className="border border-[var(--line)] px-5 py-2.5 text-sm text-[var(--ink)] transition hover:bg-[var(--paper)]">
               Cancelar
             </button>
             <button
               type="button"
               onClick={() => onCreate(selectedLeadId, form)}
               disabled={mutating || !selectedLeadId || !form.name}
-              className="rounded-2xl bg-[var(--ink)] px-5 py-2.5 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
+              className="bg-[var(--ink)] px-5 py-2.5 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
             >
               Criar projeto
             </button>
@@ -1143,11 +1143,11 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
         subtitle="Subprojetos em execução — cada disciplina tem responsável, valor e etapa próprios."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex rounded-2xl border border-[var(--line)] bg-[var(--bg-card-80)] p-0.5">
+            <div className="flex border border-[var(--line)] bg-[var(--bg-card-80)] p-0.5">
               <button
                 type="button"
                 onClick={() => setViewMode('kanban')}
-                className={`inline-flex items-center gap-1.5 rounded-[18px] px-3 py-1.5 text-xs font-medium transition ${viewMode === 'kanban' ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition ${viewMode === 'kanban' ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
               >
                 <LayoutGrid className="h-3.5 w-3.5" />
                 Kanban
@@ -1155,7 +1155,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
               <button
                 type="button"
                 onClick={() => setViewMode('calendar')}
-                className={`inline-flex items-center gap-1.5 rounded-[18px] px-3 py-1.5 text-xs font-medium transition ${viewMode === 'calendar' ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition ${viewMode === 'calendar' ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
               >
                 <CalendarDays className="h-3.5 w-3.5" />
                 Calendário
@@ -1171,7 +1171,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
                 key={key}
                 type="button"
                 onClick={() => toggleSort(key as OpsSortKey)}
-                className={`inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-medium transition ${
+                className={`inline-flex items-center gap-2 border px-3 py-2 text-xs font-medium transition ${
                   sortKey === key ? 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] text-[var(--teal)]' : 'border-[var(--line)] bg-[var(--bg-card-80)] text-[var(--ink)] hover:bg-[var(--paper)]'
                 }`}
               >
@@ -1182,7 +1182,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
             <button
               type="button"
               onClick={() => setShowCreateProject(true)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
+              className="inline-flex items-center gap-2 border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
             >
               <Plus className="h-3.5 w-3.5" />
               Novo projeto
@@ -1190,7 +1190,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
             <button
               type="button"
               onClick={() => setShowCreateFromLead(true)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
+              className="inline-flex items-center gap-2 border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
             >
               <Plus className="h-3.5 w-3.5" />
               De comercial
@@ -1238,7 +1238,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
                         )
                       })
                     ) : (
-                      <div className="rounded-[20px] border border-dashed border-[var(--line)] bg-[var(--bg-card-65)] p-4 text-sm text-[var(--ink-soft)]">
+                      <div className="[] border border-dashed border-[var(--line)] bg-[var(--bg-card-65)] p-4 text-sm text-[var(--ink-soft)]">
                         Coluna vazia.
                       </div>
                     )}

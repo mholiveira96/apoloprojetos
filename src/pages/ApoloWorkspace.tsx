@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
+  AlertTriangle,
+  Banknote,
   ChevronDown,
   CircleDollarSign,
   FolderKanban,
@@ -54,6 +56,7 @@ export function ApoloWorkspace() {
   const [mutating, setMutating] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [subprojectSort, setSubprojectSort] = useState<'recent' | 'stage' | 'partner'>('recent')
 
   const [leadForm, setLeadForm] = useState({
     clientName: '',
@@ -288,8 +291,8 @@ export function ApoloWorkspace() {
   if (loadingData || !data) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--paper)] text-[var(--ink)]">
-        <div className="inline-flex items-center gap-3 rounded-full border border-[var(--line)] bg-[var(--bg-card-solid)] px-5 py-3 text-sm">
-          <LoaderCircle className="h-4 w-4 animate-spin" />
+        <div className="inline-flex items-center gap-3 border border-[var(--line)] px-5 py-3 text-sm text-[var(--ink-soft)]">
+          <LoaderCircle className="h-4 w-4 animate-spin text-[var(--teal)]" />
           Carregando o app da Apolo…
         </div>
         <Toaster richColors position="top-right" />
@@ -331,15 +334,16 @@ export function ApoloWorkspace() {
     0,
   )
   const inProgressCount = data.projects.filter((p) => p.stage === 'em-andamento').length
-  const blockedCount = data.projects.filter((p) => p.stage === 'bloqueado').length
+  const stageOrder: Record<string, number> = { 'bloqueado': 0, 'aguardando-revisao': 1, 'em-andamento': 2 }
   const activeSubprojects = data.subprojects
     .filter((sp) => ['em-andamento', 'aguardando-revisao', 'bloqueado'].includes(sp.stage))
-    .sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime())
+    .sort((a, b) => {
+      if (subprojectSort === 'stage') return (stageOrder[a.stage] ?? 9) - (stageOrder[b.stage] ?? 9)
+      if (subprojectSort === 'partner') return (a.responsible_partner || '').localeCompare(b.responsible_partner || '')
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    })
     .slice(0, 12)
-  const activeProjects = data.projects
-    .filter((p) => p.stage === 'em-andamento')
-    .sort((a, b) => new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime())
-    .slice(0, 8)
+
   const blockedProjects = data.projects
     .filter((p) => p.stage === 'bloqueado')
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
@@ -348,180 +352,166 @@ export function ApoloWorkspace() {
     ? buildClientTimeline(data, selectedLead.client_name, { leadId: selectedLead.id })
     : []
 
+  const deliveredUnpaidProjects = data.projects
+    .filter((p) => p.stage === 'concluído-aguardando-pagamento')
+    .sort((a, b) => (a.deadline || a.updated_at).localeCompare(b.deadline || b.updated_at))
+  const deliveredUnpaidTotal = deliveredUnpaidProjects.reduce(
+    (s, p) => s + numericValue(p.contract_amount) - numericValue(p.total_received),
+    0,
+  )
+
+  const in30DaysStr = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+  const upcomingDeadlines = data.projects
+    .filter((p) => p.deadline && p.deadline >= today && p.deadline <= in30DaysStr && p.stage !== 'concluído' && p.stage !== 'concluído-aguardando-pagamento')
+    .sort((a, b) => a.deadline!.localeCompare(b.deadline!))
+    .slice(0, 8)
+
+  const totalPendingCount = data.projects
+    .filter((p) => p.stage === 'em-andamento' || p.stage === 'bloqueado')
+    .reduce((s, p) => s + numericValue(p.pending_count), 0)
+
+  const overdueLogs = data.logs
+    .filter((log) => log.status !== 'done' && log.due_date && log.due_date < today)
+    .sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? ''))
+    .slice(0, 8)
+
+  const currentMonth = today.slice(0, 7)
+  const mtdEntries = data.cashflow.filter((e) => e.entry_date.startsWith(currentMonth))
+  const mtdReceived = mtdEntries.filter((e) => e.entry_type === 'receipt').reduce((s, e) => s + numericValue(e.signed_amount), 0)
+  const mtdExpenses = mtdEntries.filter((e) => e.entry_type === 'expense').reduce((s, e) => s + Math.abs(numericValue(e.signed_amount)), 0)
+  const mtdPayouts = mtdEntries.filter((e) => e.entry_type === 'payout').reduce((s, e) => s + Math.abs(numericValue(e.signed_amount)), 0)
+  const mtdNet = mtdReceived - mtdExpenses - mtdPayouts
+  const mtdLabel = new Date(`${currentMonth}-15`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+
   return (
     <div className="min-h-screen bg-[var(--bg-body-workspace)] text-[var(--ink)] transition-colors duration-300">
-      <div className={`mx-auto grid min-h-screen max-w-[1600px] transition-[grid-template-columns] duration-300 ${sidebarCollapsed ? 'lg:grid-cols-[72px_minmax(0,1fr)]' : 'lg:grid-cols-[260px_minmax(0,1fr)]'}`}>
-        <aside className={`relative border-b border-[var(--line)] py-4 sm:py-6 lg:border-b-0 lg:border-r lg:py-8 transition-all duration-300 ${sidebarCollapsed ? 'lg:px-2' : 'lg:px-6'}`}>
-          <div className="flex items-center justify-between gap-3 lg:hidden">
-            <div>
-              <div className="text-xs uppercase tracking-[0.22em] text-[var(--teal)]">Apolo / App</div>
-              <div className="mt-1 text-lg font-semibold text-[var(--ink)]">{stageLabel(section)}</div>
-            </div>
+      <div className={`mx-auto grid min-h-screen max-w-[1600px] transition-[grid-template-columns] duration-300 ${sidebarCollapsed ? 'lg:grid-cols-[64px_minmax(0,1fr)]' : 'lg:grid-cols-[240px_minmax(0,1fr)]'}`}>
+
+        {/* ── Sidebar ── */}
+        <aside className={`relative flex flex-col border-b border-[var(--line)] lg:border-b-0 lg:border-r transition-all duration-300`}>
+
+          {/* Mobile bar */}
+          <div className="flex items-center justify-between gap-3 px-4 py-3 lg:hidden">
+            <img src="/logo-apolo.png" alt="Apolo" className="h-8 w-auto object-contain" />
             <button
               type="button"
               aria-expanded={mobileNavOpen}
               aria-label={mobileNavOpen ? 'Fechar navegação' : 'Abrir navegação'}
-              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--bg-card)] px-4 py-3 text-sm font-medium text-[var(--ink)] shadow-[var(--shadow-panel-sm)]"
+              className="inline-flex items-center gap-2 border border-[var(--line)] px-3 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
               onClick={() => setMobileNavOpen((current) => !current)}
             >
               {mobileNavOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-              {mobileNavOpen ? 'Fechar' : 'Menu'}
             </button>
           </div>
 
-          <div className={`mt-4 space-y-4 lg:mt-0 ${mobileNavOpen ? 'block' : 'hidden lg:block'}`}>
-          {/* Logo + Header */}
-          <div className={`rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-70)] shadow-[var(--shadow-panel)] overflow-hidden transition-all duration-300 ${sidebarCollapsed ? 'p-2 flex items-center justify-center' : 'p-4'}`}>
-            <img src="/logo-apolo.png" alt="Apolo" className={sidebarCollapsed ? 'h-9 w-9 rounded-xl object-contain' : 'w-full h-auto'} />
-            {!sidebarCollapsed && (
-              <>
-                <div className="mt-3 text-xs uppercase tracking-[0.22em] text-[var(--teal)]">Apolo / App</div>
-                <h1 className="mt-1.5 text-lg font-semibold">Central da Apolo</h1>
-                <p className="mt-1 text-sm leading-6 text-[var(--ink-soft)]">
-                  CRM, andamento dos projetos e dinheiro costurados numa mesma mesa operacional.
-                </p>
-              </>
-            )}
-          </div>
+          <div className={`flex flex-col gap-0 lg:flex-1 ${mobileNavOpen ? 'block border-t border-[var(--line)]' : 'hidden lg:flex'}`}>
 
-          {/* Collapse toggle — sits on the vertical divider line */}
-          <div className="hidden lg:block relative h-0">
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed((c) => !c)}
-              className="absolute top-4 z-10 flex items-center justify-center rounded-full border border-[var(--line)] bg-[var(--bg-card-solid)] p-1.5 text-[var(--ink-soft)] shadow-[var(--shadow-panel-xs)] transition hover:bg-[var(--paper)] hover:text-[var(--ink)]"
-              style={{ right: sidebarCollapsed ? '-22px' : '-22px' }}
-              aria-label={sidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
-            >
-              {sidebarCollapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
-            </button>
-          </div>
-
-          <div className="rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-70)] p-3 shadow-[var(--shadow-panel)] lg:hidden">
-            <div className="px-2 pb-3">
-              <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]/70">Navegação</div>
-              <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">
-                Comercial, operação e caixa sem ficar caçando tela.
-              </p>
+            {/* Logo area */}
+            <div className={`border-b border-[var(--line)] transition-all duration-300 ${sidebarCollapsed ? 'flex items-center justify-center p-3' : 'p-4'}`}>
+              <img src="/logo-apolo.png" alt="Apolo" className={sidebarCollapsed ? 'h-9 w-9 object-contain' : 'w-full h-auto object-contain'} />
             </div>
-            <nav className="space-y-2">
+
+            {/* Collapse toggle */}
+            <div className="hidden lg:block relative h-0">
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed((c) => !c)}
+                className="absolute top-3 z-10 flex items-center justify-center border border-[var(--line)] bg-[var(--paper)] p-1 text-[var(--ink-soft)] transition hover:text-[var(--ink)]"
+                style={{ right: '-13px' }}
+                aria-label={sidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
+              >
+                {sidebarCollapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+
+            {/* Nav */}
+            <nav className="py-2">
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon
                 return (
                   <NavLink
                     key={item.key}
                     to={item.href}
+                    title={sidebarCollapsed ? item.label : undefined}
                     className={({ isActive }) =>
-                      `flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm transition ${
+                      `flex items-center gap-3 border-l-2 transition-colors ${
+                        sidebarCollapsed ? 'justify-center px-0 py-3' : 'px-4 py-2.5 text-sm'
+                      } ${
                         isActive
-                          ? 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]'
-                          : 'border-transparent text-[var(--ink-soft)] hover:border-[var(--line)] hover:bg-[var(--bg-card-70)]'
+                          ? 'border-l-[var(--teal)] bg-[var(--teal-active-bg)] text-[var(--teal)]'
+                          : 'border-l-transparent text-[var(--ink-soft)] hover:bg-[var(--teal-active-bg)] hover:text-[var(--ink)]'
                       }`
                     }
                   >
-                    <span className="flex items-center gap-3">
-                      <Icon className="h-4 w-4" />
-                      {item.label}
-                    </span>
-                    <span className="text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]/55">abrir</span>
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {!sidebarCollapsed && <span>{item.label}</span>}
                   </NavLink>
                 )
               })}
             </nav>
-          </div>
 
-          <nav className="hidden lg:block lg:space-y-1">
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon
-              return (
-                <NavLink
-                  key={item.key}
-                  to={item.href}
-                  title={sidebarCollapsed ? item.label : undefined}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-2xl border transition ${
-                      sidebarCollapsed ? 'justify-center px-0 py-2.5' : 'px-4 py-3 text-sm'
-                    } ${
-                      isActive
-                        ? 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]'
-                        : 'border-transparent text-[var(--ink-soft)] hover:border-[var(--line)] hover:bg-[var(--bg-card-70)]'
-                    }`
-                  }
+            {/* User / actions — sits right after nav */}
+            <div className={`border-t border-[var(--line)] transition-all duration-300 ${sidebarCollapsed ? 'p-2' : 'p-4'}`}>
+              {!sidebarCollapsed && (
+                <div className="mb-3">
+                  <div className="text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">Sessão</div>
+                  <div className="mt-1.5 text-sm font-medium text-[var(--ink)]">{user.name}</div>
+                  <div className="text-xs text-[var(--ink-soft)]">{user.email}</div>
+                </div>
+              )}
+              <div className={`flex gap-2 ${sidebarCollapsed ? 'flex-col items-center' : ''}`}>
+                <button
+                  onClick={() => void handleSair()}
+                  title="Sair"
+                  className={`inline-flex items-center border border-[var(--line)] text-[var(--ink-soft)] transition hover:text-[var(--ink)] ${sidebarCollapsed ? 'justify-center p-2' : 'gap-1.5 px-3 py-1.5 text-xs'}`}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {!sidebarCollapsed && item.label}
-                </NavLink>
-              )
-            })}
-          </nav>
-
-          <div className={`rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-70)] text-sm shadow-[var(--shadow-panel)] transition-all duration-300 ${sidebarCollapsed ? 'p-2' : 'p-5'}`}>
-            {!sidebarCollapsed && (
-              <>
-                <div className="font-medium text-[var(--ink)]">Sessão ativa</div>
-                <div className="mt-2 text-[var(--ink-soft)]">{user.name}</div>
-                <div className="text-xs text-[var(--ink-soft)]/80">{user.email}</div>
-              </>
-            )}
-            <div className={`flex flex-wrap gap-2 ${sidebarCollapsed ? 'flex-col items-center' : 'mt-4'}`}>
-              <button
-                onClick={() => void handleSair()}
-                title="Sair"
-                className={`inline-flex items-center rounded-2xl border border-[var(--line)] text-[var(--ink)] transition hover:bg-[var(--paper)] ${sidebarCollapsed ? 'justify-center p-2' : 'gap-2 px-3 py-2'}`}
-              >
-                <LogOut className="h-4 w-4" />
-                {!sidebarCollapsed && 'Sair'}
-              </button>
-              <button
-                onClick={toggleTheme}
-                title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
-                className={`inline-flex items-center rounded-2xl border border-[var(--line)] text-[var(--ink)] transition hover:bg-[var(--paper)] ${sidebarCollapsed ? 'justify-center p-2' : 'gap-2 px-3 py-2'}`}
-                aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
-              >
-                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                {!sidebarCollapsed && (theme === 'dark' ? 'Claro' : 'Escuro')}
-              </button>
+                  <LogOut className="h-3.5 w-3.5" />
+                  {!sidebarCollapsed && 'Sair'}
+                </button>
+                <button
+                  onClick={toggleTheme}
+                  title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+                  className={`inline-flex items-center border border-[var(--line)] text-[var(--ink-soft)] transition hover:text-[var(--ink)] ${sidebarCollapsed ? 'justify-center p-2' : 'gap-1.5 px-3 py-1.5 text-xs'}`}
+                  aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+                >
+                  {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+                  {!sidebarCollapsed && (theme === 'dark' ? 'Claro' : 'Escuro')}
+                </button>
+              </div>
             </div>
-          </div>
           </div>
         </aside>
 
-        <main className="min-w-0 px-4 py-5 sm:px-5 md:px-8 md:py-8">
-          <header className="mb-6 rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-70)] p-5 shadow-[var(--shadow-panel-xs)] sm:rounded-[32px] sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
+        <main className="min-w-0">
+          {/* Header — stats only, no redundant title */}
+          <header className="border-b border-[var(--line)] px-6 py-4 md:px-8">
+            <div className="flex items-center gap-6 text-sm">
               <div>
-                <div className="text-xs uppercase tracking-[0.22em] text-[var(--ink-soft)]/70">{section}</div>
-                <h2 className="mt-2 text-2xl font-semibold capitalize sm:text-3xl">{stageLabel(section)}</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ink-soft)]">
-                  O app foi dividido de propósito em comercial, operações e financeiro para a Apolo enxergar o que entrou, o que está travado e o que realmente girou no caixa.
-                </p>
+                <div className="text-xs uppercase tracking-[0.12em] text-[var(--ink-soft)]">Leads abertos</div>
+                <div className="mt-0.5 font-bold text-[var(--ink)]">{data.summary.openLeads}</div>
               </div>
-              <div className="grid w-full gap-3 sm:grid-cols-3 xl:w-auto">
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-85)] px-4 py-3 text-sm">
-                  <div className="text-[var(--ink-soft)]">Leads abertos</div>
-                  <div className="mt-1 font-semibold">{data.summary.openLeads}</div>
-                </div>
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-85)] px-4 py-3 text-sm">
-                  <div className="text-[var(--ink-soft)]">Projetos ativos</div>
-                  <div className="mt-1 font-semibold">{data.summary.activeProjects}</div>
-                </div>
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-85)] px-4 py-3 text-sm">
-                  <div className="text-[var(--ink-soft)]">Caixa líquido</div>
-                  <div className="mt-1 font-semibold">{formatCurrency(data.summary.netCash)}</div>
-                </div>
+              <div className="h-7 w-px bg-[var(--line)]" />
+              <div>
+                <div className="text-xs uppercase tracking-[0.12em] text-[var(--ink-soft)]">Projetos ativos</div>
+                <div className="mt-0.5 font-bold text-[var(--ink)]">{data.summary.activeProjects}</div>
+              </div>
+              <div className="h-7 w-px bg-[var(--line)]" />
+              <div>
+                <div className="text-xs uppercase tracking-[0.12em] text-[var(--ink-soft)]">Caixa líquido</div>
+                <div className="mt-0.5 font-bold text-[var(--ink)]">{formatCurrency(data.summary.netCash)}</div>
               </div>
             </div>
           </header>
 
-          <div className="space-y-6">
+          <div className="space-y-8 px-6 py-6 md:px-8 md:py-8">
             {section === 'dashboard' ? (
               <>
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
                   <MetricCard label="Leads no funil" value={String(pipelineLeads.length)} helper={`${formatCurrency(pipelineTotal)} em oportunidades ativas`} icon={TrendingUp} />
-                  <MetricCard label="Em andamento" value={String(inProgressCount)} helper="Somente projetos em execução" icon={FolderKanban} />
-                  <MetricCard label="Bloqueados" value={String(blockedCount)} helper="Projetos que exigem destravamento" icon={Search} />
-                  <MetricCard label="Contratos ativos" value={formatCurrency(data.summary.activeContractTotal)} helper="Valor em contrato ainda em execução" icon={ReceiptText} />
+                  <MetricCard label="Em andamento" value={String(inProgressCount)} helper="Projetos em execução agora" icon={FolderKanban} />
+                  <MetricCard label="A receber" value={formatCurrency(data.summary.outstandingTotal)} helper="Entregues com saldo ainda em aberto" icon={Banknote} />
                   <MetricCard label="Vendas no ano" value={formatCurrency(data.summary.currentYearSales)} helper="Valor contratado no ano corrente" icon={CircleDollarSign} />
+                  <MetricCard label="Pendências abertas" value={String(totalPendingCount)} helper="Soma de pendências nos projetos ativos" icon={AlertTriangle} />
                 </div>
 
                 <div className="grid gap-4 xl:grid-cols-[1fr_340px]">
@@ -538,8 +528,8 @@ export function ApoloWorkspace() {
                                 <span className="font-medium text-[var(--ink)]">{stageLabel(stage)}</span>
                                 <span className="text-[var(--ink-soft)]">{count} lead{count !== 1 ? 's' : ''} · {formatCurrency(value)}</span>
                               </div>
-                              <div className="h-2 w-full overflow-hidden rounded-full bg-[rgba(15,139,141,0.1)]">
-                                <div className="h-2 rounded-full bg-[var(--teal)] transition-all duration-500" style={{ width: `${Math.max(pct, pct > 0 ? 2 : 0)}%` }} />
+                              <div className="h-1.5 w-full overflow-hidden bg-[var(--line)]">
+                                <div className="h-1.5 bg-[var(--teal)] transition-all duration-500" style={{ width: `${Math.max(pct, pct > 0 ? 2 : 0)}%` }} />
                               </div>
                             </div>
                           )
@@ -554,13 +544,13 @@ export function ApoloWorkspace() {
 
                   <Panel title="Follow-ups vencidos" subtitle="Leads que precisam de ação.">
                     {overdueFollowUps.length === 0 ? (
-                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Nenhum follow-up em atraso. Boa!</div>
+                      <div className="border border-[var(--line)] px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400">Nenhum follow-up em atraso. Boa!</div>
                     ) : (
-                      <div className="space-y-2">
+                      <div>
                         {overdueFollowUps.map((lead) => {
                           const meta = leadFollowUpMeta(lead)
                           return (
-                            <div key={lead.id} className="flex items-start justify-between gap-3 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-75)] px-4 py-3 text-sm">
+                            <div key={lead.id} className="flex items-start justify-between gap-3 border-b border-[var(--line)] py-3 text-sm last:border-b-0">
                               <div className="min-w-0">
                                 <div className="truncate font-medium text-[var(--ink)]">{lead.title}</div>
                                 <div className="truncate text-xs text-[var(--ink-soft)]">{lead.client_name ?? '—'}</div>
@@ -574,9 +564,56 @@ export function ApoloWorkspace() {
                   </Panel>
                 </div>
 
+                <div className="grid gap-4 xl:grid-cols-[1fr_340px]">
+                  <Panel title="Concluídos aguardando pagamento" subtitle={`Projetos entregues com saldo em aberto — ${formatCurrency(deliveredUnpaidTotal)} a cobrar.`}>
+                    <div>
+                      {deliveredUnpaidProjects.length ? (
+                        deliveredUnpaidProjects.map((project) => <DashboardProjectRow key={project.id} project={project} />)
+                      ) : (
+                        <div className="border border-[var(--line)] px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400">
+                          Nenhum projeto aguardando pagamento.
+                        </div>
+                      )}
+                    </div>
+                  </Panel>
+
+                  <Panel title="Prazos nos próximos 30 dias" subtitle="Projetos com deadline se aproximando.">
+                    {upcomingDeadlines.length === 0 ? (
+                      <div className="border border-dashed border-[var(--line)] px-4 py-3 text-sm text-[var(--ink-soft)]">Nenhum prazo nos próximos 30 dias.</div>
+                    ) : (
+                      <div>
+                        {upcomingDeadlines.map((project) => {
+                          const daysLeft = Math.ceil((new Date(project.deadline!).getTime() - Date.now()) / 86400000)
+                          const urgent = daysLeft <= 7
+                          return (
+                            <div key={project.id} className="flex items-start justify-between gap-3 border-b border-[var(--line)] py-3 text-sm last:border-b-0">
+                              <div className="min-w-0">
+                                <div className="truncate font-medium text-[var(--ink)]">{project.name}</div>
+                                <div className="truncate text-xs text-[var(--ink-soft)]">{project.client_name ?? '—'}</div>
+                              </div>
+                              <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium ${urgent ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300' : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300'}`}>
+                                {daysLeft === 0 ? 'hoje' : daysLeft === 1 ? 'amanhã' : `${daysLeft}d`}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </Panel>
+                </div>
+
                 <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-                  <Panel title="Subprojetos ativos" subtitle="Subprojetos em andamento, aguardando revisão ou bloqueados.">
-                    <div className="space-y-2">
+                  <Panel title="Subprojetos ativos" subtitle="Subprojetos em andamento, aguardando revisão ou bloqueados." actions={
+                    <div className="inline-flex border border-[var(--line)]">
+                      {(['recent', 'stage', 'partner'] as const).map((opt) => (
+                        <button key={opt} type="button" onClick={() => setSubprojectSort(opt)}
+                          className={`px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] transition ${subprojectSort === opt ? 'bg-[var(--teal)] text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}>
+                          {opt === 'recent' ? 'Recente' : opt === 'stage' ? 'Etapa' : 'Parceiro'}
+                        </button>
+                      ))}
+                    </div>
+                  }>
+                    <div>
                       {activeSubprojects.length ? (
                         activeSubprojects.map((sp) => <DashboardSubprojectRow key={sp.id} subproject={sp} />)
                       ) : (
@@ -586,11 +623,11 @@ export function ApoloWorkspace() {
                   </Panel>
 
                   <Panel title="Projetos bloqueados" subtitle="Fila rápida do que precisa destravar.">
-                    <div className="space-y-2">
+                    <div>
                       {blockedProjects.length ? (
                         blockedProjects.map((project) => <DashboardProjectRow key={project.id} project={project} />)
                       ) : (
-                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                        <div className="border border-[var(--line)] px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400">
                           Nada bloqueado agora.
                         </div>
                       )}
@@ -598,18 +635,53 @@ export function ApoloWorkspace() {
                   </Panel>
                 </div>
 
-                <Panel title="Movimentação recente" subtitle="Leitura rápida do que realmente girou no caixa.">
+                {overdueLogs.length > 0 && (
+                  <Panel title="Pendências com prazo vencido" subtitle="Tarefas internas com data de entrega passada nos projetos ativos.">
+                    <div>
+                      {overdueLogs.map((log) => {
+                        const daysPast = Math.floor((Date.now() - new Date(log.due_date!).getTime()) / 86400000)
+                        return (
+                          <div key={log.id} className="flex items-start justify-between gap-3 border-b border-[var(--line)] py-3 text-sm last:border-b-0">
+                            <div className="min-w-0">
+                              <div className="truncate font-medium text-[var(--ink)]">{log.title || stageLabel(log.log_type)}</div>
+                              <div className="truncate text-xs text-[var(--ink-soft)]">{log.project_name}</div>
+                            </div>
+                            <span className="shrink-0 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300">
+                              {daysPast === 0 ? 'venceu hoje' : `há ${daysPast}d`}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </Panel>
+                )}
+
+                <Panel title={`Caixa — ${mtdLabel}`} subtitle="Entradas e saídas do mês corrente.">
+                  <div className="mb-5 grid gap-px border border-[var(--line)] sm:grid-cols-3">
+                    <div className="border-b border-[var(--line)] px-4 py-3 text-sm sm:border-b-0 sm:border-r">
+                      <div className="text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">Recebido no mês</div>
+                      <div className="mt-2 text-lg font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(mtdReceived)}</div>
+                    </div>
+                    <div className="border-b border-[var(--line)] px-4 py-3 text-sm sm:border-b-0 sm:border-r">
+                      <div className="text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">Saídas no mês</div>
+                      <div className="mt-2 text-lg font-bold text-rose-600 dark:text-rose-400">{formatCurrency(mtdExpenses + mtdPayouts)}</div>
+                    </div>
+                    <div className="px-4 py-3 text-sm">
+                      <div className="text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">Líquido do mês</div>
+                      <div className={`mt-2 text-lg font-bold ${mtdNet >= 0 ? 'text-[var(--teal)]' : 'text-rose-600 dark:text-rose-400'}`}>{mtdNet >= 0 ? '+' : '−'}{formatCurrency(Math.abs(mtdNet))}</div>
+                    </div>
+                  </div>
                   {data.cashflow.length === 0 ? (
                     <EmptyState title="Sem movimentação ainda" body="Registre recebimentos e despesas no Financeiro." />
                   ) : (
-                    <div className="space-y-3">
-                      {data.cashflow.slice(0, 8).map((entry) => (
-                        <div key={`${entry.entry_type}-${entry.id}`} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-75)] px-4 py-3 text-sm">
+                    <div>
+                      {data.cashflow.slice(0, 6).map((entry) => (
+                        <div key={`${entry.entry_type}-${entry.id}`} className="flex items-center justify-between gap-3 border-b border-[var(--line)] py-3 text-sm last:border-b-0">
                           <div className="min-w-0">
                             <div className="truncate font-medium text-[var(--ink)]">{entry.project_name}</div>
                             <div className="text-[var(--ink-soft)]">{stageLabel(entry.entry_type)}{entry.counterpart ? ` · ${entry.counterpart}` : ''}</div>
                           </div>
-                          <div className={`shrink-0 font-semibold ${entry.signed_amount >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                          <div className={`shrink-0 font-semibold ${entry.signed_amount >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {entry.signed_amount >= 0 ? '+' : '−'}{formatCurrency(Math.abs(numericValue(entry.signed_amount)))}
                           </div>
                         </div>
@@ -639,7 +711,7 @@ export function ApoloWorkspace() {
                   <Panel title="Composição de vendas no ano" subtitle="Projetos que entram no KPI: somente os com Contratação registrada neste ano.">
                     {currentYearSalesProjects.length ? (
                       <div className="space-y-4">
-                        <div className="flex items-center justify-between rounded-2xl border border-[var(--line)] bg-[var(--bg-card-75)] px-4 py-3 text-sm">
+                        <div className="flex items-center justify-between border-b border-[var(--line)] pb-3 text-sm">
                           <span className="text-[var(--ink-soft)]">Total conferido nesta lista</span>
                           <span className="font-semibold text-[var(--ink)]">{formatCurrency(currentYearSalesTotal)}</span>
                         </div>
@@ -652,7 +724,7 @@ export function ApoloWorkspace() {
                               {currentYearSalesProjects.map((project) => {
                                 const salesDate = project.sale_recorded_at
                                 return (
-                                  <tr key={project.id} className="cursor-pointer transition hover:bg-[rgba(15,139,141,0.04)]">
+                                  <tr key={project.id} className="cursor-pointer transition hover:bg-[var(--teal-active-bg)]">
                                     <td className="py-3 font-medium text-[var(--ink)]">{project.name}</td>
                                     <td className="py-3 text-[var(--ink-soft)]">{project.client_name || '—'}</td>
                                     <td className="py-3 text-[var(--ink-soft)]">{project.sales_owner || '—'}</td>
@@ -676,9 +748,9 @@ export function ApoloWorkspace() {
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-soft)]" />
-                    <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] py-3 pl-10 pr-4 text-sm text-[var(--ink)]" placeholder="Buscar leads..." value={commercialSearch} onChange={(e) => setCommercialSearch(e.target.value)} />
+                    <input className="w-full border border-[var(--line)] bg-transparent py-2.5 pl-10 pr-4 text-sm text-[var(--ink)] outline-none transition-colors placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)]" placeholder="Buscar leads..." value={commercialSearch} onChange={(e) => setCommercialSearch(e.target.value)} />
                   </div>
-                  <button type="button" className="inline-flex items-center gap-2 rounded-2xl bg-[var(--teal)] px-4 py-3 text-sm text-white transition hover:opacity-90" onClick={() => setShowLeadModal(true)}>
+                  <button type="button" className="inline-flex items-center gap-2 bg-[var(--teal)] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90" onClick={() => setShowLeadModal(true)}>
                     <Plus className="h-4 w-4" /> Novo lead
                   </button>
                 </div>
@@ -702,7 +774,7 @@ export function ApoloWorkspace() {
                                     <DraggableLeadCard key={lead.id} lead={lead} active={selectedLeadId === lead.id} onClick={setSelectedLeadId} />
                                   ))
                                 ) : (
-                                  <div className="rounded-[20px] border border-dashed border-[var(--line)] bg-[var(--bg-card-70)] p-4 text-sm text-[var(--ink-soft)]">Nenhum lead aqui.</div>
+                                  <div className="border border-dashed border-[var(--line)] p-4 text-sm text-[var(--ink-soft)]">Nenhum lead aqui.</div>
                                 )}
                               </DroppableLeadColumn>
                             )
@@ -729,7 +801,7 @@ export function ApoloWorkspace() {
                             .map((lead) => {
                               const followUp = leadFollowUpMeta(lead)
                               return (
-                                <tr key={lead.id} className="cursor-pointer transition hover:bg-[rgba(15,139,141,0.04)]" onClick={() => setSelectedLeadId(lead.id)}>
+                                <tr key={lead.id} className="cursor-pointer transition hover:bg-[var(--teal-active-bg)]" onClick={() => setSelectedLeadId(lead.id)}>
                                   <td className="py-4 font-medium text-[var(--ink)]">{lead.title}</td>
                                   <td className="py-4 text-[var(--ink-soft)]">{lead.client_name || '—'}</td>
                                   <td className="py-4 text-[var(--ink-soft)]">{formatCurrency(numericValue(lead.estimated_amount))}</td>
@@ -747,7 +819,7 @@ export function ApoloWorkspace() {
                 </Panel>
 
                 {/* Won/lost history (collapsed) */}
-                <div className="rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-70)]">
+                <div className="border border-[var(--line)]">
                   <button type="button" className="flex w-full items-center justify-between px-5 py-4 text-left text-sm font-medium text-[var(--ink)]" onClick={() => setShowWonLost(!showWonLost)}>
                     <span>Histórico (Fechados / Não fechados)</span>
                     <ChevronDown className={`h-4 w-4 transition ${showWonLost ? 'rotate-180' : ''}`} />
@@ -768,7 +840,7 @@ export function ApoloWorkspace() {
                                 return l.title.toLowerCase().includes(q) || (l.client_name || '').toLowerCase().includes(q)
                               })
                               .map((lead) => (
-                                <tr key={lead.id} className="cursor-pointer transition hover:bg-[rgba(15,139,141,0.04)]" onClick={() => setSelectedLeadId(lead.id)}>
+                                <tr key={lead.id} className="cursor-pointer transition hover:bg-[var(--teal-active-bg)]" onClick={() => setSelectedLeadId(lead.id)}>
                                   <td className="py-3 font-medium text-[var(--ink)]">{lead.title}</td>
                                   <td className="py-3 text-[var(--ink-soft)]">{lead.client_name || '—'}</td>
                                   <td className="py-3 text-[var(--ink-soft)]">{formatCurrency(numericValue(lead.estimated_amount))}</td>

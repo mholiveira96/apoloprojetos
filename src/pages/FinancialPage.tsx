@@ -35,7 +35,7 @@ function ProjectHistoryModal({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-[28px] border border-[var(--line)] bg-[var(--paper)] p-6 shadow-[0_24px_80px_rgba(7,19,21,0.12)]"
+        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto [] border border-[var(--line)] bg-[var(--paper)] p-6 shadow-[0_24px_80px_rgba(12,26,26,0.08)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* header */}
@@ -57,21 +57,21 @@ function ProjectHistoryModal({
 
         {/* stat cards */}
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-[20px] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
+          <div className="[] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
             <div className={labelClass}>Contrato</div>
             <div className="mt-1 text-base font-semibold text-[var(--ink)]">{formatCurrency(contract)}</div>
           </div>
-          <div className="rounded-[20px] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
+          <div className="[] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
             <div className={labelClass}>Recebido</div>
             <div className="mt-1 text-base font-semibold text-emerald-600">{formatCurrency(received)}</div>
           </div>
-          <div className="rounded-[20px] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
+          <div className="[] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
             <div className={labelClass}>A receber</div>
             <div className={`mt-1 text-base font-semibold ${outstanding > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
               {formatCurrency(outstanding)}
             </div>
           </div>
-          <div className="rounded-[20px] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
+          <div className="[] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
             <div className={labelClass}>Despesas</div>
             <div className="mt-1 text-base font-semibold text-rose-600">{formatCurrency(expensesTotal)}</div>
           </div>
@@ -318,7 +318,7 @@ export function FinancialPage({ data }: Props) {
             const paid = partnerPaid[partner] ?? 0
             const balance = Math.max(0, owed - paid)
             return (
-              <div key={partner} className="rounded-[20px] border border-[var(--line)] bg-[var(--bg-card-80)] p-5 space-y-4">
+              <div key={partner} className="[] border border-[var(--line)] bg-[var(--bg-card-80)] p-5 space-y-4">
                 <div className="font-semibold text-[var(--ink)]">{partner}</div>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div>

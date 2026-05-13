@@ -18,7 +18,7 @@ type Props = {
   mutating: boolean
 }
 
-const inputClass = 'rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm w-full'
+const inputClass = 'border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm w-full'
 const today = () => new Date().toISOString().slice(0, 10)
 const shiftDays = (date: string, days: number) => {
   const d = new Date(date)
@@ -121,13 +121,13 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
             <input type="date" className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             <button
               onClick={() => setShowEntrada(true)}
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700"
+              className="inline-flex items-center gap-1.5 bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700"
             >
               <Plus className="h-3.5 w-3.5" /> Entrada
             </button>
             <button
               onClick={() => setShowSaida(true)}
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-rose-600 px-3 py-2 text-xs font-medium text-white hover:bg-rose-700"
+              className="inline-flex items-center gap-1.5 bg-rose-600 px-3 py-2 text-xs font-medium text-white hover:bg-rose-700"
             >
               <Plus className="h-3.5 w-3.5" /> Saída
             </button>
@@ -171,7 +171,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
       {/* Entrada modal */}
       {showEntrada && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-xl">
+          <div className="w-full max-w-md [] border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_8px_32px_rgba(12,26,26,0.08)]">
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-[var(--ink)]">Registrar entrada</h3>
               <button onClick={() => { setShowEntrada(false); resetEntrada() }} className="rounded-full p-1 hover:bg-[var(--paper)]">
@@ -189,7 +189,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
               <input type="date" required className={inputClass} value={receiptForm.entryDate} onChange={(e) => setReceiptForm((c) => ({ ...c, entryDate: e.target.value }))} />
               <input className={inputClass} placeholder="Conta bancária (opcional)" value={receiptForm.bankAccount} onChange={(e) => setReceiptForm((c) => ({ ...c, bankAccount: e.target.value }))} />
               <textarea className={`${inputClass} min-h-20`} placeholder="Observação (opcional)" value={receiptForm.note} onChange={(e) => setReceiptForm((c) => ({ ...c, note: e.target.value }))} />
-              <button type="submit" disabled={mutating} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
+              <button type="submit" disabled={mutating} className="bg-emerald-600 px-4 py-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
                 Salvar entrada
               </button>
             </form>
@@ -200,7 +200,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
       {/* Saída modal */}
       {showSaida && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-xl">
+          <div className="w-full max-w-md [] border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_8px_32px_rgba(12,26,26,0.08)]">
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-[var(--ink)]">Registrar saída</h3>
               <button onClick={() => { setShowSaida(false); resetSaida() }} className="rounded-full p-1 hover:bg-[var(--paper)]">
@@ -238,7 +238,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                     </select>
                   )}
                   {selectedSubproject && (
-                    <div className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--ink-soft)]">
+                    <div className="border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--ink-soft)]">
                       Valor do subprojeto: <span className="font-semibold text-[var(--ink)]">{formatCurrency(numericValue(selectedSubproject.amount))}</span>
                     </div>
                   )}
@@ -287,7 +287,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                     if (saidaType === PAYOUT_KEY) setPayoutForm((c) => ({ ...c, note: e.target.value }))
                     else setExpenseForm((c) => ({ ...c, note: e.target.value }))
                   }} />
-                  <button type="submit" disabled={mutating} className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50">
+                  <button type="submit" disabled={mutating} className="bg-rose-600 px-4 py-3 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50">
                     Salvar saída
                   </button>
                 </>

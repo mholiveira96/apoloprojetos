@@ -33,7 +33,8 @@ export function stageTone(stage: string) {
   if (['won', 'concluído', 'done'].includes(normalized)) return 'bg-[var(--emerald-bg)] text-[var(--emerald-text)] border-[var(--emerald-border)]'
   if (['lost', 'bloqueado'].includes(normalized)) return 'bg-[var(--rose-bg)] text-[var(--rose-text)] border-[var(--rose-border)]'
   if (['backlog', 'negotiation'].includes(normalized)) return 'bg-[var(--paper)] text-[var(--ink-soft)] border-[var(--line)]'
-  if (['em-andamento', 'review', 'waiting-files', 'aguardando-revisao'].includes(normalized)) return 'bg-[var(--amber-bg)] text-[var(--amber-text)] border-[var(--amber-border)]'
+  if (['em-andamento'].includes(normalized)) return 'bg-[var(--teal-active-bg)] text-[var(--teal)] border-[var(--teal-active-border)]'
+  if (['review', 'waiting-files', 'aguardando-revisao'].includes(normalized)) return 'bg-[var(--amber-bg)] text-[var(--amber-text)] border-[var(--amber-border)]'
   return 'bg-[var(--teal-active-bg)] text-[var(--teal)] border-[var(--teal-active-border)]'
 }
 
