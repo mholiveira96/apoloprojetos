@@ -14,7 +14,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 text-[0.72rem] font-bold uppercase tracking-[0.28em] text-[var(--teal)]"
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--bg-card)] px-4 py-2 text-[0.72rem] font-bold uppercase tracking-[0.28em] text-[var(--teal)]"
           >
             <Sparkles size={14} />
             Projetos Inteligentes
@@ -33,7 +33,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.16 }}
-            className="mt-6 max-w-2xl text-lg leading-8 text-[color:rgba(7,19,21,0.78)] sm:text-xl"
+            className="mt-6 max-w-2xl text-lg leading-8 text-[var(--ink-paragraph-78)] sm:text-xl"
           >
             A Apolo faz a compatibilização entre disciplinas para reduzir interferências, retrabalho e improviso em obra.
             O resultado é uma entrega mais segura, mais econômica e mais previsível, do projeto à execução.
@@ -71,9 +71,9 @@ export function Hero() {
               ['Atuação nacional', 'projetos em diferentes regiões do Brasil'],
               ['Compatibilização', 'menos conflito entre disciplinas e mais previsibilidade'],
             ].map(([value, label]) => (
-              <div key={label} className="rounded-[26px] border border-[var(--line)] bg-white/70 p-5 backdrop-blur-sm">
+              <div key={label} className="rounded-[26px] border border-[var(--line)] bg-[var(--bg-card-70)] p-5 backdrop-blur-sm">
                 <div className="text-2xl font-extrabold text-[var(--ink)]">{value}</div>
-                <div className="mt-1 text-sm text-[color:rgba(7,19,21,0.7)]">{label}</div>
+                <div className="mt-1 text-sm text-[var(--ink-paragraph-70)]">{label}</div>
               </div>
             ))}
           </motion.div>
@@ -89,7 +89,7 @@ export function Hero() {
             <img src={logoWhite} alt="Apolo" className="h-10 w-auto" />
           </div>
 
-          <div className="relative overflow-hidden rounded-[36px] border border-black/8 bg-[var(--ink)] p-3 shadow-[0_40px_80px_rgba(7,19,21,0.18)]">
+          <div className="relative overflow-hidden rounded-[36px] border border-[var(--border-black-8)] bg-[var(--ink)] p-3 shadow-[0_40px_80px_var(--shadow-2xl)]">
             <img
               src={heroCard}
               alt="Projeto Colinas Park"

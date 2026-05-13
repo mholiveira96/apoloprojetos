@@ -30,9 +30,9 @@ export function Sobre() {
           initial={{ opacity: 0, y: 24 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.65, delay: 0.1 }}
-          className="rounded-[32px] border border-[var(--line)] bg-white/82 p-8 shadow-lg shadow-black/5 sm:p-10"
+          className="rounded-[32px] border border-[var(--line)] bg-[var(--bg-card-82)] p-8 shadow-lg shadow-[var(--shadow-panel)] sm:p-10"
         >
-          <p className="max-w-3xl text-lg leading-8 text-[color:rgba(7,19,21,0.78)]">
+          <p className="max-w-3xl text-lg leading-8 text-[var(--ink-paragraph-78)]">
             A Apolo Projetos Inteligentes nasceu para entregar clareza, rigor e segurança. Fazemos estrutural, elétrico,
             hidrossanitário, incêndio, gás e soluções complementares com foco em eficiência técnica, economia na execução
             e previsibilidade para a obra.

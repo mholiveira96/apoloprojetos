@@ -26,7 +26,7 @@ export function Navbar() {
       className={cn(
         'fixed top-0 inset-x-0 z-50 transition-all duration-300',
         scrolled
-          ? 'bg-[rgba(245,245,242,0.86)] backdrop-blur-xl border-b border-black/5'
+          ? 'bg-[var(--bg-card-82)] backdrop-blur-xl border-b border-[var(--border-black-5)]'
           : 'bg-transparent'
       )}
     >
@@ -51,7 +51,7 @@ export function Navbar() {
           ))}
           <a
             href="#contato"
-            className="rounded-full bg-[var(--ink)] text-white px-5 py-2.5 hover:bg-[var(--teal)] transition-colors"
+            className="rounded-full bg-[var(--ink-deep)] text-white px-5 py-2.5 hover:bg-[var(--teal)] transition-colors"
           >
             Solicitar proposta
           </a>
@@ -67,12 +67,12 @@ export function Navbar() {
       </div>
 
       {open && (
-        <div className="md:hidden mx-4 mb-4 rounded-[28px] border border-black/8 bg-[var(--paper)] p-4 shadow-xl shadow-black/5">
+        <div className="md:hidden mx-4 mb-4 rounded-[28px] border border-[var(--border-black-8)] bg-[var(--paper)] p-4 shadow-xl shadow-[var(--shadow-panel)]">
           {links.map((l) => (
             <a
               key={l.href}
               href={l.href}
-              className="block py-3 text-[var(--ink)] font-medium border-b border-black/6 last:border-0"
+              className="block py-3 text-[var(--ink)] font-medium border-b border-[var(--border-black-6)] last:border-0"
               onClick={() => setOpen(false)}
             >
               {l.label}
@@ -80,7 +80,7 @@ export function Navbar() {
           ))}
           <a
             href="#contato"
-            className="mt-4 block rounded-full bg-[var(--ink)] px-4 py-3 text-center text-white font-semibold"
+            className="mt-4 block rounded-full bg-[var(--ink-deep)] px-4 py-3 text-center text-white font-semibold"
             onClick={() => setOpen(false)}
           >
             Solicitar proposta

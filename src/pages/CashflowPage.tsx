@@ -116,9 +116,9 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
         subtitle="Entradas, despesas e repasses no período selecionado."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <input type="date" className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-xs" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <input type="date" className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             <span className="text-xs text-[var(--ink-soft)]">→</span>
-            <input type="date" className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-xs" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <input type="date" className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             <button
               onClick={() => setShowEntrada(true)}
               className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700"
@@ -171,7 +171,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
       {/* Entrada modal */}
       {showEntrada && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-[28px] border border-[var(--line)] bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-xl">
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-[var(--ink)]">Registrar entrada</h3>
               <button onClick={() => { setShowEntrada(false); resetEntrada() }} className="rounded-full p-1 hover:bg-[var(--paper)]">
@@ -200,7 +200,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
       {/* Saída modal */}
       {showSaida && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-[28px] border border-[var(--line)] bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-xl">
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-[var(--ink)]">Registrar saída</h3>
               <button onClick={() => { setShowSaida(false); resetSaida() }} className="rounded-full p-1 hover:bg-[var(--paper)]">

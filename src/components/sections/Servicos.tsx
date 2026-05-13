@@ -48,7 +48,7 @@ export function Servicos() {
               Engenharia multidisciplinar para obras mais seguras, econômicas e previsíveis.
             </h2>
           </div>
-          <p className="max-w-xl text-[color:rgba(7,19,21,0.72)] leading-7">
+          <p className="max-w-xl text-[var(--ink-paragraph)] leading-7">
             Cada disciplina existe para resolver problema real de obra, reduzir retrabalho e manter custo e prazo sob controle.
           </p>
         </div>
@@ -62,13 +62,13 @@ export function Servicos() {
                 initial={{ opacity: 0, y: 22 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: i * 0.06 }}
-                className="group rounded-[30px] border border-[var(--line)] bg-white/80 p-6 transition-transform hover:-translate-y-1 hover:shadow-xl hover:shadow-[rgba(7,19,21,0.08)]"
+                className="group rounded-[30px] border border-[var(--line)] bg-[var(--bg-card)] p-6 transition-transform hover:-translate-y-1 hover:shadow-xl hover:shadow-[var(--shadow-panel)]"
               >
                 <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-[var(--teal-wash)] text-[var(--teal)] transition-colors group-hover:bg-[var(--teal)] group-hover:text-white">
                   <Icon size={24} />
                 </div>
                 <h3 className="mt-6 text-2xl font-extrabold text-[var(--ink)]">{s.titulo}</h3>
-                <p className="mt-3 text-sm leading-7 text-[color:rgba(7,19,21,0.7)]">{s.descricao}</p>
+                <p className="mt-3 text-sm leading-7 text-[var(--ink-paragraph-70)]">{s.descricao}</p>
               </motion.div>
             )
           })}

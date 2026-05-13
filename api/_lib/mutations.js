@@ -196,6 +196,7 @@ export async function runMutation(action, payload, actor) {
     }
 
     case 'createProject': {
+      const projectId = createId('project')
       const clientId = await upsertClient(normalizeText(payload.clientName), payload)
       await db.execute({
         sql: `INSERT INTO projects (
@@ -204,7 +205,7 @@ export async function runMutation(action, payload, actor) {
                 deadline, status_note, created_at, updated_at
               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
-          createId('project'),
+          projectId,
           clientId,
           normalizeText(payload.name),
           normalizeText(payload.code),
@@ -220,6 +221,15 @@ export async function runMutation(action, payload, actor) {
           timestamp,
         ],
       })
+      if (Array.isArray(payload.subprojects) && payload.subprojects.length > 0) {
+        for (const sp of payload.subprojects) {
+          await db.execute({
+            sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, created_at, updated_at)
+                  VALUES (?, ?, ?, ?, 'a-fazer', ?, ?, ?)`,
+            args: [createId('sp'), projectId, normalizeText(sp.discipline), normalizeAmount(sp.amount), normalizeText(sp.responsiblePartner), timestamp, timestamp],
+          })
+        }
+      }
       return { ok: true }
     }
 

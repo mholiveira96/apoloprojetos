@@ -27,6 +27,10 @@ import {
   Volume2,
   Leaf,
   Circle,
+  CalendarDays,
+  LayoutGrid,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
@@ -42,16 +46,16 @@ type SortDirection = 'asc' | 'desc'
 
 function disciplineMeta(discipline: string): { Icon: LucideIcon; className: string } {
   const normalized = discipline.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-  if (normalized.includes('eletr') || normalized.includes('telecom')) return { Icon: Zap, className: 'border-yellow-200 bg-yellow-50 text-yellow-700' }
-  if (normalized.includes('hidro') || normalized.includes('drenagem') || normalized.includes('gas')) return { Icon: Droplets, className: 'border-sky-200 bg-sky-50 text-sky-700' }
-  if (normalized.includes('incend') || normalized.includes('avcb') || normalized.includes('clcb')) return { Icon: Flame, className: 'border-rose-200 bg-rose-50 text-rose-700' }
-  if (normalized.includes('estrut')) return { Icon: Building2, className: 'border-stone-200 bg-stone-50 text-stone-700' }
-  if (normalized.includes('arquitet')) return { Icon: DraftingCompass, className: 'border-violet-200 bg-violet-50 text-violet-700' }
-  if (normalized.includes('climat') || normalized.includes('avac')) return { Icon: Wind, className: 'border-cyan-200 bg-cyan-50 text-cyan-700' }
-  if (normalized.includes('sonoriz')) return { Icon: Volume2, className: 'border-indigo-200 bg-indigo-50 text-indigo-700' }
-  if (normalized.includes('rit') || normalized.includes('legal') || normalized.includes('pgrcc')) return { Icon: Leaf, className: 'border-emerald-200 bg-emerald-50 text-emerald-700' }
-  if (normalized.includes('lumin')) return { Icon: RadioTower, className: 'border-amber-200 bg-amber-50 text-amber-700' }
-  return { Icon: Circle, className: 'border-[var(--line)] bg-white text-[var(--ink-soft)]' }
+  if (normalized.includes('eletr') || normalized.includes('telecom')) return { Icon: Zap, className: 'border-[var(--yellow-border)] bg-[var(--yellow-bg)] text-[var(--yellow-text)]' }
+  if (normalized.includes('hidro') || normalized.includes('drenagem') || normalized.includes('gas')) return { Icon: Droplets, className: 'border-[var(--sky-border)] bg-[var(--sky-bg)] text-[var(--sky-text)]' }
+  if (normalized.includes('incend') || normalized.includes('avcb') || normalized.includes('clcb')) return { Icon: Flame, className: 'border-[var(--rose-border)] bg-[var(--rose-bg)] text-[var(--rose-text)]' }
+  if (normalized.includes('estrut')) return { Icon: Building2, className: 'border-[var(--stone-border)] bg-[var(--stone-bg)] text-[var(--stone-text)]' }
+  if (normalized.includes('arquitet')) return { Icon: DraftingCompass, className: 'border-[var(--violet-border)] bg-[var(--violet-bg)] text-[var(--violet-text)]' }
+  if (normalized.includes('climat') || normalized.includes('avac')) return { Icon: Wind, className: 'border-[var(--cyan-border)] bg-[var(--cyan-bg)] text-[var(--cyan-text)]' }
+  if (normalized.includes('sonoriz')) return { Icon: Volume2, className: 'border-[var(--indigo-border)] bg-[var(--indigo-bg)] text-[var(--indigo-text)]' }
+  if (normalized.includes('rit') || normalized.includes('legal') || normalized.includes('pgrcc')) return { Icon: Leaf, className: 'border-[var(--emerald-border)] bg-[var(--emerald-bg)] text-[var(--emerald-text)]' }
+  if (normalized.includes('lumin')) return { Icon: RadioTower, className: 'border-[var(--amber-border)] bg-[var(--amber-bg)] text-[var(--amber-text)]' }
+  return { Icon: Circle, className: 'border-[var(--line)] bg-[var(--bg-card-solid)] text-[var(--ink-soft)]' }
 }
 
 type SubmitMutation = (
@@ -84,13 +88,13 @@ function DroppableColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`min-w-[280px] flex-1 rounded-[24px] border bg-[rgba(245,245,242,0.8)] p-4 transition-all duration-150 ${
-        isOver ? 'border-[rgba(15,139,141,0.35)] bg-[rgba(15,139,141,0.05)]' : 'border-[var(--line)]'
+      className={`min-w-[280px] flex-1 rounded-[24px] border bg-[var(--bg-card-80)] p-4 transition-all duration-150 ${
+        isOver ? 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)]' : 'border-[var(--line)]'
       }`}
     >
       <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-3">
         <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]/75">{title}</div>
-        <div className="rounded-full border border-[var(--line)] bg-white/80 px-2.5 py-1 text-xs font-medium text-[var(--ink)]">{count}</div>
+        <div className="rounded-full border border-[var(--line)] bg-[var(--bg-card-80)] px-2.5 py-1 text-xs font-medium text-[var(--ink)]">{count}</div>
       </div>
       <div className="mt-4 space-y-3">{children}</div>
     </div>
@@ -119,7 +123,7 @@ export function DraggableOpsCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`select-none rounded-[22px] border border-[var(--line)] bg-white/92 p-4 shadow-[0_16px_40px_rgba(7,19,21,0.04)] transition-opacity ${
+      className={`select-none rounded-[22px] border border-[var(--line)] bg-[var(--bg-card-92)] p-4 shadow-[var(--shadow-panel-xs)] transition-opacity ${
         isDragging && !ghost ? 'opacity-40' : 'opacity-100'
       }`}
     >
@@ -194,7 +198,7 @@ function DraggableSubprojectCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`select-none rounded-[22px] border border-[var(--line)] bg-white/92 p-4 shadow-[0_16px_40px_rgba(7,19,21,0.04)] transition-opacity ${
+      className={`select-none rounded-[22px] border border-[var(--line)] bg-[var(--bg-card-92)] p-4 shadow-[var(--shadow-panel-xs)] transition-opacity ${
         isDragging && !ghost ? 'opacity-40' : 'opacity-100'
       }`}
     >
@@ -253,6 +257,165 @@ export function GhostCard({ project }: { project: Project }) {
   )
 }
 
+// ─── Calendar view ────────────────────────────────────────────────────────────
+
+function CalendarView({ subprojects, projectsById, onCardClick }: {
+  subprojects: Subproject[]
+  projectsById: Map<string, Project>
+  onCardClick: (projectId: string, subprojectId: string) => void
+}) {
+  const today = new Date()
+  const [year, setYear] = useState(today.getFullYear())
+  const [month, setMonth] = useState(today.getMonth())
+
+  const deadlinesByDay = useMemo(() => {
+    const map = new Map<number, Subproject[]>()
+    for (const sp of subprojects) {
+      const deadline = projectsById.get(sp.project_id)?.deadline
+      if (!deadline) continue
+      const d = new Date(deadline + 'T00:00:00')
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        const day = d.getDate()
+        if (!map.has(day)) map.set(day, [])
+        map.get(day)!.push(sp)
+      }
+    }
+    return map
+  }, [subprojects, projectsById, year, month])
+
+  const noDeadline = useMemo(
+    () => subprojects.filter((sp) => !projectsById.get(sp.project_id)?.deadline),
+    [subprojects, projectsById],
+  )
+
+  const firstWeekday = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const daysInPrevMonth = new Date(year, month, 0).getDate()
+
+  const cells: Array<{ day: number; current: boolean; isToday: boolean }> = []
+  for (let i = firstWeekday - 1; i >= 0; i--) cells.push({ day: daysInPrevMonth - i, current: false, isToday: false })
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({
+      day: d,
+      current: true,
+      isToday: d === today.getDate() && month === today.getMonth() && year === today.getFullYear(),
+    })
+  }
+  const tail = (7 - (cells.length % 7)) % 7
+  for (let d = 1; d <= tail; d++) cells.push({ day: d, current: false, isToday: false })
+
+  const weekRows: Array<typeof cells> = []
+  for (let i = 0; i < cells.length; i += 7) weekRows.push(cells.slice(i, i + 7))
+
+  const prevMonth = () => { if (month === 0) { setYear((y) => y - 1); setMonth(11) } else setMonth((m) => m - 1) }
+  const nextMonth = () => { if (month === 11) { setYear((y) => y + 1); setMonth(0) } else setMonth((m) => m + 1) }
+  const goToday = () => { setYear(today.getFullYear()); setMonth(today.getMonth()) }
+
+  const monthLabel = new Date(year, month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+  const dayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={prevMonth}
+          className="rounded-full border border-[var(--line)] p-1.5 text-[var(--ink-soft)] transition hover:bg-[var(--paper)]"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={nextMonth}
+          className="rounded-full border border-[var(--line)] p-1.5 text-[var(--ink-soft)] transition hover:bg-[var(--paper)]"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+        <span className="font-semibold text-[var(--ink)] capitalize">{monthLabel}</span>
+        <button
+          type="button"
+          onClick={goToday}
+          className="ml-1 rounded-2xl border border-[var(--line)] px-3 py-1 text-xs font-medium text-[var(--ink-soft)] transition hover:bg-[var(--paper)]"
+        >
+          Hoje
+        </button>
+      </div>
+
+      <div className="overflow-hidden rounded-[20px] border border-[var(--line)]">
+        <div className="grid grid-cols-7 border-b border-[var(--line)] bg-[var(--paper)]">
+          {dayLabels.map((d) => (
+            <div key={d} className="py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ink-soft)]">{d}</div>
+          ))}
+        </div>
+        {weekRows.map((week, wi) => (
+          <div key={wi} className="grid grid-cols-7 divide-x divide-[var(--line)] border-b border-[var(--line)] last:border-b-0">
+            {week.map((cell, di) => {
+              const items = cell.current ? (deadlinesByDay.get(cell.day) ?? []) : []
+              return (
+                <div
+                  key={di}
+                  className={`min-h-[100px] p-2 ${cell.current ? 'bg-[var(--bg-card-solid)]' : 'bg-[var(--paper)]'}`}
+                >
+                  <div className={`mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
+                    cell.isToday ? 'bg-[var(--teal)] text-white' : cell.current ? 'text-[var(--ink)]' : 'text-[var(--ink-soft)]/30'
+                  }`}>
+                    {cell.day}
+                  </div>
+                  <div className="space-y-1">
+                    {items.map((sp) => {
+                      const project = projectsById.get(sp.project_id)
+                      if (!project) return null
+                      const { className: chipClass } = disciplineMeta(sp.discipline)
+                      return (
+                        <button
+                          key={sp.id}
+                          type="button"
+                          className={`w-full cursor-pointer rounded-lg border px-1.5 py-1 text-left text-[10px] leading-tight transition hover:opacity-80 ${chipClass}`}
+                          onClick={() => onCardClick(project.id, sp.id)}
+                        >
+                          <div className="truncate font-semibold">{project.name}</div>
+                          <div className="truncate opacity-70">{sp.discipline}</div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+
+      {noDeadline.length > 0 && (
+        <div>
+          <div className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-soft)]">Sem prazo</div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {noDeadline.map((sp) => {
+              const project = projectsById.get(sp.project_id)
+              if (!project) return null
+              const { Icon, className: chipClass } = disciplineMeta(sp.discipline)
+              return (
+                <div
+                  key={sp.id}
+                  className="cursor-pointer rounded-[22px] border border-[var(--line)] bg-[var(--bg-card-solid)] p-4 transition hover:shadow-[var(--shadow-panel-xs)]"
+                  onClick={() => onCardClick(project.id, sp.id)}
+                >
+                  <div className="truncate font-medium text-[var(--ink)]">{project.name}</div>
+                  <div className="mt-0.5 truncate text-xs text-[var(--ink-soft)]">{project.client_name || ''}</div>
+                  <div className={`mt-2 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${chipClass}`}>
+                    <Icon className="h-3 w-3 shrink-0" />
+                    {sp.discipline}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Project detail modal ─────────────────────────────────────────────────────
 
 function CompletionDateModal({
@@ -276,7 +439,7 @@ function CompletionDateModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onCancel}>
       <div className="absolute inset-0 bg-[var(--ink)]/20 backdrop-blur-sm" />
       <div
-        className="relative z-10 w-full max-w-md rounded-[28px] border border-[var(--line)] bg-white p-6 shadow-[0_40px_120px_rgba(7,19,21,0.16)]"
+        className="relative z-10 w-full max-w-md rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[var(--shadow-panel)]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
@@ -318,6 +481,7 @@ function CompletionDateModal({
 
 interface ProjectModalProps {
   project: Project
+  subproject?: Subproject
   timelineItems: ClientTimelineItem[]
   onClose: () => void
   onSave: (form: ProjectModalForm) => void
@@ -337,21 +501,21 @@ interface ProjectModalForm {
 }
 
 function timelineTone(kind: ClientTimelineItem['kind']) {
-  if (kind === 'receipt') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
-  if (kind === 'expense' || kind === 'payout') return 'border-rose-200 bg-rose-50 text-rose-700'
-  if (kind === 'deadline') return 'border-amber-200 bg-amber-50 text-amber-700'
-  if (kind === 'log') return 'border-sky-200 bg-sky-50 text-sky-700'
-  return 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]'
+  if (kind === 'receipt') return 'border-[var(--emerald-border)] bg-[var(--emerald-bg)] text-[var(--emerald-text)]'
+  if (kind === 'expense' || kind === 'payout') return 'border-[var(--rose-border)] bg-[var(--rose-bg)] text-[var(--rose-text)]'
+  if (kind === 'deadline') return 'border-[var(--amber-border)] bg-[var(--amber-bg)] text-[var(--amber-text)]'
+  if (kind === 'log') return 'border-[var(--sky-border)] bg-[var(--sky-bg)] text-[var(--sky-text)]'
+  return 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] text-[var(--teal)]'
 }
 
-function ProjectDetailModal({ project, timelineItems, onClose, onSave, mutating }: ProjectModalProps) {
+function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSave, mutating }: ProjectModalProps) {
   const [form, setForm] = useState<ProjectModalForm>({
     name: project.name || '',
     code: project.code || '',
-    discipline: project.discipline || '',
+    discipline: subproject?.discipline || project.discipline || '',
     stage: project.stage || 'backlog',
     contractAmount: String(project.contract_amount || ''),
-    salesOwner: project.sales_owner || '',
+    salesOwner: subproject?.responsible_partner || project.sales_owner || '',
     deadline: toDateInputValue(project.deadline),
     statusNote: project.status_note || '',
     notes: project.notes || '',
@@ -365,7 +529,7 @@ function ProjectDetailModal({ project, timelineItems, onClose, onSave, mutating 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-[var(--ink)]/20 backdrop-blur-sm" />
       <div
-        className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[28px] border border-[var(--line)] bg-white shadow-[0_40px_120px_rgba(7,19,21,0.16)]"
+        className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-solid)] shadow-[var(--shadow-panel)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] p-6">
@@ -424,7 +588,7 @@ function ProjectDetailModal({ project, timelineItems, onClose, onSave, mutating 
             <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.statusNote} onChange={set('statusNote')} placeholder="Observação rápida sobre o estado atual" />
           </div>
 
-          <div className="md:col-span-2 rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.82)] p-4">
+          <div className="md:col-span-2 rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-82)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Timeline</div>
@@ -434,7 +598,7 @@ function ProjectDetailModal({ project, timelineItems, onClose, onSave, mutating 
             </div>
             <div className="mt-4 space-y-3">
               {timelineItems.slice(0, 12).map((item) => (
-                <div key={item.id} className="flex gap-3 rounded-2xl border border-[var(--line)] bg-white/85 px-3 py-3 text-sm">
+                <div key={item.id} className="flex gap-3 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-85)] px-3 py-3 text-sm">
                   <div className="w-20 shrink-0 text-xs font-medium text-[var(--ink-soft)]">{formatDate(item.date)}</div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -446,7 +610,7 @@ function ProjectDetailModal({ project, timelineItems, onClose, onSave, mutating 
                 </div>
               ))}
               {timelineItems.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/75 px-4 py-3 text-sm text-[var(--ink-soft)]">
+                <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[var(--bg-card-75)] px-4 py-3 text-sm text-[var(--ink-soft)]">
                   Ainda não há histórico suficiente para esse projeto.
                 </div>
               ) : null}
@@ -460,14 +624,14 @@ function ProjectDetailModal({ project, timelineItems, onClose, onSave, mutating 
                 <button
                   type="button"
                   onClick={() => setNotesTab('edit')}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 transition ${notesTab === 'edit' ? 'bg-white font-medium text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)]'}`}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 transition ${notesTab === 'edit' ? 'bg-[var(--bg-card-solid)] font-medium text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)]'}`}
                 >
                   <Pencil className="h-3 w-3" /> Editar
                 </button>
                 <button
                   type="button"
                   onClick={() => setNotesTab('preview')}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 transition ${notesTab === 'preview' ? 'bg-white font-medium text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)]'}`}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 transition ${notesTab === 'preview' ? 'bg-[var(--bg-card-solid)] font-medium text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)]'}`}
                 >
                   <Eye className="h-3 w-3" /> Preview
                 </button>
@@ -507,6 +671,149 @@ function ProjectDetailModal({ project, timelineItems, onClose, onSave, mutating 
             className="rounded-2xl bg-[var(--ink)] px-5 py-2.5 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
           >
             Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Create project modal ─────────────────────────────────────────────────────
+
+interface CreateProjectForm {
+  clientName: string
+  name: string
+  code: string
+  salesOwner: string
+  contractAmount: string
+  deadline: string
+  subprojects: Array<{ discipline: string; amount: string; responsiblePartner: string }>
+}
+
+function CreateProjectModal({ onClose, onCreate, mutating }: {
+  onClose: () => void
+  onCreate: (form: CreateProjectForm) => void
+  mutating: boolean
+}) {
+  const [form, setForm] = useState<CreateProjectForm>({
+    clientName: '',
+    name: '',
+    code: '',
+    salesOwner: '',
+    contractAmount: '',
+    deadline: '',
+    subprojects: [{ discipline: '', amount: '', responsiblePartner: '' }],
+  })
+
+  const set = (field: keyof Omit<CreateProjectForm, 'subprojects'>) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setForm((f) => ({ ...f, [field]: e.target.value }))
+
+  const setSp = (idx: number, field: 'discipline' | 'amount' | 'responsiblePartner') =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setForm((f) => {
+        const subprojects = [...f.subprojects]
+        subprojects[idx] = { ...subprojects[idx], [field]: e.target.value }
+        return { ...f, subprojects }
+      })
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-[var(--ink)]/20 backdrop-blur-sm" />
+      <div
+        className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-solid)] shadow-[var(--shadow-panel)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] p-6">
+          <div>
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]/70">Novo projeto operacional</div>
+            <h2 className="mt-1 text-xl font-semibold text-[var(--ink)]">Criar projeto do zero</h2>
+          </div>
+          <button onClick={onClose} className="shrink-0 rounded-full border border-[var(--line)] p-2 text-[var(--ink-soft)] transition hover:bg-[var(--paper)]">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4 p-6">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Cliente</label>
+            <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.clientName} onChange={set('clientName')} placeholder="Nome do cliente" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Nome do projeto *</label>
+            <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.name} onChange={set('name')} required />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Código</label>
+              <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.code} onChange={set('code')} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Responsável</label>
+              <select className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.salesOwner} onChange={set('salesOwner')}>
+                <option value="">—</option>
+                {partners.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do contrato</label>
+              <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" value={form.contractAmount} onChange={set('contractAmount')} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Prazo</label>
+              <input className="w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="date" value={form.deadline} onChange={set('deadline')} />
+            </div>
+          </div>
+
+          <div className="border-t border-[var(--line)] pt-4">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-xs font-semibold text-[var(--ink-soft)]">Disciplinas</span>
+              <button
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, subprojects: [...f.subprojects, { discipline: '', amount: '', responsiblePartner: '' }] }))}
+                className="inline-flex items-center gap-1 rounded-xl border border-[var(--line)] px-3 py-1 text-xs text-[var(--ink)] transition hover:bg-[var(--paper)]"
+              >
+                <Plus className="h-3 w-3" /> Adicionar
+              </button>
+            </div>
+            <div className="space-y-2">
+              {form.subprojects.map((sp, idx) => (
+                <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-3">
+                  <select className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" value={sp.discipline} onChange={setSp(idx, 'discipline')}>
+                    <option value="">Disciplina</option>
+                    {disciplines.map((d) => <option key={d} value={d}>{LABELS[d]}</option>)}
+                  </select>
+                  <select className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" value={sp.responsiblePartner} onChange={setSp(idx, 'responsiblePartner')}>
+                    <option value="">Responsável</option>
+                    {partners.map((p) => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  <input className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" type="number" placeholder="Valor" value={sp.amount} onChange={setSp(idx, 'amount')} />
+                  {form.subprojects.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, subprojects: f.subprojects.filter((_, i) => i !== idx) }))}
+                      className="flex items-center justify-center rounded-xl border border-[var(--line)] p-2 text-[var(--ink-soft)] transition hover:text-rose-700"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  ) : <div />}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 border-t border-[var(--line)] px-6 py-4">
+          <button type="button" onClick={onClose} className="rounded-2xl border border-[var(--line)] px-5 py-2.5 text-sm text-[var(--ink)] transition hover:bg-[var(--paper)]">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => onCreate(form)}
+            disabled={mutating || !form.name.trim()}
+            className="rounded-2xl bg-[var(--ink)] px-5 py-2.5 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
+          >
+            Criar projeto
           </button>
         </div>
       </div>
@@ -564,7 +871,7 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-[var(--ink)]/20 backdrop-blur-sm" />
       <div
-        className="relative z-10 w-full max-w-lg rounded-[28px] border border-[var(--line)] bg-white shadow-[0_40px_120px_rgba(7,19,21,0.16)]"
+        className="relative z-10 w-full max-w-lg rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-solid)] shadow-[var(--shadow-panel)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-[var(--line)] p-6">
@@ -656,7 +963,10 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
 
 export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [selectedSubprojectId, setSelectedSubprojectId] = useState<string | null>(null)
   const [showCreateFromLead, setShowCreateFromLead] = useState(false)
+  const [showCreateProject, setShowCreateProject] = useState(false)
+  const [viewMode, setViewMode] = useState<'kanban' | 'calendar'>('kanban')
   const [stageOverrides, setStageOverrides] = useState<Record<string, string>>({})
   const [sortKey, setSortKey] = useState<OpsSortKey>('updated')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -710,6 +1020,10 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
   const selectedProject = useMemo(
     () => data.projects.find((p) => p.id === selectedProjectId) ?? null,
     [data.projects, selectedProjectId],
+  )
+  const selectedSubproject = useMemo(
+    () => selectedSubprojectId ? (data.subprojects.find((s) => s.id === selectedSubprojectId) ?? null) : null,
+    [data.subprojects, selectedSubprojectId],
   )
   const selectedProjectTimeline = useMemo(
     () => selectedProject ? buildClientTimeline(data, selectedProject.client_name, { projectId: selectedProject.id }) : [],
@@ -781,14 +1095,21 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
   const handleProjectSave = useCallback(
     (form: ProjectModalForm) => {
       if (!selectedProject) return
+      const closeModal = () => { setSelectedProjectId(null); setSelectedSubprojectId(null) }
       void submitMutation(
         'updateProject',
         { id: selectedProject.id, ...form },
-        () => setSelectedProjectId(null),
+        selectedSubproject
+          ? () => void submitMutation(
+              'updateSubproject',
+              { id: selectedSubproject.id, discipline: form.discipline, responsiblePartner: form.salesOwner, amount: String(selectedSubproject.amount) },
+              closeModal,
+            )
+          : closeModal,
         'Projeto atualizado',
       )
     },
-    [selectedProject, submitMutation],
+    [selectedProject, selectedSubproject, submitMutation],
   )
 
   const handleCreateFromLead = useCallback(
@@ -803,6 +1124,18 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
     [submitMutation],
   )
 
+  const handleCreateProject = useCallback(
+    (form: CreateProjectForm) => {
+      void submitMutation(
+        'createProject',
+        { ...form, subprojects: form.subprojects.filter((sp) => sp.discipline) },
+        () => setShowCreateProject(false),
+        'Projeto criado',
+      )
+    },
+    [submitMutation],
+  )
+
   return (
     <>
       <Panel
@@ -810,7 +1143,25 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
         subtitle="Subprojetos em execução — cada disciplina tem responsável, valor e etapa próprios."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            {[
+            <div className="flex rounded-2xl border border-[var(--line)] bg-[var(--bg-card-80)] p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode('kanban')}
+                className={`inline-flex items-center gap-1.5 rounded-[18px] px-3 py-1.5 text-xs font-medium transition ${viewMode === 'kanban' ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Kanban
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('calendar')}
+                className={`inline-flex items-center gap-1.5 rounded-[18px] px-3 py-1.5 text-xs font-medium transition ${viewMode === 'calendar' ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                Calendário
+              </button>
+            </div>
+            {viewMode === 'kanban' ? [
               ['latest', 'Mais recentes'],
               ['updated', 'Atualizados'],
               ['deadline', 'Prazo'],
@@ -821,17 +1172,25 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
                 type="button"
                 onClick={() => toggleSort(key as OpsSortKey)}
                 className={`inline-flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-medium transition ${
-                  sortKey === key ? 'border-[rgba(15,139,141,0.22)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]' : 'border-[var(--line)] bg-white/80 text-[var(--ink)] hover:bg-[var(--paper)]'
+                  sortKey === key ? 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] text-[var(--teal)]' : 'border-[var(--line)] bg-[var(--bg-card-80)] text-[var(--ink)] hover:bg-[var(--paper)]'
                 }`}
               >
                 <ArrowUpDown className="h-3.5 w-3.5" />
                 {label} {sortKey === key ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
               </button>
-            ))}
+            )) : null}
+            <button
+              type="button"
+              onClick={() => setShowCreateProject(true)}
+              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Novo projeto
+            </button>
             <button
               type="button"
               onClick={() => setShowCreateFromLead(true)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-white/80 px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
+              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
             >
               <Plus className="h-3.5 w-3.5" />
               De comercial
@@ -839,10 +1198,16 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
           </div>
         }
       >
-        {opsSubprojects.length === 0 ? (
+        {viewMode === 'calendar' ? (
+          <CalendarView
+            subprojects={sortedSubprojects}
+            projectsById={projectsById}
+            onCardClick={(projectId, subprojectId) => { setSelectedProjectId(projectId); setSelectedSubprojectId(subprojectId) }}
+          />
+        ) : opsSubprojects.length === 0 ? (
           <EmptyState
             title="Nenhum projeto operacional"
-            body='Use "De comercial" para criar um projeto a partir de um lead fechado.'
+            body='Use "Novo projeto" ou "De comercial" para criar um projeto.'
           />
         ) : (
           <DndContext
@@ -868,12 +1233,12 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
                             key={subproject.id}
                             subproject={subproject}
                             project={project}
-                            onClick={() => setSelectedProjectId(project.id)}
+                            onClick={() => { setSelectedProjectId(project.id); setSelectedSubprojectId(subproject.id) }}
                           />
                         )
                       })
                     ) : (
-                      <div className="rounded-[20px] border border-dashed border-[var(--line)] bg-white/65 p-4 text-sm text-[var(--ink-soft)]">
+                      <div className="rounded-[20px] border border-dashed border-[var(--line)] bg-[var(--bg-card-65)] p-4 text-sm text-[var(--ink-soft)]">
                         Coluna vazia.
                       </div>
                     )}
@@ -888,9 +1253,18 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
       {selectedProject ? (
         <ProjectDetailModal
           project={selectedProject}
+          subproject={selectedSubproject ?? undefined}
           timelineItems={selectedProjectTimeline}
-          onClose={() => setSelectedProjectId(null)}
+          onClose={() => { setSelectedProjectId(null); setSelectedSubprojectId(null) }}
           onSave={handleProjectSave}
+          mutating={mutating}
+        />
+      ) : null}
+
+      {showCreateProject ? (
+        <CreateProjectModal
+          onClose={() => setShowCreateProject(false)}
+          onCreate={handleCreateProject}
           mutating={mutating}
         />
       ) : null}

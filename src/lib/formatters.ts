@@ -30,11 +30,11 @@ export function stageLabel(value: string) {
 
 export function stageTone(stage: string) {
   const normalized = stage.toLowerCase()
-  if (['won', 'concluído', 'done'].includes(normalized)) return 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'
-  if (['lost', 'bloqueado'].includes(normalized)) return 'bg-rose-500/10 text-rose-700 border-rose-500/20'
+  if (['won', 'concluído', 'done'].includes(normalized)) return 'bg-[var(--emerald-bg)] text-[var(--emerald-text)] border-[var(--emerald-border)]'
+  if (['lost', 'bloqueado'].includes(normalized)) return 'bg-[var(--rose-bg)] text-[var(--rose-text)] border-[var(--rose-border)]'
   if (['backlog', 'negotiation'].includes(normalized)) return 'bg-[var(--paper)] text-[var(--ink-soft)] border-[var(--line)]'
-  if (['em-andamento', 'review', 'waiting-files'].includes(normalized)) return 'bg-amber-500/10 text-amber-700 border-amber-500/20'
-  return 'bg-[rgba(15,139,141,0.12)] text-[var(--teal)] border-[rgba(15,139,141,0.18)]'
+  if (['em-andamento', 'review', 'waiting-files', 'aguardando-revisao'].includes(normalized)) return 'bg-[var(--amber-bg)] text-[var(--amber-text)] border-[var(--amber-border)]'
+  return 'bg-[var(--teal-active-bg)] text-[var(--teal)] border-[var(--teal-active-border)]'
 }
 
 export function numericValue(value: unknown) {
@@ -66,8 +66,8 @@ export function leadFollowUpMeta(lead: Lead) {
     return { label: formatDate(lead.next_follow_up_at), tone: 'border-[var(--line)] text-[var(--ink-soft)]' }
   }
   const diffDays = Math.round((followUpDate.getTime() - today.getTime()) / 86400000)
-  if (diffDays < 0) return { label: `${Math.abs(diffDays)}d em atraso`, tone: 'border-rose-200 bg-rose-50 text-rose-700' }
-  if (diffDays === 0) return { label: 'Vence hoje', tone: 'border-amber-200 bg-amber-50 text-amber-700' }
-  if (diffDays <= 2) return { label: `${diffDays}d para agir`, tone: 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]' }
+  if (diffDays < 0) return { label: `${Math.abs(diffDays)}d em atraso`, tone: 'border-[var(--rose-border)] bg-[var(--rose-bg)] text-[var(--rose-text)]' }
+  if (diffDays === 0) return { label: 'Vence hoje', tone: 'border-[var(--amber-border)] bg-[var(--amber-bg)] text-[var(--amber-text)]' }
+  if (diffDays <= 2) return { label: `${diffDays}d para agir`, tone: 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] text-[var(--teal)]' }
   return { label: `Próximo em ${diffDays}d`, tone: 'border-[var(--line)] text-[var(--ink-soft)]' }
 }

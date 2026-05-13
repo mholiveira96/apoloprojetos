@@ -6,11 +6,11 @@ import { formatDate, formatCurrency, leadFollowUpMeta, stageLabel, numericValue 
 import { leadStages, leadSources, partners, disciplines, LABELS } from '@/lib/constants'
 
 function timelineTone(kind: ClientTimelineItem['kind']) {
-  if (kind === 'receipt') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
-  if (kind === 'expense' || kind === 'payout') return 'border-rose-200 bg-rose-50 text-rose-700'
-  if (kind === 'deadline') return 'border-amber-200 bg-amber-50 text-amber-700'
-  if (kind === 'log') return 'border-sky-200 bg-sky-50 text-sky-700'
-  return 'border-[rgba(15,139,141,0.18)] bg-[rgba(15,139,141,0.08)] text-[var(--teal)]'
+  if (kind === 'receipt') return 'border-[var(--emerald-border)] bg-[var(--emerald-bg)] text-[var(--emerald-text)]'
+  if (kind === 'expense' || kind === 'payout') return 'border-[var(--rose-border)] bg-[var(--rose-bg)] text-[var(--rose-text)]'
+  if (kind === 'deadline') return 'border-[var(--amber-border)] bg-[var(--amber-bg)] text-[var(--amber-text)]'
+  if (kind === 'log') return 'border-[var(--sky-border)] bg-[var(--sky-bg)] text-[var(--sky-text)]'
+  return 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] text-[var(--teal)]'
 }
 
 /* ─── shared modal shell ─── */
@@ -59,19 +59,19 @@ export function LeadModal({
           onSubmit()
         }}
       >
-        <input className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3" placeholder="Nome do cliente *" value={form.clientName} onChange={(e) => setForm((c) => ({ ...c, clientName: e.target.value }))} required />
-        <input className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3" placeholder="Título do lead *" value={form.title} onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))} required />
-        <select className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3" value={form.source} onChange={(e) => setForm((c) => ({ ...c, source: e.target.value }))}>
+        <input className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" placeholder="Nome do cliente *" value={form.clientName} onChange={(e) => setForm((c) => ({ ...c, clientName: e.target.value }))} required />
+        <input className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" placeholder="Título do lead *" value={form.title} onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))} required />
+        <select className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" value={form.source} onChange={(e) => setForm((c) => ({ ...c, source: e.target.value }))}>
           <option value="">Origem *</option>
           {leadSources.map((s) => <option key={s} value={s}>{LABELS[s]}</option>)}
         </select>
-        <input className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3" placeholder="Valor estimado *" type="number" value={form.estimatedAmount} onChange={(e) => setForm((c) => ({ ...c, estimatedAmount: e.target.value }))} required />
-        <select className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3" value={form.salesOwner} onChange={(e) => setForm((c) => ({ ...c, salesOwner: e.target.value }))}>
+        <input className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" placeholder="Valor estimado *" type="number" value={form.estimatedAmount} onChange={(e) => setForm((c) => ({ ...c, estimatedAmount: e.target.value }))} required />
+        <select className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" value={form.salesOwner} onChange={(e) => setForm((c) => ({ ...c, salesOwner: e.target.value }))}>
           <option value="">Responsável comercial</option>
           {partners.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
-        <input className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3" type="date" value={form.nextFollowUpAt} onChange={(e) => setForm((c) => ({ ...c, nextFollowUpAt: e.target.value }))} placeholder="Próximo follow-up" />
-        <textarea className="md:col-span-2 min-h-24 rounded-2xl border border-[var(--line)] bg-white px-4 py-3" placeholder="Observações" value={form.notes} onChange={(e) => setForm((c) => ({ ...c, notes: e.target.value }))} />
+        <input className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" type="date" value={form.nextFollowUpAt} onChange={(e) => setForm((c) => ({ ...c, nextFollowUpAt: e.target.value }))} placeholder="Próximo follow-up" />
+        <textarea className="md:col-span-2 min-h-24 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" placeholder="Observações" value={form.notes} onChange={(e) => setForm((c) => ({ ...c, notes: e.target.value }))} />
         <button className="md:col-span-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--ink)] px-4 py-3 text-white transition hover:bg-[var(--ink-soft)]" disabled={mutating}>
           <Plus className="h-4 w-4" /> Criar lead
         </button>
@@ -89,7 +89,7 @@ function Editable({ label, value, onChange, type = 'text', options }: { label: s
         <label className="block text-sm">
           <span className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">{label}</span>
           <select
-            className="mt-1 w-full rounded-2xl border border-[var(--teal)] bg-white px-3 py-2 text-sm text-[var(--ink)]"
+            className="mt-1 w-full rounded-2xl border border-[var(--teal)] bg-[var(--bg-card-solid)] px-3 py-2 text-sm text-[var(--ink)]"
             value={value}
             onChange={(e) => { onChange(e.target.value); setEditing(false) }}
             onBlur={() => setEditing(false)}
@@ -104,7 +104,7 @@ function Editable({ label, value, onChange, type = 'text', options }: { label: s
       <label className="block text-sm">
         <span className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">{label}</span>
         <input
-          className="mt-1 w-full rounded-2xl border border-[var(--teal)] bg-white px-3 py-2 text-sm text-[var(--ink)]"
+          className="mt-1 w-full rounded-2xl border border-[var(--teal)] bg-[var(--bg-card-solid)] px-3 py-2 text-sm text-[var(--ink)]"
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -116,7 +116,7 @@ function Editable({ label, value, onChange, type = 'text', options }: { label: s
     )
   }
   return (
-    <button type="button" className="block w-full cursor-pointer rounded-2xl border border-[var(--line)] bg-white/80 p-3 text-left text-sm transition hover:border-[var(--teal)]" onClick={() => setEditing(true)}>
+    <button type="button" className="block w-full cursor-pointer rounded-2xl border border-[var(--line)] bg-[var(--bg-card-80)] p-3 text-left text-sm transition hover:border-[var(--teal)]" onClick={() => setEditing(true)}>
       <span className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">{label}</span>
       <div className="mt-1 font-medium text-[var(--ink)]">{value || '—'}</div>
     </button>
@@ -175,7 +175,7 @@ export function LeadDetailModal({
           { label: 'Últ. contato', date: lead.last_contact_at },
           { label: 'Próx. ação', date: lead.next_follow_up_at },
         ].map((step) => (
-          <div key={step.label} className="flex shrink-0 items-center gap-2 rounded-full border border-[var(--line)] bg-white/80 px-3 py-1.5 text-xs">
+          <div key={step.label} className="flex shrink-0 items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--bg-card-80)] px-3 py-1.5 text-xs">
             <span className="text-[var(--ink-soft)]">{step.label}</span>
             <span className="font-medium text-[var(--ink)]">{step.date ? formatDate(step.date) : '—'}</span>
           </div>
@@ -200,10 +200,10 @@ export function LeadDetailModal({
 
       <label className="mt-3 block text-sm">
         <span className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Observações</span>
-        <textarea className="mt-1 min-h-20 w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)]" value={draft.notes} onChange={(e) => onChange('notes', e.target.value)} />
+        <textarea className="mt-1 min-h-20 w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-sm text-[var(--ink)]" value={draft.notes} onChange={(e) => onChange('notes', e.target.value)} />
       </label>
 
-      <div className="mt-4 rounded-[24px] border border-[var(--line)] bg-white/70 p-4">
+      <div className="mt-4 rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-70)] p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Timeline</div>
@@ -213,7 +213,7 @@ export function LeadDetailModal({
         </div>
         <div className="mt-4 space-y-3">
           {timelineItems.slice(0, 12).map((item) => (
-            <div key={item.id} className="flex gap-3 rounded-2xl border border-[var(--line)] bg-[rgba(255,255,255,0.85)] px-3 py-3 text-sm">
+            <div key={item.id} className="flex gap-3 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-85)] px-3 py-3 text-sm">
               <div className="w-20 shrink-0 text-xs font-medium text-[var(--ink-soft)]">{formatDate(item.date)}</div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -225,7 +225,7 @@ export function LeadDetailModal({
             </div>
           ))}
           {timelineItems.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/75 px-4 py-3 text-sm text-[var(--ink-soft)]">
+            <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[var(--bg-card-75)] px-4 py-3 text-sm text-[var(--ink-soft)]">
               Ainda não há histórico suficiente para esse cliente.
             </div>
           ) : null}
@@ -304,13 +304,13 @@ export function ConvertProjectModal({
         }}
       >
         <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl border border-[var(--line)] bg-white/60 px-4 py-3 text-sm">
+          <div className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-60)] px-4 py-3 text-sm">
             <span className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Cliente</span>
             <div className="mt-1 font-medium text-[var(--ink)]">{form.clientName}</div>
           </div>
-          <input className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3" placeholder="Nome do projeto" value={form.name} onChange={(e) => setForm((c) => ({ ...c, name: e.target.value }))} required />
-          <input className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3" placeholder="Valor do contrato *" type="number" value={form.contractAmount} onChange={(e) => setForm((c) => ({ ...c, contractAmount: e.target.value }))} required />
-          <div className="rounded-2xl border border-[var(--line)] bg-white/60 px-4 py-3 text-sm">
+          <input className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" placeholder="Nome do projeto" value={form.name} onChange={(e) => setForm((c) => ({ ...c, name: e.target.value }))} required />
+          <input className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" placeholder="Valor do contrato *" type="number" value={form.contractAmount} onChange={(e) => setForm((c) => ({ ...c, contractAmount: e.target.value }))} required />
+          <div className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-60)] px-4 py-3 text-sm">
             <span className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Responsável comercial</span>
             <div className="mt-1 font-medium text-[var(--ink)]">{form.salesOwner}</div>
           </div>
@@ -319,15 +319,15 @@ export function ConvertProjectModal({
         <div className="grid gap-3 md:grid-cols-3">
           <label className="block text-sm">
             <span className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">1º contato *</span>
-            <input className="mt-1 w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm" type="date" value={form.firstContactAt} onChange={(e) => setForm((c) => ({ ...c, firstContactAt: e.target.value }))} required />
+            <input className="mt-1 w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-sm" type="date" value={form.firstContactAt} onChange={(e) => setForm((c) => ({ ...c, firstContactAt: e.target.value }))} required />
           </label>
           <label className="block text-sm">
             <span className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Proposta enviada *</span>
-            <input className="mt-1 w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm" type="date" value={form.proposalSentAt} onChange={(e) => setForm((c) => ({ ...c, proposalSentAt: e.target.value }))} required />
+            <input className="mt-1 w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-sm" type="date" value={form.proposalSentAt} onChange={(e) => setForm((c) => ({ ...c, proposalSentAt: e.target.value }))} required />
           </label>
           <label className="block text-sm">
             <span className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Fechado em *</span>
-            <input className="mt-1 w-full rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm" type="date" value={form.closedAt} onChange={(e) => setForm((c) => ({ ...c, closedAt: e.target.value }))} required />
+            <input className="mt-1 w-full rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-sm" type="date" value={form.closedAt} onChange={(e) => setForm((c) => ({ ...c, closedAt: e.target.value }))} required />
           </label>
         </div>
 
@@ -341,12 +341,12 @@ export function ConvertProjectModal({
           <div className="mt-3 space-y-3">
             {form.subprojects.map((sp, idx) => (
               <div key={idx} className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto] items-end">
-                <select className="rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm" value={sp.discipline} onChange={(e) => updateSp(idx, 'discipline', e.target.value)} required>
+                <select className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-sm" value={sp.discipline} onChange={(e) => updateSp(idx, 'discipline', e.target.value)} required>
                   <option value="">Disciplina</option>
                   {disciplines.map((d) => <option key={d} value={d}>{LABELS[d]}</option>)}
                 </select>
-                <input className="rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm" type="number" placeholder="Valor" value={sp.amount} onChange={(e) => updateSp(idx, 'amount', e.target.value)} required />
-                <select className="rounded-2xl border border-[var(--line)] bg-white px-3 py-2 text-sm" value={sp.responsiblePartner} onChange={(e) => updateSp(idx, 'responsiblePartner', e.target.value)} required>
+                <input className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-sm" type="number" placeholder="Valor" value={sp.amount} onChange={(e) => updateSp(idx, 'amount', e.target.value)} required />
+                <select className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-sm" value={sp.responsiblePartner} onChange={(e) => updateSp(idx, 'responsiblePartner', e.target.value)} required>
                   <option value="">Parceiro responsável</option>
                   {partners.map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
@@ -357,13 +357,13 @@ export function ConvertProjectModal({
             ))}
           </div>
           {form.subprojects.length > 0 && (
-            <div className={`mt-3 rounded-2xl border px-4 py-2 text-sm ${matches ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+            <div className={`mt-3 rounded-2xl border px-4 py-2 text-sm ${matches ? 'border-[var(--emerald-border)] bg-[var(--emerald-bg)] text-[var(--emerald-text)]' : 'border-[var(--rose-border)] bg-[var(--rose-bg)] text-[var(--rose-text)]'}`}>
               Subprojetos: {formatCurrency(spTotal)} / Contrato: {formatCurrency(contractVal)} {matches ? '✓' : '— valores não conferem'}
             </div>
           )}
         </div>
 
-        <input className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3 text-sm" type="date" value={form.deadline} onChange={(e) => setForm((c) => ({ ...c, deadline: e.target.value }))} placeholder="Prazo" />
+        <input className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3 text-sm" type="date" value={form.deadline} onChange={(e) => setForm((c) => ({ ...c, deadline: e.target.value }))} placeholder="Prazo" />
 
         <button className="w-full rounded-2xl bg-[var(--teal)] px-4 py-3 text-white transition hover:opacity-90" disabled={mutating || !matches}>
           <ArrowRight className="mr-2 inline h-4 w-4" /> Criar projeto com subprojetos

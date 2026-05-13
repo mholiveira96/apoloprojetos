@@ -14,7 +14,7 @@ export function Contato() {
         initial={{ opacity: 0, y: 24 }}
         animate={inView ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: 0.6 }}
-        className="mx-auto grid max-w-7xl gap-6 rounded-[36px] bg-[var(--ink)] p-8 text-white sm:p-12 lg:grid-cols-[1fr_auto] lg:items-end"
+        className="mx-auto grid max-w-7xl gap-6 rounded-[36px] bg-[var(--ink-deep)] p-8 text-white sm:p-12 lg:grid-cols-[1fr_auto] lg:items-end"
       >
         <div>
           <div className="text-xs uppercase tracking-[0.35em] text-[var(--teal-bright)]">Contato</div>

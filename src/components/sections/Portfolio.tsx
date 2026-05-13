@@ -76,7 +76,7 @@ export function Portfolio() {
                 Projetos selecionados para traduzir a qualidade e a amplitude do portfólio.
               </h2>
             </div>
-            <p className="max-w-xl text-[color:rgba(7,19,21,0.72)] leading-7">
+            <p className="max-w-xl text-[var(--ink-paragraph)] leading-7">
               Clique em qualquer peça para abrir a imagem completa e examinar melhor cada projeto.
             </p>
           </div>
@@ -89,7 +89,7 @@ export function Portfolio() {
                 className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                   filtro === item
                     ? 'bg-[var(--ink)] text-white'
-                    : 'bg-white text-[var(--ink)] border border-[var(--line)] hover:border-[var(--teal)] hover:text-[var(--teal)]'
+                    : 'bg-[var(--bg-card-solid)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--teal)] hover:text-[var(--teal)]'
                 }`}
               >
                 {item}
@@ -106,7 +106,7 @@ export function Portfolio() {
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: i * 0.04 }}
                 onClick={() => setSelected(item)}
-                className="group overflow-hidden rounded-[30px] border border-[var(--line)] bg-white text-left shadow-sm transition-transform hover:-translate-y-1 hover:shadow-xl hover:shadow-[rgba(7,19,21,0.08)]"
+                className="group overflow-hidden rounded-[30px] border border-[var(--line)] bg-[var(--bg-card-solid)] text-left shadow-sm transition-transform hover:-translate-y-1 hover:shadow-xl hover:shadow-[var(--shadow-panel)]"
               >
                 <div className="relative overflow-hidden">
                   <img
@@ -116,7 +116,7 @@ export function Portfolio() {
                     className="h-[22rem] w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.04]"
                   />
                   <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[rgba(7,19,21,0.72)] to-transparent" />
-                  <div className="absolute left-5 top-5 rounded-full bg-white/88 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-[var(--teal)] backdrop-blur-sm">
+                  <div className="absolute left-5 top-5 rounded-full bg-[var(--bg-card-85)] px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-[var(--teal)] backdrop-blur-sm">
                     {item.categoria}
                   </div>
                   <div className="pointer-events-none absolute bottom-5 right-5 rounded-full bg-[rgba(7,19,21,0.72)] px-3 py-1 text-xs font-semibold text-white opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100">
@@ -146,7 +146,7 @@ export function Portfolio() {
                         return (
                           <span
                             key={disciplina}
-                            className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--ink)]"
+                            className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-1.5 text-xs font-semibold text-[var(--ink)]"
                           >
                             <Icon size={15} className={meta.className} />
                             {meta.label}
@@ -156,7 +156,7 @@ export function Portfolio() {
                     </div>
                   </div>
 
-                  <p className="mt-4 text-sm leading-7 text-[color:rgba(7,19,21,0.72)]">{item.destaque}</p>
+                  <p className="mt-4 text-sm leading-7 text-[var(--ink-paragraph)]">{item.destaque}</p>
                 </div>
               </motion.button>
             ))}
@@ -178,7 +178,7 @@ export function Portfolio() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 16 }}
               transition={{ duration: 0.24 }}
-              className="relative max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-[28px] bg-white shadow-2xl"
+              className="relative max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-[28px] bg-[var(--bg-card-solid)] shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <button
@@ -212,7 +212,7 @@ export function Portfolio() {
                       return (
                         <span
                           key={disciplina}
-                          className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--ink)]"
+                          className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-1.5 text-xs font-semibold text-[var(--ink)]"
                         >
                           <Icon size={15} className={meta.className} />
                           {meta.label}
@@ -222,7 +222,7 @@ export function Portfolio() {
                   </div>
                 </div>
 
-                <p className="mt-3 text-sm leading-7 text-[color:rgba(7,19,21,0.72)]">{selected.destaque}</p>
+                <p className="mt-3 text-sm leading-7 text-[var(--ink-paragraph)]">{selected.destaque}</p>
               </div>
             </motion.div>
           </motion.div>
