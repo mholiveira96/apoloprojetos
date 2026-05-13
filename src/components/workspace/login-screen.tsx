@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { Banknote, ClipboardList, LoaderCircle, TrendingUp } from 'lucide-react'
+import { useTheme } from '@/lib/theme-context'
 
 export function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) => Promise<void> }) {
+  const { theme } = useTheme()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -23,7 +25,7 @@ export function LoginScreen({ onLogin }: { onLogin: (email: string, password: st
         {/* Left — brand statement */}
         <section className="relative flex flex-col justify-between border-b border-[var(--line)] p-8 md:p-12 lg:border-b-0 lg:border-r">
           <div>
-            <img src="/logo-apolo.png" alt="Apolo" className="h-10 w-auto object-contain" />
+            <img src={theme === 'dark' ? '/logo-apolo-darkmode.png' : '/logo-apolo.png'} alt="Apolo" className="h-10 w-auto object-contain" />
           </div>
           <div className="max-w-lg py-12">
             <div className="mb-4 text-xs uppercase tracking-[0.22em] text-[var(--teal)]">Apolo / App</div>

@@ -392,7 +392,7 @@ export function ApoloWorkspace() {
 
           {/* Mobile bar */}
           <div className="flex items-center justify-between gap-3 px-4 py-3 lg:hidden">
-            <img src="/logo-apolo.png" alt="Apolo" className="h-8 w-auto object-contain" />
+            <img src={theme === 'dark' ? '/logo-apolo-darkmode.png' : '/logo-apolo.png'} alt="Apolo" className="h-8 w-auto object-contain" />
             <button
               type="button"
               aria-expanded={mobileNavOpen}
@@ -408,7 +408,7 @@ export function ApoloWorkspace() {
 
             {/* Logo area */}
             <div className={`border-b border-[var(--line)] transition-all duration-300 ${sidebarCollapsed ? 'flex items-center justify-center p-3' : 'p-4'}`}>
-              <img src="/logo-apolo.png" alt="Apolo" className={sidebarCollapsed ? 'h-9 w-9 object-contain' : 'w-full h-auto object-contain'} />
+              <img src={theme === 'dark' ? '/logo-apolo-darkmode.png' : '/logo-apolo.png'} alt="Apolo" className={sidebarCollapsed ? 'h-9 w-9 object-contain' : 'w-full h-auto object-contain'} />
             </div>
 
             {/* Collapse toggle */}
