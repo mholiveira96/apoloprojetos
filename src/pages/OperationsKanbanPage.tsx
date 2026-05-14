@@ -31,6 +31,7 @@ import {
   LayoutGrid,
   ChevronLeft,
   ChevronRight,
+  Search,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
@@ -552,8 +553,8 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
             <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.name} onChange={set('name')} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Código</label>
-            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.code} onChange={set('code')} />
+            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Observação</label>
+            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.statusNote} onChange={set('statusNote')} placeholder="Observação rápida sobre o estado atual" />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Disciplina</label>
@@ -583,11 +584,6 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Prazo</label>
             <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="date" value={form.deadline} onChange={set('deadline')} />
           </div>
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Nota de status</label>
-            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.statusNote} onChange={set('statusNote')} placeholder="Observação rápida sobre o estado atual" />
-          </div>
-
           <div className="md:col-span-2 [] border border-[var(--line)] bg-[var(--bg-card-82)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -972,6 +968,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [completionDraft, setCompletionDraft] = useState<{ subprojectId: string; projectId: string } | null>(null)
   const [completionDate, setCompletionDate] = useState(new Date().toISOString().slice(0, 10))
+  const [searchQuery, setSearchQuery] = useState('')
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 6 },
@@ -1007,9 +1004,23 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
     })
   }, [projectsById, sortDirection, sortKey, subprojectsWithOverrides])
 
+  const filteredSubprojects = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return sortedSubprojects
+    return sortedSubprojects.filter((sp) => {
+      const project = projectsById.get(sp.project_id)
+      return (
+        project?.name?.toLowerCase().includes(q) ||
+        project?.client_name?.toLowerCase().includes(q) ||
+        sp.discipline?.toLowerCase().includes(q) ||
+        sp.responsible_partner?.toLowerCase().includes(q)
+      )
+    })
+  }, [sortedSubprojects, searchQuery, projectsById])
+
   const kanban = useMemo(
-    () => Object.fromEntries(OPS_STAGES.map((stage) => [stage, sortedSubprojects.filter((subproject) => subproject.stage === stage)])),
-    [sortedSubprojects],
+    () => Object.fromEntries(OPS_STAGES.map((stage) => [stage, filteredSubprojects.filter((subproject) => subproject.stage === stage)])),
+    [filteredSubprojects],
   )
 
   const wonLeads = useMemo(
@@ -1198,9 +1209,19 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
           </div>
         }
       >
+        <div className="mb-4 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--ink-soft)]" />
+          <input
+            type="text"
+            placeholder="Buscar por projeto, cliente, disciplina ou responsável…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full border border-[var(--line)] bg-[var(--paper)] py-2.5 pl-9 pr-4 text-sm text-[var(--ink)] placeholder:text-[var(--ink-soft)]/60 focus:outline-none"
+          />
+        </div>
         {viewMode === 'calendar' ? (
           <CalendarView
-            subprojects={sortedSubprojects}
+            subprojects={filteredSubprojects}
             projectsById={projectsById}
             onCardClick={(projectId, subprojectId) => { setSelectedProjectId(projectId); setSelectedSubprojectId(subprojectId) }}
           />
