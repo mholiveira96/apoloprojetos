@@ -46,7 +46,6 @@ export type Project = {
   sales_owner: string | null
   sales_bonus_percent: number
   base_partner_split_percent: number
-  deadline: string | null
   status_note: string | null
   notes: string | null
   lead_id: string | null
@@ -131,6 +130,7 @@ export type Subproject = {
   amount: number
   stage: string
   responsible_partner: string
+  deadline: string | null
   contracted_at: string | null
   created_at: string
   updated_at: string

@@ -191,11 +191,11 @@ export function DraggableOpsCard({
           <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">{project.sales_owner}</span>
         ) : null}
       </div>
-      {(project.deadline || project.contract_amount > 0) ? (
+      {(project.next_pending_due || project.contract_amount > 0) ? (
         <div className="mt-3 text-xs text-[var(--ink-soft)]">
           {project.contract_amount > 0 ? formatCurrency(numericValue(project.contract_amount)) : null}
-          {project.contract_amount > 0 && project.deadline ? ' · ' : null}
-          {project.deadline ? `Prazo ${formatDate(project.deadline)}` : null}
+          {project.contract_amount > 0 && project.next_pending_due ? ' · ' : null}
+          {project.next_pending_due ? `Prazo ${formatDate(project.next_pending_due)}` : null}
         </div>
       ) : null}
     </div>
@@ -215,7 +215,7 @@ function DraggableSubprojectCard({
 }) {
   const { Icon, className } = disciplineMeta(subproject.discipline)
   const hasAmount = numericValue(subproject.amount) > 0
-  const hasDeadline = Boolean(project.deadline)
+  const hasDeadline = Boolean(subproject.deadline)
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: subproject.id })
   const style: CSSProperties = {
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
@@ -272,7 +272,7 @@ function DraggableSubprojectCard({
             <span className="font-semibold text-[var(--ink)]">{formatCurrency(numericValue(subproject.amount))}</span>
           ) : null}
           {hasDeadline ? (
-            <span className="text-[var(--ink-soft)]">{formatDate(project.deadline)}</span>
+            <span className="text-[var(--ink-soft)]">{formatDate(subproject.deadline)}</span>
           ) : null}
         </div>
       ) : null}
@@ -303,7 +303,7 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
   const deadlinesByDay = useMemo(() => {
     const map = new Map<number, Subproject[]>()
     for (const sp of subprojects) {
-      const deadline = projectsById.get(sp.project_id)?.deadline
+      const deadline = sp.deadline
       if (!deadline) continue
       const d = new Date(deadline + 'T00:00:00')
       if (d.getFullYear() === year && d.getMonth() === month) {
@@ -316,8 +316,8 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
   }, [subprojects, projectsById, year, month])
 
   const noDeadline = useMemo(
-    () => subprojects.filter((sp) => !projectsById.get(sp.project_id)?.deadline),
-    [subprojects, projectsById],
+    () => subprojects.filter((sp) => !sp.deadline),
+    [subprojects],
   )
 
   const firstWeekday = new Date(year, month, 1).getDay()
@@ -517,6 +517,7 @@ interface ProjectModalProps {
   timelineItems: ClientTimelineItem[]
   onClose: () => void
   onAutoSave: (form: ProjectModalForm) => void
+  onSubprojectStageChange?: (stage: string) => void
 }
 
 interface ProjectModalForm {
@@ -526,9 +527,9 @@ interface ProjectModalForm {
   stage: string
   contractAmount: string
   salesOwner: string
-  deadline: string
   statusNote: string
   notes: string
+  subprojectDeadline: string
 }
 
 function timelineTone(kind: ClientTimelineItem['kind']) {
@@ -539,7 +540,7 @@ function timelineTone(kind: ClientTimelineItem['kind']) {
   return 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] text-[var(--teal)]'
 }
 
-function ProjectDetailModal({ project, subproject, timelineItems, onClose, onAutoSave }: ProjectModalProps) {
+function ProjectDetailModal({ project, subproject, timelineItems, onClose, onAutoSave, onSubprojectStageChange }: ProjectModalProps) {
   const [form, setForm] = useState<ProjectModalForm>({
     name: project.name || '',
     code: project.code || '',
@@ -547,15 +548,19 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onAut
     stage: project.stage || 'backlog',
     contractAmount: String(project.contract_amount || ''),
     salesOwner: subproject?.responsible_partner || project.sales_owner || '',
-    deadline: toDateInputValue(project.deadline),
     statusNote: project.status_note || '',
     notes: project.notes || '',
+    subprojectDeadline: toDateInputValue(subproject?.deadline),
   })
+  const [localSubprojectStage, setLocalSubprojectStage] = useState(subproject?.stage ?? '')
   const [notesTab, setNotesTab] = useState<'edit' | 'preview'>('edit')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle')
   const firstRender = useRef(true)
   const onAutoSaveRef = useRef(onAutoSave)
   useEffect(() => { onAutoSaveRef.current = onAutoSave }, [onAutoSave])
+  useEffect(() => {
+    if (subproject?.stage !== undefined) setLocalSubprojectStage(subproject.stage)
+  }, [subproject?.stage])
 
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return }
@@ -613,7 +618,7 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onAut
             <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.statusNote} onChange={set('statusNote')} placeholder="Observação rápida sobre o estado atual" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Etapa</label>
+            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">{subproject ? 'Etapa do projeto' : 'Etapa'}</label>
             <select className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.stage} onChange={set('stage')}>
               {projectStages.map((s) => <option key={s} value={s}>{stageLabel(s)}</option>)}
             </select>
@@ -629,10 +634,33 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onAut
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do contrato</label>
             <CurrencyInput className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.contractAmount} onChange={(v) => setForm((f) => ({ ...f, contractAmount: v }))} />
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Prazo</label>
-            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="date" value={form.deadline} onChange={set('deadline')} />
-          </div>
+          {subproject ? (
+            <>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Etapa da disciplina</label>
+                <select
+                  className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm"
+                  value={localSubprojectStage}
+                  onChange={(e) => {
+                    const s = e.target.value
+                    if (s !== 'concluído') setLocalSubprojectStage(s)
+                    onSubprojectStageChange?.(s)
+                  }}
+                >
+                  {subprojectStages.map((s) => <option key={s} value={s}>{stageLabel(s)}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Prazo da disciplina</label>
+                <input
+                  className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm"
+                  type="date"
+                  value={form.subprojectDeadline}
+                  onChange={set('subprojectDeadline')}
+                />
+              </div>
+            </>
+          ) : null}
           <div className="md:col-span-2 [] border border-[var(--line)] bg-[var(--bg-card-82)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -714,8 +742,7 @@ interface CreateProjectForm {
   code: string
   salesOwner: string
   contractAmount: string
-  deadline: string
-  subprojects: Array<{ discipline: string; amount: string; responsiblePartner: string }>
+  subprojects: Array<{ discipline: string; amount: string; responsiblePartner: string; deadline: string }>
 }
 
 function CreateProjectModal({ onClose, onCreate, mutating }: {
@@ -729,15 +756,14 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
     code: '',
     salesOwner: '',
     contractAmount: '',
-    deadline: '',
-    subprojects: [{ discipline: '', amount: '', responsiblePartner: '' }],
+    subprojects: [{ discipline: '', amount: '', responsiblePartner: '', deadline: '' }],
   })
 
   const set = (field: keyof Omit<CreateProjectForm, 'subprojects'>) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [field]: e.target.value }))
 
-  const setSp = (idx: number, field: 'discipline' | 'amount' | 'responsiblePartner') =>
+  const setSp = (idx: number, field: 'discipline' | 'amount' | 'responsiblePartner' | 'deadline') =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((f) => {
         const subprojects = [...f.subprojects]
@@ -787,10 +813,6 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
               <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do contrato</label>
               <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" value={form.contractAmount} onChange={set('contractAmount')} />
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Prazo</label>
-              <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="date" value={form.deadline} onChange={set('deadline')} />
-            </div>
           </div>
 
           <div className="border-t border-[var(--line)] pt-4">
@@ -798,7 +820,7 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
               <span className="text-xs font-semibold text-[var(--ink-soft)]">Disciplinas</span>
               <button
                 type="button"
-                onClick={() => setForm((f) => ({ ...f, subprojects: [...f.subprojects, { discipline: '', amount: '', responsiblePartner: '' }] }))}
+                onClick={() => setForm((f) => ({ ...f, subprojects: [...f.subprojects, { discipline: '', amount: '', responsiblePartner: '', deadline: '' }] }))}
                 className="inline-flex items-center gap-1 rounded-xl border border-[var(--line)] px-3 py-1 text-xs text-[var(--ink)] transition hover:bg-[var(--paper)]"
               >
                 <Plus className="h-3 w-3" /> Adicionar
@@ -806,7 +828,7 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
             </div>
             <div className="space-y-2">
               {form.subprojects.map((sp, idx) => (
-                <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 border border-[var(--line)] bg-[var(--paper)] p-3">
+                <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 border border-[var(--line)] bg-[var(--paper)] p-3">
                   <select className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" value={sp.discipline} onChange={setSp(idx, 'discipline')}>
                     <option value="">Disciplina</option>
                     {disciplines.map((d) => <option key={d} value={d}>{LABELS[d]}</option>)}
@@ -816,6 +838,7 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
                     {partners.map((p) => <option key={p} value={p}>{p}</option>)}
                   </select>
                   <input className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" type="number" placeholder="Valor" value={sp.amount} onChange={setSp(idx, 'amount')} />
+                  <input className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" type="date" placeholder="Prazo" value={sp.deadline} onChange={setSp(idx, 'deadline')} />
                   {form.subprojects.length > 1 ? (
                     <button
                       type="button"
@@ -864,7 +887,6 @@ interface CreateFromLeadForm {
   discipline: string
   salesOwner: string
   contractAmount: string
-  deadline: string
   statusNote: string
 }
 
@@ -877,7 +899,6 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
     discipline: '',
     salesOwner: selectedLead?.sales_owner || '',
     contractAmount: String(selectedLead?.estimated_amount || ''),
-    deadline: '',
     statusNote: '',
   })
 
@@ -958,10 +979,6 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
               <div>
                 <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do contrato</label>
                 <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" value={form.contractAmount} onChange={set('contractAmount')} />
-              </div>
-              <div className="col-span-2">
-                <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Prazo</label>
-                <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="date" value={form.deadline} onChange={set('deadline')} />
               </div>
             </div>
           </div>
@@ -1047,12 +1064,10 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
     const direction = sortDirection === 'asc' ? 1 : -1
     const dateValue = (value: string | null | undefined) => value ? new Date(value).getTime() || 0 : 0
     return [...subprojectsWithOverrides].sort((a, b) => {
-      const projectA = projectsById.get(a.project_id)
-      const projectB = projectsById.get(b.project_id)
       let result = 0
       if (sortKey === 'latest') result = dateValue(a.created_at) - dateValue(b.created_at)
       if (sortKey === 'updated') result = dateValue(a.updated_at) - dateValue(b.updated_at)
-      if (sortKey === 'deadline') result = dateValue(projectA?.deadline) - dateValue(projectB?.deadline)
+      if (sortKey === 'deadline') result = dateValue(a.deadline) - dateValue(b.deadline)
       if (sortKey === 'value') result = numericValue(a.amount) - numericValue(b.amount)
       if (result === 0) result = a.discipline.localeCompare(b.discipline)
       return result * direction
@@ -1088,8 +1103,8 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
     [data.projects, selectedProjectId],
   )
   const selectedSubproject = useMemo(
-    () => selectedSubprojectId ? (data.subprojects.find((s) => s.id === selectedSubprojectId) ?? null) : null,
-    [data.subprojects, selectedSubprojectId],
+    () => selectedSubprojectId ? (subprojectsWithOverrides.find((s) => s.id === selectedSubprojectId) ?? null) : null,
+    [selectedSubprojectId, subprojectsWithOverrides],
   )
   const selectedProjectTimeline = useMemo(
     () => selectedProject ? buildClientTimeline(data, selectedProject.client_name, { projectId: selectedProject.id }) : [],
@@ -1098,7 +1113,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
 
   const visibleStages = useMemo(() => OPS_STAGES.filter((s) => !hiddenStages.has(s)), [hiddenStages])
 
-  const completionSubproject = completionDraft ? data.subprojects.find((item) => item.id === completionDraft.subprojectId) ?? null : null
+  const completionSubproject = completionDraft ? subprojectsWithOverrides.find((item) => item.id === completionDraft.subprojectId) ?? null : null
   const completionProject = completionDraft ? projectsById.get(completionDraft.projectId) ?? null : null
 
   const toggleSort = useCallback((key: OpsSortKey) => {
@@ -1172,11 +1187,35 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
               discipline: form.discipline,
               responsiblePartner: form.salesOwner,
               amount: String(selectedSubproject.amount),
+              deadline: form.subprojectDeadline || null,
             })
           : undefined,
       )
     },
     [selectedProject, selectedSubproject, submitMutation],
+  )
+
+  const handleSubprojectStageChangeFromModal = useCallback(
+    (stage: string) => {
+      if (!selectedSubproject) return
+      if (stage === 'concluído') {
+        setCompletionDraft({ subprojectId: selectedSubproject.id, projectId: selectedSubproject.project_id })
+        setCompletionDate(new Date().toISOString().slice(0, 10))
+        return
+      }
+      const id = selectedSubproject.id
+      const projectId = selectedSubproject.project_id
+      setStageOverrides((prev) => ({ ...prev, [id]: stage }))
+      void submitMutation(
+        'updateSubprojectStage',
+        { id, projectId, stage },
+        () => setStageOverrides((prev) => { const next = { ...prev }; delete next[id]; return next }),
+        'Etapa atualizada',
+      ).catch(() => {
+        setStageOverrides((prev) => { const next = { ...prev }; delete next[id]; return next })
+      })
+    },
+    [selectedSubproject, submitMutation],
   )
 
   const handleCreateFromLead = useCallback(
@@ -1370,6 +1409,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
           timelineItems={selectedProjectTimeline}
           onClose={() => { setSelectedProjectId(null); setSelectedSubprojectId(null) }}
           onAutoSave={handleProjectAutoSave}
+          onSubprojectStageChange={handleSubprojectStageChangeFromModal}
         />
       ) : null}
 

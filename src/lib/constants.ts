@@ -39,6 +39,7 @@ export const expenseCategories = [
   'material',
   'software',
   'serviços',
+  'impostos',
   'outros',
 ] as const
 
@@ -103,5 +104,6 @@ export const LABELS: Record<string, string> = {
   material: 'Material',
   software: 'Software',
   'serviços': 'Serviços',
+  impostos: 'Impostos e Taxas',
   outros: 'Outros',
 }

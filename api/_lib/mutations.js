@@ -202,8 +202,8 @@ export async function runMutation(action, payload, actor) {
         sql: `INSERT INTO projects (
                 id, client_id, name, code, discipline, stage, contract_amount,
                 sales_owner, sales_bonus_percent, base_partner_split_percent,
-                deadline, status_note, created_at, updated_at
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                status_note, created_at, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           projectId,
           clientId,
@@ -215,7 +215,6 @@ export async function runMutation(action, payload, actor) {
           normalizeText(payload.salesOwner),
           normalizeAmount(payload.salesBonusPercent) || 10,
           normalizeAmount(payload.basePartnerSplitPercent) || 50,
-          normalizeText(payload.deadline),
           normalizeText(payload.statusNote),
           timestamp,
           timestamp,
@@ -224,9 +223,9 @@ export async function runMutation(action, payload, actor) {
       if (Array.isArray(payload.subprojects) && payload.subprojects.length > 0) {
         for (const sp of payload.subprojects) {
           await db.execute({
-            sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, created_at, updated_at)
-                  VALUES (?, ?, ?, ?, 'a-fazer', ?, ?, ?)`,
-            args: [createId('sp'), projectId, normalizeText(sp.discipline), normalizeAmount(sp.amount), normalizeText(sp.responsiblePartner), timestamp, timestamp],
+            sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, deadline, created_at, updated_at)
+                  VALUES (?, ?, ?, ?, 'a-fazer', ?, ?, ?, ?)`,
+            args: [createId('sp'), projectId, normalizeText(sp.discipline), normalizeAmount(sp.amount), normalizeText(sp.responsiblePartner), normalizeDate(sp.deadline), timestamp, timestamp],
           })
         }
       }
@@ -250,7 +249,6 @@ export async function runMutation(action, payload, actor) {
                   stage = ?,
                   contract_amount = ?,
                   sales_owner = ?,
-                  deadline = ?,
                   status_note = ?,
                   notes = ?,
                   updated_at = ?
@@ -262,7 +260,6 @@ export async function runMutation(action, payload, actor) {
           normalizeText(payload.stage) || 'aguardar',
           normalizeAmount(payload.contractAmount),
           normalizeText(payload.salesOwner),
-          normalizeDate(payload.deadline),
           normalizeText(payload.statusNote),
           payload.notes != null ? String(payload.notes) : null,
           timestamp,
@@ -289,8 +286,8 @@ export async function runMutation(action, payload, actor) {
         sql: `INSERT INTO projects (
                 id, client_id, name, code, discipline, stage, contract_amount,
                 sales_owner, sales_bonus_percent, base_partner_split_percent,
-                deadline, status_note, lead_id, created_at, updated_at
-              ) VALUES (?, ?, ?, ?, ?, 'aguardar', ?, ?, 10, 50, ?, ?, ?, ?, ?)`,
+                status_note, lead_id, created_at, updated_at
+              ) VALUES (?, ?, ?, ?, ?, 'aguardar', ?, ?, 10, 50, ?, ?, ?, ?)`,
         args: [
           projectId,
           clientId,
@@ -299,7 +296,6 @@ export async function runMutation(action, payload, actor) {
           null,
           contractAmount,
           normalizeText(payload.salesOwner) || String(lead.sales_owner ?? ''),
-          normalizeDate(payload.deadline),
           normalizeText(payload.statusNote),
           normalizeText(payload.leadId),
           timestamp,
@@ -312,14 +308,15 @@ export async function runMutation(action, payload, actor) {
       if (Array.isArray(subprojects) && subprojects.length > 0) {
         for (const sp of subprojects) {
           await db.execute({
-            sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, contracted_at, created_at, updated_at)
-                  VALUES (?, ?, ?, ?, 'a-fazer', ?, ?, ?, ?)`,
+            sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, deadline, contracted_at, created_at, updated_at)
+                  VALUES (?, ?, ?, ?, 'a-fazer', ?, ?, ?, ?, ?)`,
             args: [
               createId('sp'),
               projectId,
               normalizeText(sp.discipline),
               normalizeAmount(sp.amount),
               normalizeText(sp.responsiblePartner),
+              normalizeDate(sp.deadline),
               contractedAt,
               timestamp,
               timestamp,
@@ -365,8 +362,8 @@ export async function runMutation(action, payload, actor) {
       const spProjectId = normalizeText(payload.projectId)
       if (!spProjectId) throw new Error('projectId é obrigatório')
       await db.execute({
-        sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, deadline, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           createId('sp'),
           spProjectId,
@@ -374,6 +371,7 @@ export async function runMutation(action, payload, actor) {
           normalizeAmount(payload.amount),
           normalizeText(payload.stage) || 'a-fazer',
           normalizeText(payload.responsiblePartner),
+          normalizeDate(payload.deadline),
           timestamp,
           timestamp,
         ],
@@ -388,12 +386,14 @@ export async function runMutation(action, payload, actor) {
               SET discipline = ?,
                   amount = ?,
                   responsible_partner = ?,
+                  deadline = ?,
                   updated_at = ?
               WHERE id = ?`,
         args: [
           normalizeText(payload.discipline),
           normalizeAmount(payload.amount),
           normalizeText(payload.responsiblePartner),
+          normalizeDate(payload.deadline),
           timestamp,
           spId,
         ],
@@ -709,6 +709,79 @@ export async function runMutation(action, payload, actor) {
         args: [timestamp, leadId],
       })
 
+      break
+    }
+
+    case 'deleteReceipt': {
+      const id = normalizeText(payload.id)
+      if (!id) throw new Error('id é obrigatório')
+      await db.execute({ sql: 'DELETE FROM payment_receipts WHERE id = ?', args: [id] })
+      break
+    }
+
+    case 'deleteExpense': {
+      const id = normalizeText(payload.id)
+      if (!id) throw new Error('id é obrigatório')
+      await db.execute({ sql: 'DELETE FROM project_expenses WHERE id = ?', args: [id] })
+      break
+    }
+
+    case 'deletePayout': {
+      const id = normalizeText(payload.id)
+      if (!id) throw new Error('id é obrigatório')
+      await db.execute({ sql: 'DELETE FROM partner_payouts WHERE id = ?', args: [id] })
+      break
+    }
+
+    case 'updateReceipt': {
+      const id = normalizeText(payload.id)
+      if (!id) throw new Error('id é obrigatório')
+      await db.execute({
+        sql: `UPDATE payment_receipts SET amount = ?, bank_account = ?, received_at = ?, note = ? WHERE id = ?`,
+        args: [
+          normalizeAmount(payload.amount),
+          normalizeText(payload.bankAccount),
+          normalizeText(payload.entryDate) || timestamp,
+          normalizeText(payload.note),
+          id,
+        ],
+      })
+      break
+    }
+
+    case 'updateExpense': {
+      const id = normalizeText(payload.id)
+      if (!id) throw new Error('id é obrigatório')
+      await db.execute({
+        sql: `UPDATE project_expenses SET amount = ?, category = ?, vendor = ?, bank_account = ?, paid_at = ?, note = ?, project_id = ? WHERE id = ?`,
+        args: [
+          normalizeAmount(payload.amount),
+          normalizeText(payload.category),
+          normalizeText(payload.vendor),
+          normalizeText(payload.bankAccount),
+          normalizeText(payload.entryDate) || timestamp,
+          normalizeText(payload.note),
+          normalizeText(payload.projectId) || null,
+          id,
+        ],
+      })
+      break
+    }
+
+    case 'updatePayout': {
+      const id = normalizeText(payload.id)
+      if (!id) throw new Error('id é obrigatório')
+      await db.execute({
+        sql: `UPDATE partner_payouts SET amount = ?, partner_name = ?, bank_account = ?, paid_at = ?, note = ? WHERE id = ?`,
+        args: [
+          normalizeAmount(payload.amount),
+          normalizeText(payload.partnerName),
+          normalizeText(payload.bankAccount),
+          normalizeText(payload.entryDate) || timestamp,
+          normalizeText(payload.note),
+          id,
+        ],
+      })
       break
     }
 

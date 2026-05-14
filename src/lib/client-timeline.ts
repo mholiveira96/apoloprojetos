@@ -70,13 +70,6 @@ function projectTimelineItems(project: Project): ClientTimelineItem[] {
     title: 'Projeto criado',
     detail: project.name,
   })
-  addTimelineItem(items, project.deadline ? {
-    id: `${project.id}-project-deadline`,
-    date: project.deadline,
-    kind: 'deadline',
-    title: 'Prazo do projeto',
-    detail: `${project.name} · ${stageLabel(project.stage)}`,
-  } : null)
   addTimelineItem(items, project.sale_recorded_at ? {
     id: `${project.id}-project-sale`,
     date: project.sale_recorded_at,

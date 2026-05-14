@@ -201,3 +201,39 @@ img {
     radial-gradient(circle at 30% 75%, rgba(10, 26, 26, 0.5) 0.7px, transparent 0.8px);
   background-size: 18px 18px, 24px 24px, 20px 20px;
 }
+
+/* Discrete scrollbars */
+.overflow-y-auto,
+.overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.2s;
+}
+.overflow-y-auto:hover,
+.overflow-x-auto:hover {
+  scrollbar-color: rgba(13, 148, 136, 0.25) transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.overflow-y-auto::-webkit-scrollbar-track,
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+.overflow-y-auto::-webkit-scrollbar-thumb,
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+.overflow-y-auto:hover::-webkit-scrollbar-thumb,
+.overflow-x-auto:hover::-webkit-scrollbar-thumb {
+  background: rgba(13, 148, 136, 0.25);
+}
+.overflow-y-auto:hover::-webkit-scrollbar-thumb:hover,
+.overflow-x-auto:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(13, 148, 136, 0.45);
+}

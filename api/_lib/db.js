@@ -117,6 +117,7 @@ const schemaStatements = [
     amount REAL NOT NULL,
     stage TEXT NOT NULL DEFAULT 'a-fazer',
     responsible_partner TEXT NOT NULL,
+    deadline TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (project_id) REFERENCES projects(id)
@@ -247,6 +248,13 @@ function mapLegacyProjectStageToSubprojectStage(stage) {
 async function runSubprojectSchemaMigrations() {
   const db = getDb()
   await ensureColumn('subprojects', 'contracted_at', 'contracted_at TEXT')
+  await ensureColumn('subprojects', 'deadline', 'deadline TEXT')
+  await db.execute(`
+    UPDATE subprojects
+    SET deadline = (SELECT deadline FROM projects WHERE projects.id = subprojects.project_id)
+    WHERE subprojects.deadline IS NULL
+      AND EXISTS (SELECT 1 FROM projects WHERE projects.id = subprojects.project_id AND deadline IS NOT NULL)
+  `)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_subprojects_project ON subprojects(project_id)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_subprojects_stage ON subprojects(stage)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_subprojects_contracted_at ON subprojects(contracted_at)`)
@@ -352,7 +360,7 @@ async function runExpenseSchemaMigrations() {
   }
 }
 
-const SCHEMA_VERSION = '5'
+const SCHEMA_VERSION = '7'
 
 export async function ensureSchema() {
   if (!schemaReady) {

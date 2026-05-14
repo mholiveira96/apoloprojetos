@@ -52,7 +52,7 @@ export function ProjectKanbanCard({ project, active, onEdit, onStageChange }: { 
         {project.discipline ? <span className="rounded-full border border-[var(--line)] px-2.5 py-1">{project.discipline}</span> : null}
         <span className="rounded-full border border-[var(--line)] px-2.5 py-1">{project.pending_count} pendências</span>
       </div>
-      <div className="mt-2 text-sm text-[var(--ink-soft)]">{formatCurrency(numericValue(project.contract_amount))} · prazo {formatDate(project.next_pending_due || project.deadline)}</div>
+      <div className="mt-2 text-sm text-[var(--ink-soft)]">{formatCurrency(numericValue(project.contract_amount))}{project.next_pending_due ? ` · prazo ${formatDate(project.next_pending_due)}` : ''}</div>
       <div className="mt-3">
         <select className="w-full border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-sm text-[var(--ink)] outline-none" value={project.stage} onChange={(event) => onStageChange(project.id, event.target.value)}>
           {projectStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}

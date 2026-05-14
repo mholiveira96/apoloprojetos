@@ -22,7 +22,6 @@ export type ProjectDetailForm = {
   stage: string
   contractAmount: string
   salesOwner: string
-  deadline: string
   statusNote: string
 }
 
@@ -55,7 +54,6 @@ export type ProjectForm = {
   stage: string
   contractAmount: string
   salesOwner: string
-  deadline: string
   statusNote: string
 }
 
@@ -99,6 +97,7 @@ export type SubprojectEntry = {
   discipline: string
   amount: string
   responsiblePartner: string
+  deadline: string
 }
 
 export type ConvertProjectForm = {
@@ -110,6 +109,5 @@ export type ConvertProjectForm = {
   firstContactAt: string
   proposalSentAt: string
   closedAt: string
-  deadline: string
   subprojects: SubprojectEntry[]
 }

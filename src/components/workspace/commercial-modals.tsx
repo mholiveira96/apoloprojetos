@@ -259,7 +259,7 @@ export function ConvertProjectModal({
   const addSubproject = () => {
     setForm((c) => ({
       ...c,
-      subprojects: [...c.subprojects, { discipline: '', amount: '', responsiblePartner: '' }],
+      subprojects: [...c.subprojects, { discipline: '', amount: '', responsiblePartner: '', deadline: '' }],
     }))
   }
   const removeSubproject = (idx: number) => {
@@ -331,7 +331,7 @@ export function ConvertProjectModal({
           </div>
           <div className="mt-3 space-y-3">
             {form.subprojects.map((sp, idx) => (
-              <div key={idx} className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto] items-end">
+              <div key={idx} className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_1fr_auto] items-end">
                 <select className="border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-sm" value={sp.discipline} onChange={(e) => updateSp(idx, 'discipline', e.target.value)} required>
                   <option value="">Disciplina</option>
                   {disciplines.map((d) => <option key={d} value={d}>{LABELS[d]}</option>)}
@@ -341,6 +341,7 @@ export function ConvertProjectModal({
                   <option value="">Parceiro responsável</option>
                   {partners.map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
+                <input className="border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-sm" type="date" placeholder="Prazo" value={sp.deadline} onChange={(e) => updateSp(idx, 'deadline', e.target.value)} />
                 <button type="button" className="rounded-full border border-[var(--line)] p-2 text-[var(--ink-soft)] transition hover:bg-rose-50 hover:text-rose-600" onClick={() => removeSubproject(idx)}>
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -353,8 +354,6 @@ export function ConvertProjectModal({
             </div>
           )}
         </div>
-
-        <input className="border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3 text-sm" type="date" value={form.deadline} onChange={(e) => setForm((c) => ({ ...c, deadline: e.target.value }))} placeholder="Prazo" />
 
         <button className="w-full bg-[var(--teal)] px-4 py-3 text-white transition hover:opacity-90" disabled={mutating || !matches}>
           <ArrowRight className="mr-2 inline h-4 w-4" /> Criar projeto com subprojetos

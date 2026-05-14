@@ -106,7 +106,6 @@ export function ApoloWorkspace() {
     firstContactAt: '',
     proposalSentAt: '',
     closedAt: '',
-    deadline: '',
     subprojects: [],
   })
 
@@ -400,15 +399,15 @@ export function ApoloWorkspace() {
 
   const deliveredUnpaidProjects = data.projects
     .filter((p) => p.stage === 'concluído-aguardando-pagamento')
-    .sort((a, b) => (a.deadline || a.updated_at).localeCompare(b.deadline || b.updated_at))
+    .sort((a, b) => a.updated_at.localeCompare(b.updated_at))
   const deliveredUnpaidTotal = deliveredUnpaidProjects.reduce(
     (s, p) => s + numericValue(p.contract_amount) - numericValue(p.total_received),
     0,
   )
 
   const in30DaysStr = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
-  const upcomingDeadlines = data.projects
-    .filter((p) => p.deadline && p.deadline >= today && p.deadline <= in30DaysStr && p.stage !== 'concluído' && p.stage !== 'concluído-aguardando-pagamento')
+  const upcomingDeadlines = data.subprojects
+    .filter((sp) => sp.deadline && sp.deadline >= today && sp.deadline <= in30DaysStr)
     .sort((a, b) => a.deadline!.localeCompare(b.deadline!))
     .slice(0, 8)
 
@@ -628,14 +627,14 @@ export function ApoloWorkspace() {
                       <div className="border border-dashed border-[var(--line)] px-4 py-3 text-sm text-[var(--ink-soft)]">Nenhum prazo nos próximos 30 dias.</div>
                     ) : (
                       <div>
-                        {upcomingDeadlines.map((project) => {
-                          const daysLeft = Math.ceil((new Date(project.deadline!).getTime() - Date.now()) / 86400000)
+                        {upcomingDeadlines.map((sp) => {
+                          const daysLeft = Math.ceil((new Date(sp.deadline!).getTime() - Date.now()) / 86400000)
                           const urgent = daysLeft <= 7
                           return (
-                            <div key={project.id} className="flex items-start justify-between gap-3 border-b border-[var(--line)] py-3 text-sm last:border-b-0">
+                            <div key={sp.id} className="flex items-start justify-between gap-3 border-b border-[var(--line)] py-3 text-sm last:border-b-0">
                               <div className="min-w-0">
-                                <div className="truncate font-medium text-[var(--ink)]">{project.name}</div>
-                                <div className="truncate text-xs text-[var(--ink-soft)]">{project.client_name ?? '—'}</div>
+                                <div className="truncate font-medium text-[var(--ink)]">{sp.project_name}</div>
+                                <div className="truncate text-xs text-[var(--ink-soft)]">{stageLabel(sp.discipline)}</div>
                               </div>
                               <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium ${urgent ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300' : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300'}`}>
                                 {daysLeft === 0 ? 'hoje' : daysLeft === 1 ? 'amanhã' : `${daysLeft}d`}
@@ -980,8 +979,7 @@ export function ApoloWorkspace() {
                         firstContactAt: toDateInputValue(selectedLead.first_contact_at),
                         proposalSentAt: toDateInputValue(selectedLead.proposal_sent_at),
                         closedAt: toDateInputValue(selectedLead.closed_at) || new Date().toISOString().slice(0, 10),
-                        deadline: '',
-                        subprojects: [{ discipline: '', amount: String(selectedLead.estimated_amount || ''), responsiblePartner: '' }],
+                        subprojects: [{ discipline: '', amount: String(selectedLead.estimated_amount || ''), responsiblePartner: '', deadline: '' }],
                       })
                       setShowConvertModal(true)
                     }}

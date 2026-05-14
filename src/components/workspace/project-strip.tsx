@@ -81,7 +81,7 @@ export function ProjectStrip({ project, onStageChange, onEdit }: { project: Proj
         <div className="border-b border-[var(--line)] p-4 md:border-b-0 md:border-r">
           <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]">Operações</div>
           <div className="mt-3 flex items-center justify-between gap-3 text-sm text-[var(--ink)]"><span>Pendências</span><strong>{numericValue(project.pending_count)}</strong></div>
-          <div className="mt-2 flex items-center justify-between gap-3 text-sm text-[var(--ink)]"><span>Próximo prazo</span><strong>{formatDate(project.next_pending_due || project.deadline)}</strong></div>
+          <div className="mt-2 flex items-center justify-between gap-3 text-sm text-[var(--ink)]"><span>Próximo prazo</span><strong>{formatDate(project.next_pending_due)}</strong></div>
         </div>
         <div className="p-4">
           <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]">Financeiro</div>
