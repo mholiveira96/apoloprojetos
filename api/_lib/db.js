@@ -1,7 +1,8 @@
 import { createClient } from '@libsql/client'
 
-let clientSingleton = null
-let schemaReady = null
+// Survive Vite hot-module re-imports (cache-busting appends ?t=mtime each request)
+let clientSingleton = globalThis.__apoloDb ?? null
+let schemaReady = globalThis.__apoloSchemaReady ?? null
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 const LOCAL_DB_URL = process.env.APP_LOCAL_DB_URL || 'file:.apolo-dev.sqlite'
 const USE_REMOTE_DB_IN_DEV = process.env.APP_USE_REMOTE_DB === 'true'
@@ -140,10 +141,10 @@ export function getDb() {
 
   if ((IS_PRODUCTION || USE_REMOTE_DB_IN_DEV) && url && authToken) {
     clientSingleton = createClient({ url, authToken })
-    return clientSingleton
+  } else {
+    clientSingleton = createClient({ url: LOCAL_DB_URL })
   }
-
-  clientSingleton = createClient({ url: LOCAL_DB_URL })
+  globalThis.__apoloDb = clientSingleton
   return clientSingleton
 }
 
@@ -338,10 +339,18 @@ async function runExpenseSchemaMigrations() {
   }
 }
 
+const SCHEMA_VERSION = '4'
+
 export async function ensureSchema() {
   if (!schemaReady) {
     schemaReady = (async () => {
       const db = getDb()
+      // Fast-path: if schema is already at current version, skip all migrations
+      try {
+        const meta = await db.execute(`SELECT value FROM app_meta WHERE key = 'schema_version' LIMIT 1`)
+        if (String(meta.rows[0]?.value) === SCHEMA_VERSION) return
+      } catch { /* app_meta doesn't exist yet — proceed with full migration */ }
+
       for (const sql of schemaStatements) {
         await db.execute(sql)
       }
@@ -353,14 +362,16 @@ export async function ensureSchema() {
       await runPayoutSchemaMigrations()
       await db.execute({
         sql: `INSERT INTO app_meta (key, value, updated_at)
-              VALUES ('schema_version', '4', ?)
+              VALUES ('schema_version', ?, ?)
               ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
-        args: [new Date().toISOString()],
+        args: [SCHEMA_VERSION, new Date().toISOString()],
       })
     })().catch((err) => {
       schemaReady = null
+      globalThis.__apoloSchemaReady = null
       throw err
     })
+    globalThis.__apoloSchemaReady = schemaReady
   }
 
   await schemaReady

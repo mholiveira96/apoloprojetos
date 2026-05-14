@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import {
   DndContext,
@@ -57,6 +57,35 @@ function disciplineMeta(discipline: string): { Icon: LucideIcon; className: stri
   if (normalized.includes('rit') || normalized.includes('legal') || normalized.includes('pgrcc')) return { Icon: Leaf, className: 'border-[var(--emerald-border)] bg-[var(--emerald-bg)] text-[var(--emerald-text)]' }
   if (normalized.includes('lumin')) return { Icon: RadioTower, className: 'border-[var(--amber-border)] bg-[var(--amber-bg)] text-[var(--amber-text)]' }
   return { Icon: Circle, className: 'border-[var(--line)] bg-[var(--bg-card-solid)] text-[var(--ink-soft)]' }
+}
+
+function toSystemKey(value: string): string {
+  if (!value) return value
+  if ((disciplines as readonly string[]).includes(value)) return value
+  const lower = value.toLowerCase()
+  const match = (disciplines as readonly string[]).find((d) => d.toLowerCase() === lower)
+  if (match) return match
+  for (const [key, label] of Object.entries(LABELS)) {
+    if (label === value) return key
+  }
+  return value
+}
+
+function CurrencyInput({ value, onChange, className }: { value: string; onChange: (v: string) => void; className: string }) {
+  const [focused, setFocused] = useState(false)
+  const display = focused || !numericValue(value) ? value : formatCurrency(numericValue(value))
+  return (
+    <input
+      className={className}
+      type="text"
+      inputMode="decimal"
+      value={display}
+      placeholder="R$ 0,00"
+      onFocus={(e) => { setFocused(true); e.target.select() }}
+      onBlur={() => setFocused(false)}
+      onChange={(e) => onChange(e.target.value.replace(',', '.'))}
+    />
+  )
 }
 
 type SubmitMutation = (
@@ -146,11 +175,11 @@ export function DraggableOpsCard({
         {subprojects.length ? (
           subprojects.map((subproject) => (
             <span key={subproject.id} className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">
-              {subproject.discipline}
+              {toSystemKey(subproject.discipline)}
             </span>
           ))
         ) : project.discipline ? (
-          <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">{project.discipline}</span>
+          <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">{toSystemKey(project.discipline)}</span>
         ) : null}
         {project.sales_owner ? (
           <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">{project.sales_owner}</span>
@@ -208,7 +237,7 @@ function DraggableSubprojectCard({
           <div className="truncate font-medium text-[var(--ink)]">{project.name}</div>
           <div className={`mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${className}`}>
             <Icon className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{subproject.discipline}</span>
+            <span className="truncate">{toSystemKey(subproject.discipline)}</span>
           </div>
         </div>
         <button
@@ -375,7 +404,7 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
                           onClick={() => onCardClick(project.id, sp.id)}
                         >
                           <div className="truncate font-semibold">{project.name}</div>
-                          <div className="truncate opacity-70">{sp.discipline}</div>
+                          <div className="truncate opacity-70">{toSystemKey(sp.discipline)}</div>
                         </button>
                       )
                     })}
@@ -405,7 +434,7 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
                   <div className="mt-0.5 truncate text-xs text-[var(--ink-soft)]">{project.client_name || ''}</div>
                   <div className={`mt-2 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${chipClass}`}>
                     <Icon className="h-3 w-3 shrink-0" />
-                    {sp.discipline}
+                    {toSystemKey(sp.discipline)}
                   </div>
                 </div>
               )
@@ -486,6 +515,7 @@ interface ProjectModalProps {
   timelineItems: ClientTimelineItem[]
   onClose: () => void
   onSave: (form: ProjectModalForm) => void
+  onAutoSave: (form: ProjectModalForm) => void
   mutating: boolean
 }
 
@@ -509,7 +539,7 @@ function timelineTone(kind: ClientTimelineItem['kind']) {
   return 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] text-[var(--teal)]'
 }
 
-function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSave, mutating }: ProjectModalProps) {
+function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSave, onAutoSave, mutating }: ProjectModalProps) {
   const [form, setForm] = useState<ProjectModalForm>({
     name: project.name || '',
     code: project.code || '',
@@ -522,6 +552,20 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
     notes: project.notes || '',
   })
   const [notesTab, setNotesTab] = useState<'edit' | 'preview'>('edit')
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle')
+  const firstRender = useRef(true)
+  const onAutoSaveRef = useRef(onAutoSave)
+  useEffect(() => { onAutoSaveRef.current = onAutoSave }, [onAutoSave])
+
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return }
+    setSaveStatus('idle')
+    const t = window.setTimeout(() => {
+      onAutoSaveRef.current(form)
+      setSaveStatus('saved')
+    }, 2000)
+    return () => window.clearTimeout(t)
+  }, [form])
 
   const set = (field: keyof ProjectModalForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }))
@@ -539,12 +583,17 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
             <h2 className="mt-1 text-xl font-semibold text-[var(--ink)]">{project.name}</h2>
             {project.client_name ? <div className="mt-0.5 text-sm text-[var(--ink-soft)]">{project.client_name}</div> : null}
           </div>
-          <button
-            onClick={onClose}
-            className="shrink-0 rounded-full border border-[var(--line)] p-2 text-[var(--ink-soft)] transition hover:bg-[var(--paper)]"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex shrink-0 items-center gap-3">
+            {saveStatus === 'saved' && (
+              <span className="flex items-center gap-1.5 text-xs text-emerald-600">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                alterações salvas
+              </span>
+            )}
+            <button onClick={onClose} className="rounded-full border border-[var(--line)] p-2 text-[var(--ink-soft)] transition hover:bg-[var(--paper)]">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-4 p-6 md:grid-cols-2">
@@ -553,15 +602,15 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
             <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.name} onChange={set('name')} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Observação</label>
-            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.statusNote} onChange={set('statusNote')} placeholder="Observação rápida sobre o estado atual" />
-          </div>
-          <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Disciplina</label>
             <select className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.discipline} onChange={set('discipline')}>
               <option value="">Sem disciplina</option>
               {disciplines.map((d) => <option key={d} value={d}>{LABELS[d]}</option>)}
             </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Observação</label>
+            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.statusNote} onChange={set('statusNote')} placeholder="Observação rápida sobre o estado atual" />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Etapa</label>
@@ -578,7 +627,7 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do contrato</label>
-            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" value={form.contractAmount} onChange={set('contractAmount')} />
+            <CurrencyInput className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.contractAmount} onChange={(v) => setForm((f) => ({ ...f, contractAmount: v }))} />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Prazo</label>
@@ -1123,6 +1172,25 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
     [selectedProject, selectedSubproject, submitMutation],
   )
 
+  const handleProjectAutoSave = useCallback(
+    (form: ProjectModalForm) => {
+      if (!selectedProject) return
+      void submitMutation(
+        'updateProject',
+        { id: selectedProject.id, ...form },
+        selectedSubproject
+          ? () => void submitMutation('updateSubproject', {
+              id: selectedSubproject.id,
+              discipline: form.discipline,
+              responsiblePartner: form.salesOwner,
+              amount: String(selectedSubproject.amount),
+            })
+          : undefined,
+      )
+    },
+    [selectedProject, selectedSubproject, submitMutation],
+  )
+
   const handleCreateFromLead = useCallback(
     (leadId: string, form: CreateFromLeadForm) => {
       void submitMutation(
@@ -1278,6 +1346,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
           timelineItems={selectedProjectTimeline}
           onClose={() => { setSelectedProjectId(null); setSelectedSubprojectId(null) }}
           onSave={handleProjectSave}
+          onAutoSave={handleProjectAutoSave}
           mutating={mutating}
         />
       ) : null}
