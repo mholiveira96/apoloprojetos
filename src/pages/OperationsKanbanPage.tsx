@@ -617,12 +617,14 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onAut
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Observação</label>
             <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.statusNote} onChange={set('statusNote')} placeholder="Observação rápida sobre o estado atual" />
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">{subproject ? 'Etapa do projeto' : 'Etapa'}</label>
-            <select className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.stage} onChange={set('stage')}>
-              {projectStages.map((s) => <option key={s} value={s}>{stageLabel(s)}</option>)}
-            </select>
-          </div>
+          {!subproject ? (
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Etapa</label>
+              <select className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.stage} onChange={set('stage')}>
+                {projectStages.map((s) => <option key={s} value={s}>{stageLabel(s)}</option>)}
+              </select>
+            </div>
+          ) : null}
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Responsável</label>
             <select className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.salesOwner} onChange={set('salesOwner')}>

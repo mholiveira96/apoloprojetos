@@ -284,7 +284,7 @@ export async function runMutation(action, payload, actor) {
         args: [normalizeText(payload.leadId)],
       })
       const lead = leadResult.rows[0]
-      if (!lead) throw new Error('Lead não encontrado')
+      if (!lead) throw new Error('Lead nÃ£o encontrado')
 
       const contractAmount = normalizeAmount(payload.contractAmount) || Number(lead.estimated_amount ?? 0)
       const projectId = createId('project')
@@ -337,11 +337,11 @@ export async function runMutation(action, payload, actor) {
 
       await db.execute({
         sql: `INSERT INTO project_logs (id, project_id, log_type, title, details, due_date, status, created_by, created_at)
-              VALUES (?, ?, 'note', 'Contratação registrada', ?, ?, 'done', ?, ?)`,
+              VALUES (?, ?, 'note', 'ContrataÃ§Ã£o registrada', ?, ?, 'done', ?, ?)`,
         args: [
           createId('log'),
           projectId,
-          'Gerado automaticamente na conversão do lead para projeto.',
+          'Gerado automaticamente na conversÃ£o do lead para projeto.',
           contractedAt,
           actor,
           timestamp,
@@ -370,7 +370,7 @@ export async function runMutation(action, payload, actor) {
 
     case 'createSubproject': {
       const spProjectId = normalizeText(payload.projectId)
-      if (!spProjectId) throw new Error('projectId é obrigatório')
+      if (!spProjectId) throw new Error('projectId Ã© obrigatÃ³rio')
       await db.execute({
         sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, deadline, created_at, updated_at)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -417,8 +417,8 @@ export async function runMutation(action, payload, actor) {
       const spProjectId = normalizeText(payload.projectId)
       const completedAt = normalizeDate(payload.completedAt)
 
-      if (newStage === 'concluído' && !completedAt) {
-        throw new Error('Data de conclusão é obrigatória')
+      if (newStage === 'concluÃ­do' && !completedAt) {
+        throw new Error('Data de conclusÃ£o Ã© obrigatÃ³ria')
       }
 
       await db.execute({
@@ -426,7 +426,7 @@ export async function runMutation(action, payload, actor) {
         args: [newStage, timestamp, subId],
       })
 
-      if (newStage === 'concluído') {
+      if (newStage === 'concluÃ­do') {
         const subprojectResult = await db.execute({
           sql: 'SELECT discipline FROM subprojects WHERE id = ?',
           args: [subId],
@@ -434,11 +434,11 @@ export async function runMutation(action, payload, actor) {
         const discipline = normalizeText(subprojectResult.rows[0]?.discipline)
         await db.execute({
           sql: `INSERT INTO project_logs (id, project_id, log_type, title, details, due_date, status, created_by, created_at)
-                VALUES (?, ?, 'delivery', 'Entrega concluída', ?, ?, 'done', ?, ?)`,
+                VALUES (?, ?, 'delivery', 'Entrega concluÃ­da', ?, ?, 'done', ?, ?)`,
           args: [
             createId('log'),
             spProjectId,
-            discipline ? `Subprojeto concluído: ${discipline}.` : 'Subprojeto concluído.',
+            discipline ? `Subprojeto concluÃ­do: ${discipline}.` : 'Subprojeto concluÃ­do.',
             completedAt,
             actor,
             timestamp,
@@ -446,42 +446,29 @@ export async function runMutation(action, payload, actor) {
         })
       }
 
-      // Auto-transition project stage (forward only)
+      // Keep the parent project in sync with the operational state of its subprojects.
       if (spProjectId) {
         const allSp = await db.execute({
           sql: 'SELECT stage FROM subprojects WHERE project_id = ?',
           args: [spProjectId],
         })
-        const stages = allSp.rows.map(r => String(r.stage))
-        const anyStarted = stages.some(s => s !== 'a-fazer')
-        const allDone = stages.length > 0 && stages.every(s => s === 'concluído')
+        const stages = allSp.rows.map((row) => String(row.stage))
+        const allTodo = stages.length > 0 && stages.every((stage) => stage === 'a-fazer')
+        const allDone = stages.length > 0 && stages.every((stage) => stage === 'concluÃ­do')
+        const hasActiveWork = stages.some((stage) => stage !== 'a-fazer' && stage !== 'concluÃ­do')
+
+        let nextProjectStage = 'aguardar'
+        if (allDone) nextProjectStage = 'concluÃ­do'
+        else if (hasActiveWork) nextProjectStage = 'em-andamento'
+        else if (!allTodo) nextProjectStage = 'em-andamento'
 
         const projectResult = await db.execute({
-          sql: 'SELECT stage, contract_amount FROM projects WHERE id = ?',
+          sql: 'SELECT stage FROM projects WHERE id = ?',
           args: [spProjectId],
         })
-        const project = projectResult.rows[0]
-        if (!project) return { ok: true }
+        const currentStage = String(projectResult.rows[0]?.stage ?? '')
 
-        const currentStage = String(project.stage)
-
-        if (anyStarted && currentStage === 'aguardar') {
-          await db.execute({
-            sql: 'UPDATE projects SET stage = ?, updated_at = ? WHERE id = ?',
-            args: ['em-andamento', timestamp, spProjectId],
-          })
-        } else if (allDone && (currentStage === 'em-andamento' || currentStage === 'aguardar')) {
-          // Check if fully paid
-          const received = await db.execute({
-            sql: 'SELECT COALESCE(SUM(amount), 0) AS total FROM payment_receipts WHERE project_id = ?',
-            args: [spProjectId],
-          })
-          const totalReceived = Number(received.rows[0]?.total ?? 0)
-          const contractAmount = Number(project.contract_amount ?? 0)
-
-          const nextProjectStage = totalReceived >= contractAmount
-            ? 'concluído'
-            : 'concluído-aguardando-pagamento'
+        if (currentStage !== nextProjectStage) {
           await db.execute({
             sql: 'UPDATE projects SET stage = ?, updated_at = ? WHERE id = ?',
             args: [nextProjectStage, timestamp, spProjectId],
@@ -544,19 +531,19 @@ export async function runMutation(action, payload, actor) {
 
     case 'addReceipt': {
       const receiptProjectId = normalizeText(payload.projectId) || null
-      if (!receiptProjectId) throw new Error('projectId é obrigatório')
+      if (!receiptProjectId) throw new Error('projectId Ã© obrigatÃ³rio')
 
       const projectRow = await db.execute({
         sql: 'SELECT client_id FROM projects WHERE id = ?',
         args: [receiptProjectId],
       })
-      if (!projectRow.rows[0]) throw new Error('Projeto não encontrado')
+      if (!projectRow.rows[0]) throw new Error('Projeto nÃ£o encontrado')
 
       let receiptClientId = projectRow.rows[0].client_id ? String(projectRow.rows[0].client_id) : null
       if (!receiptClientId) {
         receiptClientId = await upsertClient(normalizeText(payload.clientName), payload)
       }
-      if (!receiptClientId) throw new Error('Cliente não encontrado para o projeto')
+      if (!receiptClientId) throw new Error('Cliente nÃ£o encontrado para o projeto')
 
       await db.execute({
         sql: `INSERT INTO payment_receipts (id, client_id, project_id, amount, bank_account, received_at, note, created_by, created_at)
@@ -582,7 +569,7 @@ export async function runMutation(action, payload, actor) {
         sql: 'SELECT stage FROM subprojects WHERE project_id = ?',
         args: [receiptProjectId],
       })
-      const allDone2 = allSp2.rows.length > 0 && allSp2.rows.every((r) => String(r.stage) === 'concluído')
+      const allDone2 = allSp2.rows.length > 0 && allSp2.rows.every((r) => String(r.stage) === 'concluÃ­do')
       if (allDone2) {
         const received2 = await db.execute({
           sql: 'SELECT COALESCE(SUM(amount), 0) AS total FROM payment_receipts WHERE project_id = ?',
@@ -593,13 +580,13 @@ export async function runMutation(action, payload, actor) {
           args: [receiptProjectId],
         })
         const p2 = proj2.rows[0]
-        if (p2 && ['em-andamento', 'concluído-aguardando-pagamento'].includes(String(p2.stage))) {
+        if (p2 && ['em-andamento', 'concluÃ­do-aguardando-pagamento'].includes(String(p2.stage))) {
           const totalReceived2 = Number(received2.rows[0]?.total ?? 0)
           const contractAmount2 = Number(p2.contract_amount ?? 0)
           if (totalReceived2 >= contractAmount2) {
             await db.execute({
               sql: 'UPDATE projects SET stage = ?, updated_at = ? WHERE id = ?',
-              args: ['concluído', timestamp, receiptProjectId],
+              args: ['concluÃ­do', timestamp, receiptProjectId],
             })
           }
         }
@@ -647,13 +634,13 @@ export async function runMutation(action, payload, actor) {
           args: [subprojectId],
         })
         const sp = spResult.rows[0]
-        if (!sp) throw new Error('Subprojeto não encontrado')
+        if (!sp) throw new Error('Subprojeto nÃ£o encontrado')
         projectId = String(sp.project_id)
         if (!partnerName) partnerName = String(sp.responsible_partner)
         if (percentage) amount = Number(sp.amount) * percentage / 100
       }
 
-      if (!projectId) throw new Error('projectId ou subprojectId é obrigatório')
+      if (!projectId) throw new Error('projectId ou subprojectId Ã© obrigatÃ³rio')
 
       await db.execute({
         sql: `INSERT INTO partner_payouts (id, project_id, subproject_id, partner_name, percentage, amount, bank_account, paid_at, note, created_by, created_at)
@@ -686,7 +673,7 @@ export async function runMutation(action, payload, actor) {
       const size = Number(payload.size) || 0
 
       if (!leadId || !filename || !fileData) {
-        throw new Error('leadId, filename e fileData são obrigatórios')
+        throw new Error('leadId, filename e fileData sÃ£o obrigatÃ³rios')
       }
 
       await db.execute({
@@ -711,7 +698,7 @@ export async function runMutation(action, payload, actor) {
 
     case 'deleteLeadProposal': {
       const leadId = normalizeText(payload.leadId)
-      if (!leadId) throw new Error('leadId é obrigatório')
+      if (!leadId) throw new Error('leadId Ã© obrigatÃ³rio')
 
       await db.execute({ sql: 'DELETE FROM lead_proposals WHERE lead_id = ?', args: [leadId] })
       await db.execute({
@@ -724,28 +711,28 @@ export async function runMutation(action, payload, actor) {
 
     case 'deleteReceipt': {
       const id = normalizeText(payload.id)
-      if (!id) throw new Error('id é obrigatório')
+      if (!id) throw new Error('id Ã© obrigatÃ³rio')
       await db.execute({ sql: 'DELETE FROM payment_receipts WHERE id = ?', args: [id] })
       break
     }
 
     case 'deleteExpense': {
       const id = normalizeText(payload.id)
-      if (!id) throw new Error('id é obrigatório')
+      if (!id) throw new Error('id Ã© obrigatÃ³rio')
       await db.execute({ sql: 'DELETE FROM project_expenses WHERE id = ?', args: [id] })
       break
     }
 
     case 'deletePayout': {
       const id = normalizeText(payload.id)
-      if (!id) throw new Error('id é obrigatório')
+      if (!id) throw new Error('id Ã© obrigatÃ³rio')
       await db.execute({ sql: 'DELETE FROM partner_payouts WHERE id = ?', args: [id] })
       break
     }
 
     case 'updateReceipt': {
       const id = normalizeText(payload.id)
-      if (!id) throw new Error('id é obrigatório')
+      if (!id) throw new Error('id Ã© obrigatÃ³rio')
       await db.execute({
         sql: `UPDATE payment_receipts SET amount = ?, bank_account = ?, received_at = ?, note = ? WHERE id = ?`,
         args: [
@@ -761,7 +748,7 @@ export async function runMutation(action, payload, actor) {
 
     case 'updateExpense': {
       const id = normalizeText(payload.id)
-      if (!id) throw new Error('id é obrigatório')
+      if (!id) throw new Error('id Ã© obrigatÃ³rio')
       await db.execute({
         sql: `UPDATE project_expenses SET amount = ?, category = ?, vendor = ?, bank_account = ?, paid_at = ?, note = ?, project_id = ? WHERE id = ?`,
         args: [
@@ -780,7 +767,7 @@ export async function runMutation(action, payload, actor) {
 
     case 'updatePayout': {
       const id = normalizeText(payload.id)
-      if (!id) throw new Error('id é obrigatório')
+      if (!id) throw new Error('id Ã© obrigatÃ³rio')
       await db.execute({
         sql: `UPDATE partner_payouts SET amount = ?, partner_name = ?, bank_account = ?, paid_at = ?, note = ? WHERE id = ?`,
         args: [
