@@ -121,6 +121,15 @@ const schemaStatements = [
     updated_at TEXT NOT NULL,
     FOREIGN KEY (project_id) REFERENCES projects(id)
   )`,
+  `CREATE TABLE IF NOT EXISTS lead_proposals (
+    lead_id TEXT PRIMARY KEY,
+    filename TEXT NOT NULL,
+    file_data TEXT NOT NULL,
+    size INTEGER,
+    uploaded_at TEXT NOT NULL,
+    uploaded_by TEXT,
+    FOREIGN KEY (lead_id) REFERENCES leads(id)
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_leads_stage ON leads(stage)`,
   `CREATE INDEX IF NOT EXISTS idx_projects_stage ON projects(stage)`,
   `CREATE INDEX IF NOT EXISTS idx_project_logs_project ON project_logs(project_id, created_at DESC)`,
@@ -293,6 +302,10 @@ async function runSubprojectSchemaMigrations() {
   })
 }
 
+async function runProposalSchemaMigrations() {
+  await ensureColumn('leads', 'proposal_filename', 'proposal_filename TEXT')
+}
+
 async function runReceiptSchemaMigrations() {
   const db = getDb()
   await ensureColumn('payment_receipts', 'client_id', 'client_id TEXT REFERENCES clients(id)')
@@ -339,7 +352,7 @@ async function runExpenseSchemaMigrations() {
   }
 }
 
-const SCHEMA_VERSION = '4'
+const SCHEMA_VERSION = '5'
 
 export async function ensureSchema() {
   if (!schemaReady) {
@@ -360,6 +373,7 @@ export async function ensureSchema() {
       await runReceiptSchemaMigrations()
       await runExpenseSchemaMigrations()
       await runPayoutSchemaMigrations()
+      await runProposalSchemaMigrations()
       await db.execute({
         sql: `INSERT INTO app_meta (key, value, updated_at)
               VALUES ('schema_version', ?, ?)

@@ -83,6 +83,7 @@ export async function getBootstrapData() {
         leads.proposal_sent_at,
         leads.closed_at,
         leads.created_at,
+        leads.proposal_filename,
         clients.name AS client_name
       FROM leads
       LEFT JOIN clients ON clients.id = leads.client_id

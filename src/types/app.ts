@@ -32,6 +32,7 @@ export type Lead = {
   proposal_sent_at: string | null
   closed_at: string | null
   created_at: string
+  proposal_filename: string | null
   client_name: string | null
 }
 

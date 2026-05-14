@@ -14,6 +14,7 @@ const apiRoutes: Record<string, string> = {
   '/api/auth/session': 'api/auth/session.js',
   '/api/app/bootstrap': 'api/app/bootstrap.js',
   '/api/app/mutate': 'api/app/mutate.js',
+  '/api/app/proposal': 'api/app/proposal.js',
 }
 
 function localApiPlugin() {

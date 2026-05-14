@@ -1,11 +1,12 @@
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   AlertTriangle,
   Banknote,
   ChevronDown,
   CircleDollarSign,
+  FileText,
   FolderKanban,
   LoaderCircle,
   Menu,
@@ -18,6 +19,7 @@ import {
   Search,
   Sun,
   TrendingUp,
+  Upload,
   X,
 } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
@@ -92,6 +94,9 @@ export function ApoloWorkspace() {
   const [showSalesBreakdown, setShowSalesBreakdown] = useState(false)
   const [commercialDragId, setCommercialDragId] = useState<string | null>(null)
   const [commercialStageOverrides, setCommercialStageOverrides] = useState<Record<string, string>>({})
+  const leadIsDirtyRef = useRef(false)
+  const [uploadTargetLeadId, setUploadTargetLeadId] = useState<string | null>(null)
+  const proposalInputRef = useRef<HTMLInputElement>(null)
   const [convertForm, setConvertForm] = useState<ConvertProjectForm>({
     leadId: '',
     clientName: '',
@@ -174,17 +179,60 @@ export function ApoloWorkspace() {
   }
 
   const handleLeadDetailChange = (field: keyof LeadDetailForm, value: string) => {
-    setLeadDetailForm((current) => ({ ...current, [field]: value }))
+    leadIsDirtyRef.current = true
+    setLeadDetailForm((current) => {
+      const next = { ...current, [field]: value }
+      if (field === 'stage') {
+        const today = new Date().toISOString().slice(0, 10)
+        if (value === 'proposal' && !next.proposalSentAt) next.proposalSentAt = today
+        if ((value === 'won' || value === 'lost') && !next.closedAt) next.closedAt = today
+      }
+      return next
+    })
+    if (field === 'stage' && selectedLeadId) {
+      setCommercialStageOverrides((prev) => ({ ...prev, [selectedLeadId]: value }))
+    }
   }
 
-  const handleLeadSave = async () => {
-    if (!selectedLead) return
-    await submitMutation('updateLead', { id: selectedLead.id, ...leadDetailForm }, undefined, 'Lead atualizado')
+  const selectLead = (leadId: string | null) => {
+    leadIsDirtyRef.current = false
+    setSelectedLeadId(leadId)
+    if (!leadId) return
+    const lead = data?.leads?.find((l) => l.id === leadId)
+    if (!lead) return
+    setLeadDetailForm({
+      title: lead.title || '',
+      stage: lead.stage || 'incoming',
+      source: lead.source || '',
+      estimatedAmount: String(lead.estimated_amount || ''),
+      salesOwner: lead.sales_owner || '',
+      notes: lead.notes || '',
+      inboundAt: toDateInputValue(lead.inbound_at || lead.created_at),
+      firstContactAt: toDateInputValue(lead.first_contact_at),
+      lastContactAt: toDateInputValue(lead.last_contact_at),
+      nextFollowUpAt: toDateInputValue(lead.next_follow_up_at),
+      proposalSentAt: toDateInputValue(lead.proposal_sent_at),
+      closedAt: toDateInputValue(lead.closed_at),
+    })
   }
 
   const handleLeadTouch = async () => {
     if (!selectedLead) return
     await submitMutation('touchLead', { id: selectedLead.id, nextFollowUpAt: leadDetailForm.nextFollowUpAt || undefined }, undefined, 'Contato registrado')
+  }
+
+  const handleProposalUpload = (leadId: string, file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Arquivo muito grande. Máximo: 5 MB')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string
+      const base64 = dataUrl.split(',')[1]
+      void submitMutation('uploadLeadProposal', { leadId, filename: file.name, fileData: base64, size: file.size }, undefined, 'Proposta anexada')
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleLogin = async (email: string, password: string) => {
@@ -744,6 +792,19 @@ export function ApoloWorkspace() {
                   </Panel>
                 ) : null}
 
+                {/* Hidden file input for proposal upload */}
+                <input
+                  ref={proposalInputRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file && uploadTargetLeadId) handleProposalUpload(uploadTargetLeadId, file)
+                    e.target.value = ''
+                  }}
+                />
+
                 {/* Toolbar: search + new lead */}
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="relative flex-1">
@@ -789,7 +850,7 @@ export function ApoloWorkspace() {
                     <div className="overflow-x-auto">
                       <table className="min-w-full text-left text-sm">
                         <thead className="text-[var(--ink-soft)]">
-                          <tr><th className="pb-3">Lead</th><th className="pb-3">Cliente</th><th className="pb-3">Valor</th><th className="pb-3">Responsável</th><th className="pb-3">Origem</th><th className="pb-3">Próx. follow-up</th><th className="pb-3">Etapa</th></tr>
+                          <tr><th className="pb-3">Lead</th><th className="pb-3">Cliente</th><th className="pb-3">Valor</th><th className="pb-3">Responsável</th><th className="pb-3">Origem</th><th className="pb-3">Próx. follow-up</th><th className="pb-3">Etapa</th><th className="pb-3">Ações</th></tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--line)]">
                           {pipelineLeads
@@ -809,6 +870,25 @@ export function ApoloWorkspace() {
                                   <td className="py-4 text-[var(--ink-soft)]">{stageLabel(lead.source || '') || '—'}</td>
                                   <td className="py-4"><span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${followUp.tone}`}>{formatDate(lead.next_follow_up_at)}</span></td>
                                   <td className="py-4"><span className="rounded-full border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-1 text-xs font-medium text-[var(--ink)]">{stageLabel(lead.stage)}</span></td>
+                                  <td className="py-4" onClick={(e) => e.stopPropagation()}>
+                                    {lead.proposal_filename ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <a href={`/api/app/proposal?leadId=${lead.id}`} target="_blank" rel="noopener noreferrer" title={lead.proposal_filename} className="inline-flex items-center gap-1 border border-[var(--line)] px-2 py-1 text-xs text-[var(--ink-soft)] transition hover:border-[var(--teal)] hover:text-[var(--teal)]">
+                                          <FileText className="h-3.5 w-3.5" /> Ver
+                                        </a>
+                                        <button type="button" title="Substituir proposta" className="inline-flex items-center gap-1 border border-[var(--line)] px-2 py-1 text-xs text-[var(--ink-soft)] transition hover:border-[var(--teal)] hover:text-[var(--teal)]" onClick={() => { setUploadTargetLeadId(lead.id); proposalInputRef.current?.click() }}>
+                                          <Upload className="h-3.5 w-3.5" />
+                                        </button>
+                                        <button type="button" title="Remover proposta" className="inline-flex items-center gap-1 border border-[var(--line)] px-2 py-1 text-xs text-[var(--ink-soft)] transition hover:border-rose-400 hover:text-rose-500" onClick={() => void submitMutation('deleteLeadProposal', { leadId: lead.id }, undefined, 'Proposta removida')}>
+                                          <X className="h-3.5 w-3.5" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button type="button" className="inline-flex items-center gap-1 border border-dashed border-[var(--line)] px-2 py-1 text-xs text-[var(--ink-soft)] transition hover:border-[var(--teal)] hover:text-[var(--teal)]" onClick={() => { setUploadTargetLeadId(lead.id); proposalInputRef.current?.click() }}>
+                                        <Upload className="h-3.5 w-3.5" /> PDF
+                                      </button>
+                                    )}
+                                  </td>
                                 </tr>
                               )
                             })}
@@ -829,7 +909,7 @@ export function ApoloWorkspace() {
                       <div className="overflow-x-auto">
                         <table className="min-w-full text-left text-sm">
                           <thead className="text-[var(--ink-soft)]">
-                            <tr><th className="pb-3">Lead</th><th className="pb-3">Cliente</th><th className="pb-3">Valor</th><th className="pb-3">Responsável</th><th className="pb-3">Fechado em</th><th className="pb-3">Resultado</th></tr>
+                            <tr><th className="pb-3">Lead</th><th className="pb-3">Cliente</th><th className="pb-3">Valor</th><th className="pb-3">Responsável</th><th className="pb-3">Fechado em</th><th className="pb-3">Resultado</th><th className="pb-3">Proposta</th></tr>
                           </thead>
                           <tbody className="divide-y divide-[var(--line)]">
                             {data.leads
@@ -850,6 +930,15 @@ export function ApoloWorkspace() {
                                     <span className={`rounded-full border px-3 py-1 text-xs font-medium ${lead.stage === 'won' ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300'}`}>
                                       {stageLabel(lead.stage)}
                                     </span>
+                                  </td>
+                                  <td className="py-3" onClick={(e) => e.stopPropagation()}>
+                                    {lead.proposal_filename ? (
+                                      <a href={`/api/app/proposal?leadId=${lead.id}`} target="_blank" rel="noopener noreferrer" title={lead.proposal_filename} className="inline-flex items-center gap-1 border border-[var(--line)] px-2 py-1 text-xs text-[var(--ink-soft)] transition hover:border-[var(--teal)] hover:text-[var(--teal)]">
+                                        <FileText className="h-3.5 w-3.5" /> Ver
+                                      </a>
+                                    ) : (
+                                      <span className="text-xs text-[var(--ink-soft)]">—</span>
+                                    )}
                                   </td>
                                 </tr>
                               ))}

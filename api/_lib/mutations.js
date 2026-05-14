@@ -669,6 +669,49 @@ export async function runMutation(action, payload, actor) {
       return { ok: true }
     }
 
+    case 'uploadLeadProposal': {
+      const leadId = normalizeText(payload.leadId)
+      const filename = normalizeText(payload.filename)
+      const fileData = normalizeText(payload.fileData)
+      const size = Number(payload.size) || 0
+
+      if (!leadId || !filename || !fileData) {
+        throw new Error('leadId, filename e fileData são obrigatórios')
+      }
+
+      await db.execute({
+        sql: `INSERT INTO lead_proposals (lead_id, filename, file_data, size, uploaded_at, uploaded_by)
+              VALUES (?, ?, ?, ?, ?, ?)
+              ON CONFLICT(lead_id) DO UPDATE SET
+                filename = excluded.filename,
+                file_data = excluded.file_data,
+                size = excluded.size,
+                uploaded_at = excluded.uploaded_at,
+                uploaded_by = excluded.uploaded_by`,
+        args: [leadId, filename, fileData, size, timestamp, actor || null],
+      })
+
+      await db.execute({
+        sql: 'UPDATE leads SET proposal_filename = ?, updated_at = ? WHERE id = ?',
+        args: [filename, timestamp, leadId],
+      })
+
+      break
+    }
+
+    case 'deleteLeadProposal': {
+      const leadId = normalizeText(payload.leadId)
+      if (!leadId) throw new Error('leadId é obrigatório')
+
+      await db.execute({ sql: 'DELETE FROM lead_proposals WHERE lead_id = ?', args: [leadId] })
+      await db.execute({
+        sql: 'UPDATE leads SET proposal_filename = NULL, updated_at = ? WHERE id = ?',
+        args: [timestamp, leadId],
+      })
+
+      break
+    }
+
     default:
       throw new Error(`Unknown action: ${action}`)
   }
