@@ -324,6 +324,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
                   <th className="pb-3 pr-4 text-right font-medium">Recebido</th>
                   <th className="pb-3 pr-4 text-right font-medium">Saldo</th>
                   <th className="pb-3 pr-4 text-right font-medium">Despesas</th>
+                  <th className="pb-3 pr-4 text-right font-medium">Repasses feitos</th>
                   <th className="pb-3 pr-4 text-right font-medium">Repasse pendente</th>
                   <th className="pb-3 text-right font-medium">Arquivo</th>
                 </tr>
@@ -364,6 +365,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
                         {formatCurrency(outstanding)}
                       </td>
                       <td className="py-3 pr-4 text-right text-rose-600">{formatCurrency(expenses)}</td>
+                      <td className="py-3 pr-4 text-right text-[var(--ink)]">{formatCurrency(payouts)}</td>
                       <td className={`py-3 pr-4 text-right ${payoutPending > 0.01 ? 'text-amber-600' : 'text-[var(--ink-soft)]'}`}>
                         {formatCurrency(payoutPending)}
                       </td>

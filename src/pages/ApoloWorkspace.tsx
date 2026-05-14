@@ -72,7 +72,7 @@ export function ApoloWorkspace() {
     nextFollowUpAt: '',
   })
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
-  const [commercialView, setCommercialView] = useState<ViewMode>('list')
+  const [commercialView, setCommercialView] = useState<ViewMode>('kanban')
   const [leadDetailForm, setLeadDetailForm] = useState<LeadDetailForm>({
     title: '',
     stage: 'incoming',
@@ -366,12 +366,18 @@ export function ApoloWorkspace() {
   const currentYear = today.slice(0, 4)
   const currentYearSalesProjects = data.projects
     .filter((project) => (
-      numericValue(project.sale_log_count) > 0
-      && (project.sale_recorded_at || '').slice(0, 4) === currentYear
+      (
+        numericValue(project.sale_log_count) > 0
+        && (project.sale_recorded_at || '').slice(0, 4) === currentYear
+      )
+      || (
+        numericValue(project.sale_log_count) === 0
+        && (project.created_at || '').slice(0, 4) === currentYear
+      )
     ))
     .sort((a, b) => {
-      const aDate = a.sale_recorded_at || ''
-      const bDate = b.sale_recorded_at || ''
+      const aDate = a.sale_recorded_at || a.created_at || ''
+      const bDate = b.sale_recorded_at || b.created_at || ''
       return bDate.localeCompare(aDate)
     })
   const currentYearSalesTotal = currentYearSalesProjects.reduce(
@@ -554,7 +560,7 @@ export function ApoloWorkspace() {
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
                   <MetricCard label="Leads no funil" value={String(pipelineLeads.length)} helper={`${formatCurrency(pipelineTotal)} em oportunidades ativas`} icon={TrendingUp} />
                   <MetricCard label="Em andamento" value={String(inProgressCount)} helper="Projetos em execução agora" icon={FolderKanban} />
-                  <MetricCard label="A receber" value={formatCurrency(data.summary.outstandingTotal)} helper="Entregues com saldo ainda em aberto" icon={Banknote} />
+                  <MetricCard label="Concluído aguardando pgto" value={formatCurrency(deliveredUnpaidTotal)} helper="Entregues com saldo ainda em aberto" icon={Banknote} />
                   <MetricCard label="Vendas no ano" value={formatCurrency(data.summary.currentYearSales)} helper="Valor contratado no ano corrente" icon={CircleDollarSign} />
                   <MetricCard label="Pendências abertas" value={String(totalPendingCount)} helper="Soma de pendências nos projetos ativos" icon={AlertTriangle} />
                 </div>
@@ -767,7 +773,7 @@ export function ApoloWorkspace() {
                             </thead>
                             <tbody className="divide-y divide-[var(--line)]">
                               {currentYearSalesProjects.map((project) => {
-                                const salesDate = project.sale_recorded_at
+                                const salesDate = project.sale_recorded_at || project.created_at
                                 return (
                                   <tr key={project.id} className="cursor-pointer transition hover:bg-[var(--teal-active-bg)]">
                                     <td className="py-3 font-medium text-[var(--ink)]">{project.name}</td>
