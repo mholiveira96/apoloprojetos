@@ -21,6 +21,17 @@ export const logTypes = ['pending', 'received_material', 'note', 'delivery', 're
 export const partners: string[] = ['Matheus', 'Luís', 'Letícia']
 export const leadSources = ['indicacao', 'site', 'instagram', 'linkedin', 'repete', 'parceiro', 'outro'] as const
 export const disciplines = ['estrutural', 'arquitetonico', 'eletrico', 'hidraulico', 'incendio', 'climatizacao', 'legalizacao', 'outro'] as const
+
+export const DISCIPLINE_ALIAS: Record<string, string> = {
+  estrutural: 'Estrutural',
+  arquitetonico: 'Arquitetônico',
+  eletrico: 'Elétrico',
+  hidraulico: 'Hidrossanitário',
+  incendio: 'Incêndio',
+  climatizacao: 'Climatização',
+  legalizacao: 'Legalização',
+  outro: 'Outro',
+}
 export const expenseCategories = [
   'aluguel',
   'endomarketing',
@@ -65,7 +76,7 @@ export const LABELS: Record<string, string> = {
   estrutural: 'Estrutural',
   arquitetonico: 'Arquitetônico',
   eletrico: 'Elétrico',
-  hidraulico: 'Hidráulico',
+  hidraulico: 'Hidrossanitário',
   incendio: 'Combate a incêndio',
   climatizacao: 'Climatização',
   legalizacao: 'Legalização',

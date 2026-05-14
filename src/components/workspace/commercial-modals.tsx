@@ -130,24 +130,18 @@ export function LeadDetailModal({
   lead,
   draft,
   onChange,
-  onSave,
   onTouch,
   onConvert,
-  onStageChange,
   timelineItems,
-  mutating,
 }: {
   open: boolean
   onClose: () => void
   lead: Lead
   draft: LeadDetailForm
   onChange: (field: keyof LeadDetailForm, value: string) => void
-  onSave: () => void
   onTouch: () => void
   onConvert: () => void
-  onStageChange: (stage: string) => void
   timelineItems: ClientTimelineItem[]
-  mutating: boolean
 }) {
   const followUp = leadFollowUpMeta(lead)
   return (
@@ -185,7 +179,7 @@ export function LeadDetailModal({
       {/* Editable fields */}
       <div className="mt-5 grid gap-3 md:grid-cols-2">
         <Editable label="Título" value={draft.title} onChange={(v) => onChange('title', v)} />
-        <Editable label="Etapa" value={draft.stage} onChange={(v) => { onChange('stage', v); onStageChange(v) }} options={leadStages.map((s) => ({ value: s, label: stageLabel(s) }))} />
+        <Editable label="Etapa" value={draft.stage} onChange={(v) => onChange('stage', v)} options={leadStages.map((s) => ({ value: s, label: stageLabel(s) }))} />
         <Editable label="Origem" value={draft.source} onChange={(v) => onChange('source', v)} options={leadSources.map((s) => ({ value: s, label: LABELS[s] }))} />
         <Editable label="Responsável" value={draft.salesOwner} onChange={(v) => onChange('salesOwner', v)} options={partners.map((p) => ({ value: p, label: p }))} />
         <Editable label="Valor estimado" value={draft.estimatedAmount} onChange={(v) => onChange('estimatedAmount', v)} type="number" />
@@ -235,9 +229,6 @@ export function LeadDetailModal({
       <div className="mt-5 flex flex-wrap gap-3 border-t border-[var(--line)] pt-4">
         <button type="button" className="inline-flex items-center gap-2 border border-[var(--line)] px-4 py-2.5 text-sm text-[var(--ink)] transition hover:bg-white" onClick={onTouch}>
           📞 Registrar contato hoje
-        </button>
-        <button type="button" className="inline-flex items-center gap-2 bg-[var(--ink)] px-4 py-2.5 text-sm text-white transition hover:bg-[var(--ink-soft)]" disabled={mutating} onClick={onSave}>
-          💾 Salvar
         </button>
         {lead.stage === 'won' && (
           <button type="button" className="inline-flex items-center gap-2 bg-[var(--teal)] px-4 py-2.5 text-sm text-white transition hover:opacity-90" onClick={onConvert}>

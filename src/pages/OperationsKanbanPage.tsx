@@ -32,13 +32,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  Columns3,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import type { BootstrapData, ClientTimelineItem, Lead, Project, Subproject } from '@/types/app'
 import { Panel, EmptyState } from '@/components/workspace/ui'
 import { formatCurrency, formatDate, numericValue, stageLabel, toDateInputValue } from '@/lib/formatters'
-import { projectStages, subprojectStages, partners, disciplines, LABELS } from '@/lib/constants'
+import { projectStages, subprojectStages, partners, disciplines, LABELS, DISCIPLINE_ALIAS } from '@/lib/constants'
 import { buildClientTimeline } from '@/lib/client-timeline'
 
 const OPS_STAGES = subprojectStages
@@ -48,7 +49,7 @@ type SortDirection = 'asc' | 'desc'
 function disciplineMeta(discipline: string): { Icon: LucideIcon; className: string } {
   const normalized = discipline.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
   if (normalized.includes('eletr') || normalized.includes('telecom')) return { Icon: Zap, className: 'border-[var(--yellow-border)] bg-[var(--yellow-bg)] text-[var(--yellow-text)]' }
-  if (normalized.includes('hidro') || normalized.includes('drenagem') || normalized.includes('gas')) return { Icon: Droplets, className: 'border-[var(--sky-border)] bg-[var(--sky-bg)] text-[var(--sky-text)]' }
+  if (normalized.includes('hidr') || normalized.includes('drenagem') || normalized.includes('gas')) return { Icon: Droplets, className: 'border-[var(--sky-border)] bg-[var(--sky-bg)] text-[var(--sky-text)]' }
   if (normalized.includes('incend') || normalized.includes('avcb') || normalized.includes('clcb')) return { Icon: Flame, className: 'border-[var(--rose-border)] bg-[var(--rose-bg)] text-[var(--rose-text)]' }
   if (normalized.includes('estrut')) return { Icon: Building2, className: 'border-[var(--stone-border)] bg-[var(--stone-bg)] text-[var(--stone-text)]' }
   if (normalized.includes('arquitet')) return { Icon: DraftingCompass, className: 'border-[var(--violet-border)] bg-[var(--violet-bg)] text-[var(--violet-text)]' }
@@ -66,9 +67,14 @@ function toSystemKey(value: string): string {
   const match = (disciplines as readonly string[]).find((d) => d.toLowerCase() === lower)
   if (match) return match
   for (const [key, label] of Object.entries(LABELS)) {
-    if (label === value) return key
+    if (label.toLowerCase() === lower) return key
   }
   return value
+}
+
+function showDiscipline(value: string): string {
+  const key = toSystemKey(value)
+  return DISCIPLINE_ALIAS[key] ?? key
 }
 
 function CurrencyInput({ value, onChange, className }: { value: string; onChange: (v: string) => void; className: string }) {
@@ -118,15 +124,15 @@ function DroppableColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`min-w-[280px] flex-1 [] border bg-[var(--bg-card-80)] p-4 transition-all duration-150 ${
+      className={`min-w-[280px] flex-1 flex flex-col [] border bg-[var(--bg-card-80)] p-4 transition-all duration-150 ${
         isOver ? 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)]' : 'border-[var(--line)]'
       }`}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] pb-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--line)] pb-3">
         <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]/75">{title}</div>
         <div className="rounded-full border border-[var(--line)] bg-[var(--bg-card-80)] px-2.5 py-1 text-xs font-medium text-[var(--ink)]">{count}</div>
       </div>
-      <div className="mt-4 space-y-3">{children}</div>
+      <div className="mt-4 flex-1 overflow-y-auto space-y-3">{children}</div>
     </div>
   )
 }
@@ -175,11 +181,11 @@ export function DraggableOpsCard({
         {subprojects.length ? (
           subprojects.map((subproject) => (
             <span key={subproject.id} className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">
-              {toSystemKey(subproject.discipline)}
+              {showDiscipline(subproject.discipline)}
             </span>
           ))
         ) : project.discipline ? (
-          <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">{toSystemKey(project.discipline)}</span>
+          <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">{showDiscipline(project.discipline)}</span>
         ) : null}
         {project.sales_owner ? (
           <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">{project.sales_owner}</span>
@@ -192,13 +198,6 @@ export function DraggableOpsCard({
           {project.deadline ? `Prazo ${formatDate(project.deadline)}` : null}
         </div>
       ) : null}
-      <button
-        type="button"
-        onClick={onClick}
-        className="mt-3 w-full rounded-xl border border-[var(--line)] py-1.5 text-xs font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
-      >
-        Ver detalhes
-      </button>
     </div>
   )
 }
@@ -228,52 +227,55 @@ function DraggableSubprojectCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`select-none [] border border-[var(--line)] bg-[var(--bg-card-92)] p-4 shadow-[var(--shadow-panel-xs)] transition-opacity ${
+      className={`select-none cursor-pointer [] border border-[var(--line)] bg-[var(--bg-card-92)] transition-all hover:border-[var(--teal-active-border)] hover:bg-[var(--teal-active-bg)] ${
         isDragging && !ghost ? 'opacity-40' : 'opacity-100'
       }`}
+      onClick={onClick}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 cursor-pointer" onClick={onClick}>
-          <div className="truncate font-medium text-[var(--ink)]">{project.name}</div>
-          <div className={`mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${className}`}>
-            <Icon className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{toSystemKey(subproject.discipline)}</span>
-          </div>
+      <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] px-3 py-2">
+        <div className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${className}`}>
+          <Icon className="h-3 w-3 shrink-0" />
+          <span>{showDiscipline(subproject.discipline)}</span>
         </div>
         <button
           {...listeners}
           {...attributes}
-          className="mt-0.5 shrink-0 cursor-grab touch-none text-[var(--ink-soft)]/50 hover:text-[var(--ink-soft)] active:cursor-grabbing"
+          className="shrink-0 cursor-grab touch-none text-[var(--ink-soft)]/30 hover:text-[var(--ink-soft)] active:cursor-grabbing"
           aria-label="Arrastar"
+          onClick={(e) => e.stopPropagation()}
         >
-          <GripVertical className="h-4 w-4" />
+          <GripVertical className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-        {subproject.responsible_partner ? (
-          <span className="rounded-full border border-[var(--line)] bg-[var(--paper)] px-2.5 py-1 font-medium text-[var(--ink-soft)]">{subproject.responsible_partner}</span>
+
+      <div className="px-3 py-3">
+        <div className="text-sm font-semibold leading-snug text-[var(--ink)]">{project.name}</div>
+        {project.client_name ? (
+          <div className="mt-0.5 truncate text-xs text-[var(--ink-soft)]">{project.client_name}</div>
         ) : null}
-        <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">{stageLabel(subproject.stage)}</span>
+
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {subproject.responsible_partner ? (
+            <span className="rounded-full border border-[var(--line)] bg-[var(--paper)] px-2 py-0.5 text-xs text-[var(--ink-soft)]">
+              {subproject.responsible_partner}
+            </span>
+          ) : null}
+          <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-xs text-[var(--ink-soft)]">
+            {stageLabel(subproject.stage)}
+          </span>
+        </div>
       </div>
-      {(hasDeadline || hasAmount) ? (
-        <div className="mt-4 grid grid-cols-2 gap-2 border border-[var(--line)] bg-[var(--paper)] px-3 py-2">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-soft)]/70">Valor</div>
-            <div className="mt-1 truncate text-sm font-semibold text-[var(--ink)]">{hasAmount ? formatCurrency(numericValue(subproject.amount)) : '—'}</div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.14em] text-[var(--ink-soft)]/70">Prazo</div>
-            <div className="mt-1 truncate text-sm font-semibold text-[var(--ink)]">{hasDeadline ? formatDate(project.deadline) : '—'}</div>
-          </div>
+
+      {(hasAmount || hasDeadline) ? (
+        <div className="flex items-center gap-4 border-t border-[var(--line)] px-3 py-2 text-xs">
+          {hasAmount ? (
+            <span className="font-semibold text-[var(--ink)]">{formatCurrency(numericValue(subproject.amount))}</span>
+          ) : null}
+          {hasDeadline ? (
+            <span className="text-[var(--ink-soft)]">{formatDate(project.deadline)}</span>
+          ) : null}
         </div>
       ) : null}
-      <button
-        type="button"
-        onClick={onClick}
-        className="mt-3 w-full rounded-xl border border-[var(--line)] py-1.5 text-xs font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
-      >
-        Ver detalhes
-      </button>
     </div>
   )
 }
@@ -404,7 +406,7 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
                           onClick={() => onCardClick(project.id, sp.id)}
                         >
                           <div className="truncate font-semibold">{project.name}</div>
-                          <div className="truncate opacity-70">{toSystemKey(sp.discipline)}</div>
+                          <div className="truncate opacity-70">{showDiscipline(sp.discipline)}</div>
                         </button>
                       )
                     })}
@@ -434,7 +436,7 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
                   <div className="mt-0.5 truncate text-xs text-[var(--ink-soft)]">{project.client_name || ''}</div>
                   <div className={`mt-2 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${chipClass}`}>
                     <Icon className="h-3 w-3 shrink-0" />
-                    {toSystemKey(sp.discipline)}
+                    {showDiscipline(sp.discipline)}
                   </div>
                 </div>
               )
@@ -476,7 +478,7 @@ function CompletionDateModal({
           <div>
             <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]/70">Conclusão</div>
             <h2 className="mt-1 text-xl font-semibold text-[var(--ink)]">{project.name}</h2>
-            <div className="mt-1 text-sm text-[var(--ink-soft)]">{subproject.discipline}</div>
+            <div className="mt-1 text-sm text-[var(--ink-soft)]">{showDiscipline(subproject.discipline)}</div>
           </div>
           <button onClick={onCancel} className="shrink-0 rounded-full border border-[var(--line)] p-2 text-[var(--ink-soft)] transition hover:bg-[var(--paper)]">
             <X className="h-4 w-4" />
@@ -514,9 +516,7 @@ interface ProjectModalProps {
   subproject?: Subproject
   timelineItems: ClientTimelineItem[]
   onClose: () => void
-  onSave: (form: ProjectModalForm) => void
   onAutoSave: (form: ProjectModalForm) => void
-  mutating: boolean
 }
 
 interface ProjectModalForm {
@@ -539,11 +539,11 @@ function timelineTone(kind: ClientTimelineItem['kind']) {
   return 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] text-[var(--teal)]'
 }
 
-function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSave, onAutoSave, mutating }: ProjectModalProps) {
+function ProjectDetailModal({ project, subproject, timelineItems, onClose, onAutoSave }: ProjectModalProps) {
   const [form, setForm] = useState<ProjectModalForm>({
     name: project.name || '',
     code: project.code || '',
-    discipline: subproject?.discipline || project.discipline || '',
+    discipline: toSystemKey(subproject?.discipline || project.discipline || ''),
     stage: project.stage || 'backlog',
     contractAmount: String(project.contract_amount || ''),
     salesOwner: subproject?.responsible_partner || project.sales_owner || '',
@@ -563,7 +563,7 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
     const t = window.setTimeout(() => {
       onAutoSaveRef.current(form)
       setSaveStatus('saved')
-    }, 2000)
+    }, 1000)
     return () => window.clearTimeout(t)
   }, [form])
 
@@ -701,23 +701,6 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onSav
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-[var(--line)] px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="border border-[var(--line)] px-5 py-2.5 text-sm text-[var(--ink)] transition hover:bg-[var(--paper)]"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={() => onSave(form)}
-            disabled={mutating}
-            className="bg-[var(--ink)] px-5 py-2.5 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
-          >
-            Salvar
-          </button>
-        </div>
       </div>
     </div>
   )
@@ -1018,6 +1001,29 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
   const [completionDraft, setCompletionDraft] = useState<{ subprojectId: string; projectId: string } | null>(null)
   const [completionDate, setCompletionDate] = useState(new Date().toISOString().slice(0, 10))
   const [searchQuery, setSearchQuery] = useState('')
+  const [hiddenStages, setHiddenStages] = useState<Set<string>>(new Set())
+  const [showColumnPicker, setShowColumnPicker] = useState(false)
+  const columnPickerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showColumnPicker) return
+    const handler = (e: MouseEvent) => {
+      if (columnPickerRef.current && !columnPickerRef.current.contains(e.target as Node)) {
+        setShowColumnPicker(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showColumnPicker])
+
+  const toggleStageVisibility = (stage: string) => {
+    setHiddenStages((prev) => {
+      const next = new Set(prev)
+      if (next.has(stage)) next.delete(stage)
+      else next.add(stage)
+      return next
+    })
+  }
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 6 },
@@ -1090,6 +1096,8 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
     [data, selectedProject],
   )
 
+  const visibleStages = useMemo(() => OPS_STAGES.filter((s) => !hiddenStages.has(s)), [hiddenStages])
+
   const completionSubproject = completionDraft ? data.subprojects.find((item) => item.id === completionDraft.subprojectId) ?? null : null
   const completionProject = completionDraft ? projectsById.get(completionDraft.projectId) ?? null : null
 
@@ -1152,26 +1160,6 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
     }, 0)
   }, [completionDate, completionDraft, submitMutation])
 
-  const handleProjectSave = useCallback(
-    (form: ProjectModalForm) => {
-      if (!selectedProject) return
-      const closeModal = () => { setSelectedProjectId(null); setSelectedSubprojectId(null) }
-      void submitMutation(
-        'updateProject',
-        { id: selectedProject.id, ...form },
-        selectedSubproject
-          ? () => void submitMutation(
-              'updateSubproject',
-              { id: selectedSubproject.id, discipline: form.discipline, responsiblePartner: form.salesOwner, amount: String(selectedSubproject.amount) },
-              closeModal,
-            )
-          : closeModal,
-        'Projeto atualizado',
-      )
-    },
-    [selectedProject, selectedSubproject, submitMutation],
-  )
-
   const handleProjectAutoSave = useCallback(
     (form: ProjectModalForm) => {
       if (!selectedProject) return
@@ -1226,7 +1214,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
               <button
                 type="button"
                 onClick={() => setViewMode('kanban')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition ${viewMode === 'kanban' ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition ${viewMode === 'kanban' ? 'bg-[var(--teal)] text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
               >
                 <LayoutGrid className="h-3.5 w-3.5" />
                 Kanban
@@ -1234,7 +1222,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
               <button
                 type="button"
                 onClick={() => setViewMode('calendar')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition ${viewMode === 'calendar' ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition ${viewMode === 'calendar' ? 'bg-[var(--teal)] text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
               >
                 <CalendarDays className="h-3.5 w-3.5" />
                 Calendário
@@ -1258,6 +1246,42 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
                 {label} {sortKey === key ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
               </button>
             )) : null}
+            {viewMode === 'kanban' ? (
+              <div ref={columnPickerRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowColumnPicker((v) => !v)}
+                  className={`inline-flex items-center gap-2 border px-3 py-2 text-xs font-medium transition ${
+                    showColumnPicker || hiddenStages.size > 0
+                      ? 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] text-[var(--teal)]'
+                      : 'border-[var(--line)] bg-[var(--bg-card-80)] text-[var(--ink)] hover:bg-[var(--paper)]'
+                  }`}
+                >
+                  <Columns3 className="h-3.5 w-3.5" />
+                  Colunas{hiddenStages.size > 0 ? ` (${OPS_STAGES.length - hiddenStages.size}/${OPS_STAGES.length})` : ''}
+                </button>
+                {showColumnPicker ? (
+                  <div className="absolute right-0 top-full z-50 mt-1 w-52 border border-[var(--line)] bg-[var(--bg-card-solid)] shadow-[var(--shadow-panel)] py-1">
+                    {OPS_STAGES.map((stage) => {
+                      const visible = !hiddenStages.has(stage)
+                      return (
+                        <button
+                          key={stage}
+                          type="button"
+                          onClick={() => toggleStageVisibility(stage)}
+                          className="flex w-full items-center gap-3 px-3 py-2 text-xs text-[var(--ink)] hover:bg-[var(--bg-card-80)] transition"
+                        >
+                          <span className={`flex h-4 w-4 shrink-0 items-center justify-center border ${visible ? 'border-[var(--teal)] bg-[var(--teal)]' : 'border-[var(--line)]'}`}>
+                            {visible ? <X className="h-2.5 w-2.5 text-white" /> : null}
+                          </span>
+                          {stageLabel(stage)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <button
               type="button"
               onClick={() => setShowCreateProject(true)}
@@ -1305,8 +1329,8 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
             onDragEnd={handleDragEnd}
           >
             <div className="overflow-x-auto pb-2">
-              <div className="flex gap-4" style={{ minWidth: `${OPS_STAGES.length * 296}px` }}>
-                {OPS_STAGES.map((stage) => (
+              <div className="flex gap-4 h-[calc(100vh-260px)]" style={{ minWidth: `${visibleStages.length * 296}px` }}>
+                {visibleStages.map((stage) => (
                   <DroppableColumn
                     key={stage}
                     id={stage}
@@ -1345,9 +1369,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
           subproject={selectedSubproject ?? undefined}
           timelineItems={selectedProjectTimeline}
           onClose={() => { setSelectedProjectId(null); setSelectedSubprojectId(null) }}
-          onSave={handleProjectSave}
           onAutoSave={handleProjectAutoSave}
-          mutating={mutating}
         />
       ) : null}
 

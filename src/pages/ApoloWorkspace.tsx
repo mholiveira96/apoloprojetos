@@ -170,7 +170,7 @@ export function ApoloWorkspace() {
       setData(next)
       setUser(next.user)
       onSuccess?.()
-      toast.success(successMessage || 'Salvo')
+      if (successMessage) toast.success(successMessage)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Ação falhou')
     } finally {
@@ -295,29 +295,27 @@ export function ApoloWorkspace() {
     [data?.leads, submitMutation],
   )
   useEffect(() => {
-    if (!data?.leads.length) { setSelectedLeadId(null); return }
+    if (!data?.leads.length) { leadIsDirtyRef.current = false; setSelectedLeadId(null); return }
     if (selectedLeadId && !data.leads.some((lead) => lead.id === selectedLeadId)) {
+      leadIsDirtyRef.current = false
       setSelectedLeadId(null)
     }
   }, [data?.leads, selectedLeadId])
 
   useEffect(() => {
-    if (!selectedLead) return
-    setLeadDetailForm({
-      title: selectedLead.title || '',
-      stage: selectedLead.stage || 'incoming',
-      source: selectedLead.source || '',
-      estimatedAmount: String(selectedLead.estimated_amount || ''),
-      salesOwner: selectedLead.sales_owner || '',
-      notes: selectedLead.notes || '',
-      inboundAt: toDateInputValue(selectedLead.inbound_at || selectedLead.created_at),
-      firstContactAt: toDateInputValue(selectedLead.first_contact_at),
-      lastContactAt: toDateInputValue(selectedLead.last_contact_at),
-      nextFollowUpAt: toDateInputValue(selectedLead.next_follow_up_at),
-      proposalSentAt: toDateInputValue(selectedLead.proposal_sent_at),
-      closedAt: toDateInputValue(selectedLead.closed_at),
-    })
-  }, [selectedLead])
+    if (!leadIsDirtyRef.current || !selectedLeadId) return
+    const capturedLeadId = selectedLeadId
+    const capturedForm = leadDetailForm
+    const timer = window.setTimeout(() => {
+      leadIsDirtyRef.current = false
+      void submitMutation(
+        'updateLead',
+        { id: capturedLeadId, ...capturedForm },
+        () => setCommercialStageOverrides((prev) => { const next = { ...prev }; delete next[capturedLeadId]; return next }),
+      )
+    }, 1000)
+    return () => window.clearTimeout(timer)
+  }, [leadDetailForm, selectedLeadId])
 
   if (checkingSession) {
     return (
@@ -832,7 +830,7 @@ export function ApoloWorkspace() {
                               <DroppableLeadColumn key={stage} stage={stage} title={stageLabel(stage)} count={stageLeads.length}>
                                 {stageLeads.length ? (
                                   stageLeads.map((lead) => (
-                                    <DraggableLeadCard key={lead.id} lead={lead} active={selectedLeadId === lead.id} onClick={setSelectedLeadId} />
+                                    <DraggableLeadCard key={lead.id} lead={lead} active={selectedLeadId === lead.id} onClick={selectLead} />
                                   ))
                                 ) : (
                                   <div className="border border-dashed border-[var(--line)] p-4 text-sm text-[var(--ink-soft)]">Nenhum lead aqui.</div>
@@ -862,7 +860,7 @@ export function ApoloWorkspace() {
                             .map((lead) => {
                               const followUp = leadFollowUpMeta(lead)
                               return (
-                                <tr key={lead.id} className="cursor-pointer transition hover:bg-[var(--teal-active-bg)]" onClick={() => setSelectedLeadId(lead.id)}>
+                                <tr key={lead.id} className="cursor-pointer transition hover:bg-[var(--teal-active-bg)]" onClick={() => selectLead(lead.id)}>
                                   <td className="py-4 font-medium text-[var(--ink)]">{lead.title}</td>
                                   <td className="py-4 text-[var(--ink-soft)]">{lead.client_name || '—'}</td>
                                   <td className="py-4 text-[var(--ink-soft)]">{formatCurrency(numericValue(lead.estimated_amount))}</td>
@@ -920,7 +918,7 @@ export function ApoloWorkspace() {
                                 return l.title.toLowerCase().includes(q) || (l.client_name || '').toLowerCase().includes(q)
                               })
                               .map((lead) => (
-                                <tr key={lead.id} className="cursor-pointer transition hover:bg-[var(--teal-active-bg)]" onClick={() => setSelectedLeadId(lead.id)}>
+                                <tr key={lead.id} className="cursor-pointer transition hover:bg-[var(--teal-active-bg)]" onClick={() => selectLead(lead.id)}>
                                   <td className="py-3 font-medium text-[var(--ink)]">{lead.title}</td>
                                   <td className="py-3 text-[var(--ink-soft)]">{lead.client_name || '—'}</td>
                                   <td className="py-3 text-[var(--ink-soft)]">{formatCurrency(numericValue(lead.estimated_amount))}</td>
@@ -967,11 +965,10 @@ export function ApoloWorkspace() {
                 {selectedLead && (
                   <LeadDetailModal
                     open={!!selectedLeadId}
-                    onClose={() => setSelectedLeadId(null)}
+                    onClose={() => selectLead(null)}
                     lead={selectedLead}
                     draft={leadDetailForm}
                     onChange={handleLeadDetailChange}
-                    onSave={() => void handleLeadSave()}
                     onTouch={() => void handleLeadTouch()}
                     onConvert={() => {
                       setConvertForm({
@@ -988,11 +985,7 @@ export function ApoloWorkspace() {
                       })
                       setShowConvertModal(true)
                     }}
-                    onStageChange={(stage: string) => {
-                      void submitMutation('updateLeadStage', { id: selectedLead.id, stage }, undefined, 'Etapa atualizada')
-                    }}
                     timelineItems={selectedLeadTimeline}
-                    mutating={mutating}
                   />
                 )}
 
@@ -1004,7 +997,7 @@ export function ApoloWorkspace() {
                   onSubmit={() => {
                     void submitMutation('createProjectFromLead', convertForm, () => {
                       setShowConvertModal(false)
-                      setSelectedLeadId(null)
+                      selectLead(null)
                     }, 'Projeto criado com sucesso')
                   }}
                   mutating={mutating}
