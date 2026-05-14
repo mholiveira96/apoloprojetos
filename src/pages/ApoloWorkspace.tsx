@@ -1008,7 +1008,7 @@ export function ApoloWorkspace() {
             ) : null}
 
             {section === 'financeiro' ? (
-              <FinancialPage data={data} />
+              <FinancialPage data={data} submitMutation={submitMutation} mutating={mutating} />
             ) : null}
 
             {section === 'fluxo' ? (

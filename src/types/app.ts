@@ -42,6 +42,7 @@ export type Project = {
   code: string | null
   discipline: string | null
   stage: string
+  archived: boolean
   contract_amount: number
   sales_owner: string | null
   sales_bonus_percent: number

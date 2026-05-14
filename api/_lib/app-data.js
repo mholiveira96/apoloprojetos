@@ -105,6 +105,7 @@ export async function getBootstrapData() {
         projects.code,
         projects.discipline,
         projects.stage,
+        projects.archived,
         projects.contract_amount,
         projects.sales_owner,
         projects.sales_bonus_percent,
@@ -296,6 +297,10 @@ export async function getBootstrapData() {
   const activeContractTotal = asNumber(financial.active_contract_total)
   const currentYearSales = asNumber(financial.current_year_sales)
   const deliveredUnpaidTotal = asNumber(financial.delivered_unpaid_total)
+  const projects = projectsResult.rows.map((project) => ({
+    ...project,
+    archived: Boolean(asNumber(project.archived)),
+  }))
 
   return {
     summary: {
@@ -312,7 +317,7 @@ export async function getBootstrapData() {
       deliveredUnpaidTotal,
     },
     leads: leadsResult.rows,
-    projects: projectsResult.rows,
+    projects,
     logs: logsResult.rows,
     receipts: receiptsResult.rows,
     expenses: expensesResult.rows,

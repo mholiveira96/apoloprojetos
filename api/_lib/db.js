@@ -50,6 +50,7 @@ const schemaStatements = [
     code TEXT,
     discipline TEXT,
     stage TEXT NOT NULL,
+    archived INTEGER NOT NULL DEFAULT 0,
     contract_amount REAL DEFAULT 0,
     sales_owner TEXT,
     sales_bonus_percent REAL DEFAULT 10,
@@ -190,6 +191,7 @@ async function runProjectSchemaMigrations() {
   await ensureColumn('projects', 'client_id', 'client_id TEXT REFERENCES clients(id)')
   await ensureColumn('projects', 'lead_id', 'lead_id TEXT REFERENCES leads(id)')
   await ensureColumn('projects', 'notes', 'notes TEXT')
+  await ensureColumn('projects', 'archived', 'archived INTEGER NOT NULL DEFAULT 0')
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_projects_client ON projects(client_id)`)
   await db.execute(`
     UPDATE projects
@@ -360,7 +362,7 @@ async function runExpenseSchemaMigrations() {
   }
 }
 
-const SCHEMA_VERSION = '7'
+const SCHEMA_VERSION = '8'
 
 export async function ensureSchema() {
   if (!schemaReady) {

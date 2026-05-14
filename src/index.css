@@ -19,7 +19,7 @@
   --bg-card-82: rgba(255, 255, 255, 0.72);
   --bg-card-85: rgba(255, 255, 255, 0.75);
   --bg-card-solid: #ffffff;
-  --bg-body-workspace: linear-gradient(160deg, #ffffff 0%, #f0fdfa 60%, #ccfbf1 100%);
+  --bg-body-workspace: #ffffff;
   --bg-metric: transparent;
   --ink-paragraph: rgba(10, 26, 26, 0.70);
   --ink-paragraph-78: rgba(10, 26, 26, 0.78);
@@ -151,8 +151,7 @@ body {
   margin: 0;
   font-family: 'Manrope', system-ui, sans-serif;
   color: var(--ink);
-  background:
-    linear-gradient(160deg, #ffffff 0%, #f0fdfa 55%, #ccfbf1 100%);
+  background: #ffffff;
   -webkit-font-smoothing: antialiased;
   transition: background 0.3s ease, color 0.3s ease;
 }

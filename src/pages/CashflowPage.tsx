@@ -31,6 +31,9 @@ const PAYOUT_KEY = 'repasse'
 export function CashflowPage({ data, submitMutation, mutating }: Props) {
   const [startDate, setStartDate] = useState(() => shiftDays(today(), -30))
   const [endDate, setEndDate] = useState(() => shiftDays(today(), 30))
+  const [entryFilter, setEntryFilter] = useState<'all' | 'expense' | 'payout'>('all')
+  const [projectFilterId, setProjectFilterId] = useState('')
+  const [partnerFilter, setPartnerFilter] = useState('')
 
   const [showEntrada, setShowEntrada] = useState(false)
   const [showSaida, setShowSaida] = useState(false)
@@ -44,10 +47,23 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
   const [payoutForm, setPayoutForm] = useState({ subprojectId: '', partnerName: partners[0], percentage: '', bankAccount: '', entryDate: today(), note: '' })
   const [saidaType, setSaidaType] = useState<string>('')
 
+  const payoutPartnerById = useMemo(
+    () => new Map(data.payouts.map((payout) => [payout.id, payout.partner_name])),
+    [data.payouts],
+  )
+
   const filtered = useMemo(
-    () => [...data.cashflow.filter((e) => e.entry_date >= startDate && e.entry_date <= endDate)]
-      .sort((a, b) => a.entry_date.localeCompare(b.entry_date)),
-    [data.cashflow, startDate, endDate],
+    () => [...data.cashflow.filter((entry) => {
+      if (entry.entry_date < startDate || entry.entry_date > endDate) return false
+      if (entryFilter !== 'all' && entry.entry_type !== entryFilter) return false
+      if (projectFilterId && entry.project_id !== projectFilterId) return false
+      if (partnerFilter) {
+        if (entry.entry_type !== 'payout') return false
+        return payoutPartnerById.get(entry.id) === partnerFilter
+      }
+      return true
+    })].sort((a, b) => a.entry_date.localeCompare(b.entry_date)),
+    [data.cashflow, startDate, endDate, entryFilter, projectFilterId, partnerFilter, payoutPartnerById],
   )
 
   const metrics = useMemo(
@@ -188,6 +204,40 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
           </div>
         }
       >
+        <div className="mb-4 grid gap-2 md:grid-cols-3">
+          <select
+            className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]"
+            value={entryFilter}
+            onChange={(e) => setEntryFilter(e.target.value as 'all' | 'expense' | 'payout')}
+          >
+            <option value="all">Todas as movimentações</option>
+            <option value="expense">Só despesas</option>
+            <option value="payout">Só repasses</option>
+          </select>
+          <select
+            className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]"
+            value={projectFilterId}
+            onChange={(e) => setProjectFilterId(e.target.value)}
+          >
+            <option value="">Todos os projetos</option>
+            {data.projects.map((project) => (
+              <option key={project.id} value={project.id}>{project.name}</option>
+            ))}
+          </select>
+          <select
+            className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]"
+            value={partnerFilter}
+            onChange={(e) => {
+              setPartnerFilter(e.target.value)
+              if (e.target.value) setEntryFilter('payout')
+            }}
+          >
+            <option value="">Todos os sócios</option>
+            {partners.map((partner) => (
+              <option key={partner} value={partner}>{partner}</option>
+            ))}
+          </select>
+        </div>
         {groupedByDay.length ? (
           <div className="divide-y divide-[var(--line)]">
             {groupedByDay.map(({ day, entries, dayNet, runningBalance }) => (
