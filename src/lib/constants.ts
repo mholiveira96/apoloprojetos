@@ -72,7 +72,7 @@ export const LABELS: Record<string, string> = {
   'concluído': 'Concluído',
   // Subproject stages
   'a-fazer': 'Aguardando',
-  'aguardando-revisao': 'Aguardando revisão',
+  'aguardando-revisao': 'Acompanhamento',
   // Disciplines
   estrutural: 'Estrutural',
   arquitetonico: 'Arquitetônico',

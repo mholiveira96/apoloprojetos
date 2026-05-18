@@ -654,7 +654,7 @@ export function ApoloWorkspace() {
                 </div>
 
                 <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-                  <Panel title="Subprojetos ativos" subtitle="Subprojetos em andamento, aguardando revisão ou bloqueados." actions={
+                  <Panel title="Subprojetos ativos" subtitle="Subprojetos em andamento, em acompanhamento ou bloqueados." actions={
                     <div className="inline-flex border border-[var(--line)]">
                       {(['recent', 'stage', 'partner'] as const).map((opt) => (
                         <button key={opt} type="button" onClick={() => setSubprojectSort(opt)}
