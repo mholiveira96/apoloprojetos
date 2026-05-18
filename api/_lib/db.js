@@ -119,6 +119,7 @@ const schemaStatements = [
     stage TEXT NOT NULL DEFAULT 'a-fazer',
     responsible_partner TEXT NOT NULL,
     deadline TEXT,
+    observacao TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (project_id) REFERENCES projects(id)
@@ -131,6 +132,14 @@ const schemaStatements = [
     uploaded_at TEXT NOT NULL,
     uploaded_by TEXT,
     FOREIGN KEY (lead_id) REFERENCES leads(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS subproject_comments (
+    id TEXT PRIMARY KEY,
+    subproject_id TEXT NOT NULL,
+    body TEXT NOT NULL,
+    created_by TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (subproject_id) REFERENCES subprojects(id)
   )`,
   `CREATE INDEX IF NOT EXISTS idx_leads_stage ON leads(stage)`,
   `CREATE INDEX IF NOT EXISTS idx_projects_stage ON projects(stage)`,
@@ -257,9 +266,11 @@ async function runSubprojectSchemaMigrations() {
     WHERE subprojects.deadline IS NULL
       AND EXISTS (SELECT 1 FROM projects WHERE projects.id = subprojects.project_id AND deadline IS NOT NULL)
   `)
+  await ensureColumn('subprojects', 'observacao', 'observacao TEXT')
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_subprojects_project ON subprojects(project_id)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_subprojects_stage ON subprojects(stage)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_subprojects_contracted_at ON subprojects(contracted_at)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_subproject_comments_subproject ON subproject_comments(subproject_id, created_at DESC)`)
 
   const migrationFlag = await db.execute(`SELECT value FROM app_meta WHERE key = 'migration_projects_to_subprojects_v1'`)
   if (migrationFlag.rows.length > 0) return

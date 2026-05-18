@@ -36,7 +36,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
-import type { BootstrapData, ClientTimelineItem, Lead, Project, Subproject } from '@/types/app'
+import type { BootstrapData, ClientTimelineItem, Lead, Project, Subproject, SubprojectComment } from '@/types/app'
 import { Panel, EmptyState } from '@/components/workspace/ui'
 import { formatCurrency, formatDate, numericValue, stageLabel, toDateInputValue } from '@/lib/formatters'
 import { projectStages, subprojectStages, partners, disciplines, LABELS, DISCIPLINE_ALIAS } from '@/lib/constants'
@@ -313,7 +313,7 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
       }
     }
     return map
-  }, [subprojects, projectsById, year, month])
+  }, [subprojects, year, month])
 
   const noDeadline = useMemo(
     () => subprojects.filter((sp) => !sp.deadline),
@@ -513,11 +513,14 @@ function CompletionDateModal({
 
 interface ProjectModalProps {
   project: Project
-  subproject?: Subproject
+  subproject: Subproject | null
+  comments: SubprojectComment[]
   timelineItems: ClientTimelineItem[]
   onClose: () => void
   onAutoSave: (form: ProjectModalForm) => void
   onSubprojectStageChange?: (stage: string) => void
+  onAddComment: (body: string) => void
+  mutating: boolean
 }
 
 interface ProjectModalForm {
@@ -528,8 +531,8 @@ interface ProjectModalForm {
   contractAmount: string
   salesOwner: string
   statusNote: string
-  notes: string
   subprojectDeadline: string
+  observacao: string
 }
 
 function timelineTone(kind: ClientTimelineItem['kind']) {
@@ -540,7 +543,7 @@ function timelineTone(kind: ClientTimelineItem['kind']) {
   return 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] text-[var(--teal)]'
 }
 
-function ProjectDetailModal({ project, subproject, timelineItems, onClose, onAutoSave, onSubprojectStageChange }: ProjectModalProps) {
+function ProjectDetailModal({ project, subproject, comments, timelineItems, onClose, onAutoSave, onSubprojectStageChange, onAddComment, mutating }: ProjectModalProps) {
   const [form, setForm] = useState<ProjectModalForm>({
     name: project.name || '',
     code: project.code || '',
@@ -549,28 +552,28 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onAut
     contractAmount: String(project.contract_amount || ''),
     salesOwner: subproject?.responsible_partner || project.sales_owner || '',
     statusNote: project.status_note || '',
-    notes: project.notes || '',
     subprojectDeadline: toDateInputValue(subproject?.deadline),
+    observacao: subproject?.observacao || '',
   })
   const [localSubprojectStage, setLocalSubprojectStage] = useState(subproject?.stage ?? '')
   const [notesTab, setNotesTab] = useState<'edit' | 'preview'>('edit')
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle')
   const firstRender = useRef(true)
   const onAutoSaveRef = useRef(onAutoSave)
+  const formFingerprint = useMemo(() => JSON.stringify(form), [form])
+  const [lastSavedFingerprint, setLastSavedFingerprint] = useState(formFingerprint)
+  const saveStatus = lastSavedFingerprint === formFingerprint ? 'saved' : 'idle'
+
   useEffect(() => { onAutoSaveRef.current = onAutoSave }, [onAutoSave])
-  useEffect(() => {
-    if (subproject?.stage !== undefined) setLocalSubprojectStage(subproject.stage)
-  }, [subproject?.stage])
 
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return }
-    setSaveStatus('idle')
     const t = window.setTimeout(() => {
       onAutoSaveRef.current(form)
-      setSaveStatus('saved')
+      setLastSavedFingerprint(formFingerprint)
     }, 1000)
     return () => window.clearTimeout(t)
-  }, [form])
+  }, [form, formFingerprint])
+  const [commentDraft, setCommentDraft] = useState('')
 
   const set = (field: keyof ProjectModalForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }))
@@ -694,7 +697,10 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onAut
 
           <div className="md:col-span-2">
             <div className="mb-2 flex items-center justify-between">
-              <label className="text-xs font-medium text-[var(--ink-soft)]">Notas do projeto</label>
+              <div>
+                <label className="text-xs font-medium text-[var(--ink-soft)]">Observação do subprojeto</label>
+                {subproject ? <div className="mt-1 text-xs text-[var(--ink-soft)]">{subproject.discipline} · {subproject.responsible_partner || 'Sem responsável operacional'}</div> : null}
+              </div>
               <div className="flex rounded-full border border-[var(--line)] bg-[var(--paper)] p-0.5 text-xs">
                 <button
                   type="button"
@@ -714,20 +720,67 @@ function ProjectDetailModal({ project, subproject, timelineItems, onClose, onAut
             </div>
             {notesTab === 'edit' ? (
               <textarea
-                className="min-h-[180px] w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-3 font-mono text-sm"
-                placeholder="Suporta Markdown: **negrito**, _itálico_, `código`, tabelas, listas…"
-                value={form.notes}
-                onChange={set('notes')}
+                className="min-h-[140px] w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm"
+                placeholder="Ex.: PGRCC, RITUR, memorial, licença, tipo de documento..."
+                value={form.observacao}
+                onChange={set('observacao')}
               />
             ) : (
-              <div className="prose prose-sm min-h-[180px] max-w-none border border-[var(--line)] bg-[var(--paper)] px-4 py-3">
-                {form.notes ? (
-                  <ReactMarkdown>{form.notes}</ReactMarkdown>
+              <div className="min-h-[140px] rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--ink)]">
+                {form.observacao ? (
+                  <ReactMarkdown>{form.observacao}</ReactMarkdown>
                 ) : (
-                  <p className="text-[var(--ink-soft)]">Nada escrito ainda.</p>
+                  <p className="text-[var(--ink-soft)]">Nenhuma observação definida para este subprojeto.</p>
                 )}
               </div>
             )}
+          </div>
+
+          <div className="md:col-span-2 rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.82)] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Comentários</div>
+                <div className="mt-1 text-sm font-medium text-[var(--ink)]">Notas com autor e horário</div>
+              </div>
+              <div className="text-xs text-[var(--ink-soft)]">{comments.length} comentário{comments.length !== 1 ? 's' : ''}</div>
+            </div>
+            <div className="mt-4 space-y-3">
+              {comments.map((comment) => (
+                <div key={comment.id} className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3">
+                  <div className="flex items-center justify-between gap-3 text-xs text-[var(--ink-soft)]">
+                    <span className="font-medium text-[var(--ink)]">{comment.created_by || 'Equipe Apolo'}</span>
+                    <span>{formatDate(comment.created_at)}</span>
+                  </div>
+                  <div className="mt-2 text-sm text-[var(--ink)]">{comment.body}</div>
+                </div>
+              ))}
+              {comments.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/75 px-4 py-3 text-sm text-[var(--ink-soft)]">
+                  Ainda não há comentários para esse subprojeto.
+                </div>
+              ) : null}
+            </div>
+            <div className="mt-4 flex flex-col gap-3">
+              <textarea
+                className="min-h-[100px] w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm"
+                placeholder="Escreva um comentário para registrar contexto, revisão, pendência..."
+                value={commentDraft}
+                onChange={(event) => setCommentDraft(event.target.value)}
+              />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  disabled={mutating || !commentDraft.trim() || !subproject}
+                  onClick={() => {
+                    onAddComment(commentDraft)
+                    setCommentDraft('')
+                  }}
+                  className="rounded-2xl border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] disabled:opacity-60"
+                >
+                  Adicionar comentário
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -890,6 +943,7 @@ interface CreateFromLeadForm {
   salesOwner: string
   contractAmount: string
   statusNote: string
+  observacao: string
 }
 
 function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFromLeadModalProps) {
@@ -902,6 +956,7 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
     salesOwner: selectedLead?.sales_owner || '',
     contractAmount: String(selectedLead?.estimated_amount || ''),
     statusNote: '',
+    observacao: '',
   })
 
   const handleLeadChange = (leadId: string) => {
@@ -915,7 +970,7 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
     }))
   }
 
-  const set = (field: keyof CreateFromLeadForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const set = (field: keyof CreateFromLeadForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }))
 
   return (
@@ -981,6 +1036,15 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
               <div>
                 <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do contrato</label>
                 <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" value={form.contractAmount} onChange={set('contractAmount')} />
+              </div>
+              <div className="col-span-2">
+                <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Observação do subprojeto</label>
+                <textarea
+                  className="min-h-[96px] w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm"
+                  value={form.observacao}
+                  onChange={set('observacao')}
+                  placeholder="Ex.: PGRCC, RITUR, licença, tipo de documento..."
+                />
               </div>
             </div>
           </div>
@@ -1074,7 +1138,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
       if (result === 0) result = a.discipline.localeCompare(b.discipline)
       return result * direction
     })
-  }, [projectsById, sortDirection, sortKey, subprojectsWithOverrides])
+  }, [sortDirection, sortKey, subprojectsWithOverrides])
 
   const filteredSubprojects = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -1107,6 +1171,14 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
   const selectedSubproject = useMemo(
     () => selectedSubprojectId ? (subprojectsWithOverrides.find((s) => s.id === selectedSubprojectId) ?? null) : null,
     [selectedSubprojectId, subprojectsWithOverrides],
+  )
+  const selectedSubprojectComments = useMemo(
+    () => selectedSubproject
+      ? data.subprojectComments
+        .filter((comment) => comment.subproject_id === selectedSubproject.id)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      : [],
+    [data.subprojectComments, selectedSubproject],
   )
   const selectedProjectTimeline = useMemo(
     () => selectedProject ? buildClientTimeline(data, selectedProject.client_name, { projectId: selectedProject.id }) : [],
@@ -1190,6 +1262,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
               responsiblePartner: form.salesOwner,
               amount: String(selectedSubproject.amount),
               deadline: form.subprojectDeadline || null,
+              observacao: form.observacao,
             })
           : undefined,
       )
@@ -1216,6 +1289,19 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
       ).catch(() => {
         setStageOverrides((prev) => { const next = { ...prev }; delete next[id]; return next })
       })
+    },
+    [selectedSubproject, submitMutation],
+  )
+
+  const handleAddSubprojectComment = useCallback(
+    (body: string) => {
+      if (!selectedSubproject) return
+      void submitMutation(
+        'addSubprojectComment',
+        { subprojectId: selectedSubproject.id, body },
+        undefined,
+        'Comentário adicionado',
+      )
     },
     [selectedSubproject, submitMutation],
   )
@@ -1387,7 +1473,10 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
                             key={subproject.id}
                             subproject={subproject}
                             project={project}
-                            onClick={() => { setSelectedProjectId(project.id); setSelectedSubprojectId(subproject.id) }}
+                            onClick={() => {
+                              setSelectedProjectId(project.id)
+                              setSelectedSubprojectId(subproject.id)
+                            }}
                           />
                         )
                       })
@@ -1406,12 +1495,16 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
 
       {selectedProject ? (
         <ProjectDetailModal
+          key={`${selectedProject.id}:${selectedSubproject?.id ?? 'none'}`}
           project={selectedProject}
-          subproject={selectedSubproject ?? undefined}
+          subproject={selectedSubproject}
+          comments={selectedSubprojectComments}
           timelineItems={selectedProjectTimeline}
           onClose={() => { setSelectedProjectId(null); setSelectedSubprojectId(null) }}
           onAutoSave={handleProjectAutoSave}
           onSubprojectStageChange={handleSubprojectStageChangeFromModal}
+          onAddComment={handleAddSubprojectComment}
+          mutating={mutating}
         />
       ) : null}
 

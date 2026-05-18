@@ -132,10 +132,19 @@ export type Subproject = {
   stage: string
   responsible_partner: string
   deadline: string | null
+  observacao: string | null
   contracted_at: string | null
   created_at: string
   updated_at: string
   project_name: string
+}
+
+export type SubprojectComment = {
+  id: string
+  subproject_id: string
+  body: string
+  created_by: string | null
+  created_at: string
 }
 
 export type CashflowEntry = {
@@ -162,4 +171,5 @@ export type BootstrapData = {
   payouts: Payout[]
   cashflow: CashflowEntry[]
   subprojects: Subproject[]
+  subprojectComments: SubprojectComment[]
 }

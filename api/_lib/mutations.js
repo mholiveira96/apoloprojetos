@@ -18,6 +18,30 @@ function todayIsoDate() {
   return nowIso().slice(0, 10)
 }
 
+function buildSubprojectPayloads(payload, contractAmount, fallbackResponsible) {
+  const explicitSubprojects = Array.isArray(payload.subprojects) ? payload.subprojects : []
+  if (explicitSubprojects.length > 0) {
+    return explicitSubprojects.map((sp) => ({
+      discipline: normalizeText(sp.discipline),
+      amount: normalizeAmount(sp.amount),
+      responsiblePartner: normalizeText(sp.responsiblePartner),
+      deadline: normalizeDate(sp.deadline),
+      observacao: normalizeText(sp.observacao),
+    }))
+  }
+
+  const discipline = normalizeText(payload.discipline)
+  const responsiblePartner = normalizeText(payload.salesOwner) || fallbackResponsible
+  if (!discipline && !responsiblePartner && contractAmount <= 0) return []
+  return [{
+    discipline,
+    amount: contractAmount,
+    responsiblePartner,
+    deadline: normalizeDate(payload.deadline),
+    observacao: normalizeText(payload.observacao),
+  }]
+}
+
 async function upsertClient(clientName, extras = {}) {
   const db = getDb()
   const name = normalizeText(clientName)
@@ -275,6 +299,19 @@ export async function runMutation(action, payload, actor) {
           normalizeText(payload.id),
         ],
       })
+
+      const subprojectId = normalizeText(payload.subprojectId)
+      if (subprojectId) {
+        await db.execute({
+          sql: `UPDATE subprojects
+                SET responsible_partner = ?,
+                    observacao = ?,
+                    updated_at = ?
+                WHERE id = ?`,
+          args: [normalizeText(payload.salesOwner), normalizeText(payload.subprojectObservacao), timestamp, subprojectId],
+        })
+      }
+
       return { ok: true }
     }
 
@@ -290,6 +327,8 @@ export async function runMutation(action, payload, actor) {
       const projectId = createId('project')
       const clientId = lead.client_id ?? null
       const contractedAt = normalizeDate(payload.closedAt) || todayIsoDate()
+      const responsiblePartner = normalizeText(payload.salesOwner) || String(lead.sales_owner ?? '')
+      const subprojects = buildSubprojectPayloads(payload, contractAmount, responsiblePartner)
 
       await db.execute({
         sql: `INSERT INTO projects (
@@ -313,13 +352,12 @@ export async function runMutation(action, payload, actor) {
         ],
       })
 
-      // Create subprojects from payload
-      const subprojects = payload.subprojects
+      // Create subprojects from payload or operational defaults
       if (Array.isArray(subprojects) && subprojects.length > 0) {
         for (const sp of subprojects) {
           await db.execute({
-            sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, deadline, contracted_at, created_at, updated_at)
-                  VALUES (?, ?, ?, ?, 'a-fazer', ?, ?, ?, ?, ?)`,
+            sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, deadline, observacao, contracted_at, created_at, updated_at)
+                  VALUES (?, ?, ?, ?, 'a-fazer', ?, ?, ?, ?, ?, ?)`,
             args: [
               createId('sp'),
               projectId,
@@ -327,6 +365,7 @@ export async function runMutation(action, payload, actor) {
               normalizeAmount(sp.amount),
               normalizeText(sp.responsiblePartner),
               normalizeDate(sp.deadline),
+              normalizeText(sp.observacao),
               contractedAt,
               timestamp,
               timestamp,
@@ -372,8 +411,8 @@ export async function runMutation(action, payload, actor) {
       const spProjectId = normalizeText(payload.projectId)
       if (!spProjectId) throw new Error('projectId Ã© obrigatÃ³rio')
       await db.execute({
-        sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, deadline, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, deadline, observacao, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           createId('sp'),
           spProjectId,
@@ -382,6 +421,7 @@ export async function runMutation(action, payload, actor) {
           normalizeText(payload.stage) || 'a-fazer',
           normalizeText(payload.responsiblePartner),
           normalizeDate(payload.deadline),
+          normalizeText(payload.observacao),
           timestamp,
           timestamp,
         ],
@@ -397,6 +437,9 @@ export async function runMutation(action, payload, actor) {
                   amount = ?,
                   responsible_partner = ?,
                   deadline = ?,
+                  observacao = ?,
+                  deadline = ?,
+                  observacao = ?,
                   updated_at = ?
               WHERE id = ?`,
         args: [
@@ -404,10 +447,32 @@ export async function runMutation(action, payload, actor) {
           normalizeAmount(payload.amount),
           normalizeText(payload.responsiblePartner),
           normalizeDate(payload.deadline),
+          normalizeDate(payload.deadline),
+          normalizeText(payload.observacao),
           timestamp,
           spId,
         ],
       })
+      return { ok: true }
+    }
+
+    case 'addSubprojectComment': {
+      const subprojectId = normalizeText(payload.subprojectId)
+      const body = normalizeText(payload.body)
+      if (!subprojectId) throw new Error('subprojectId é obrigatório')
+      if (!body) throw new Error('Comentário é obrigatório')
+
+      await db.execute({
+        sql: `INSERT INTO subproject_comments (id, subproject_id, body, created_by, created_at)
+              VALUES (?, ?, ?, ?, ?)`,
+        args: [createId('spc'), subprojectId, body, actor, timestamp],
+      })
+
+      await db.execute({
+        sql: 'UPDATE subprojects SET updated_at = ? WHERE id = ?',
+        args: [timestamp, subprojectId],
+      })
+
       return { ok: true }
     }
 
