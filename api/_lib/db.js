@@ -375,6 +375,17 @@ async function runExpenseSchemaMigrations() {
 
 const SCHEMA_VERSION = '8'
 
+async function hasExpectedSchemaShape(db) {
+  try {
+    await db.execute(`SELECT lead_id FROM projects LIMIT 0`)
+    await db.execute(`SELECT observacao FROM subprojects LIMIT 0`)
+    await db.execute(`SELECT 1 FROM subproject_comments LIMIT 0`)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function ensureSchema() {
   if (!schemaReady) {
     schemaReady = (async () => {
@@ -382,7 +393,7 @@ export async function ensureSchema() {
       // Fast-path: if schema is already at current version, skip all migrations
       try {
         const meta = await db.execute(`SELECT value FROM app_meta WHERE key = 'schema_version' LIMIT 1`)
-        if (String(meta.rows[0]?.value) === SCHEMA_VERSION) return
+        if (String(meta.rows[0]?.value) === SCHEMA_VERSION && await hasExpectedSchemaShape(db)) return
       } catch { /* app_meta doesn't exist yet — proceed with full migration */ }
 
       for (const sql of schemaStatements) {
