@@ -34,6 +34,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
   const [entryFilter, setEntryFilter] = useState<'all' | 'expense' | 'payout'>('all')
   const [projectFilterId, setProjectFilterId] = useState('')
   const [partnerFilter, setPartnerFilter] = useState('')
+  const [sortOrder, setSortOrder] = useState<'oldest' | 'newest'>('oldest')
 
   const [showEntrada, setShowEntrada] = useState(false)
   const [showSaida, setShowSaida] = useState(false)
@@ -62,8 +63,10 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
         return payoutPartnerById.get(entry.id) === partnerFilter
       }
       return true
-    })].sort((a, b) => a.entry_date.localeCompare(b.entry_date)),
-    [data.cashflow, startDate, endDate, entryFilter, projectFilterId, partnerFilter, payoutPartnerById],
+    })].sort((a, b) => sortOrder === 'oldest'
+      ? a.entry_date.localeCompare(b.entry_date)
+      : b.entry_date.localeCompare(a.entry_date)),
+    [data.cashflow, startDate, endDate, entryFilter, projectFilterId, partnerFilter, payoutPartnerById, sortOrder],
   )
 
   const metrics = useMemo(
@@ -189,6 +192,13 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
             <input type="date" className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             <span className="text-xs text-[var(--ink-soft)]">→</span>
             <input type="date" className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <button
+              type="button"
+              onClick={() => setSortOrder((current) => current === 'oldest' ? 'newest' : 'oldest')}
+              className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs font-medium text-[var(--ink)] hover:bg-[var(--paper)]"
+            >
+              Ordenar: {sortOrder === 'oldest' ? 'mais antigas' : 'mais recentes'}
+            </button>
             <button
               onClick={() => setShowEntrada(true)}
               className="inline-flex items-center gap-1.5 bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700"
