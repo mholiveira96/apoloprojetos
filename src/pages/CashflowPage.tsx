@@ -4,6 +4,7 @@ import type { BootstrapData, CashflowEntry } from '@/types/app'
 import { expenseCategories, partners } from '@/lib/constants'
 import { formatCurrency, formatDate, numericValue, stageLabel } from '@/lib/formatters'
 import { EmptyState, MetricCard, Panel } from '@/components/workspace/ui'
+import { computeCashflowDayGroups } from '@/lib/cashflow'
 
 type SubmitMutation = (
   action: string,
@@ -83,21 +84,10 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
     [filtered],
   )
 
-  const groupedByDay = useMemo(() => {
-    const map = new Map<string, CashflowEntry[]>()
-    for (const e of filtered) {
-      const day = e.entry_date.slice(0, 10)
-      if (!map.has(day)) map.set(day, [])
-      map.get(day)!.push(e)
-    }
-    // Build array with running balance
-    let running = 0
-    return Array.from(map.entries()).map(([day, entries]) => {
-      const dayNet = entries.reduce((s, e) => s + numericValue(e.signed_amount), 0)
-      running += dayNet
-      return { day, entries, dayNet, runningBalance: running }
-    })
-  }, [filtered])
+  const groupedByDay = useMemo(
+    () => computeCashflowDayGroups(filtered, sortOrder),
+    [filtered, sortOrder],
+  )
 
   // Selected subproject for payout form
   const selectedSubproject = useMemo(
