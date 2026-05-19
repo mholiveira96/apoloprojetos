@@ -72,7 +72,7 @@ export function LeadModal({
         </select>
         <input className="border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" type="date" value={form.nextFollowUpAt} onChange={(e) => setForm((c) => ({ ...c, nextFollowUpAt: e.target.value }))} placeholder="Próximo follow-up" />
         <textarea className="md:col-span-2 min-h-24 border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" placeholder="Observações" value={form.notes} onChange={(e) => setForm((c) => ({ ...c, notes: e.target.value }))} />
-        <button className="md:col-span-2 inline-flex items-center justify-center gap-2 bg-[var(--ink)] px-4 py-3 text-white transition hover:bg-[var(--ink-soft)]" disabled={mutating}>
+        <button className="md:col-span-2 inline-flex items-center justify-center gap-2 bg-[var(--teal)] px-4 py-3 text-white transition hover:bg-[var(--teal-bright)]" disabled={mutating}>
           <Plus className="h-4 w-4" /> Criar lead
         </button>
       </form>
