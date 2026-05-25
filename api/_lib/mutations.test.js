@@ -107,6 +107,35 @@ test('updateProject updates observacao on selected subproject instead of parent 
   assert.equal(data.subprojects[0].responsible_partner, 'Matheus')
 })
 
+test('updateSubproject updates deadline and observacao without SQL placeholder mismatch', async () => {
+  const lead = await createWonLead({ clientName: 'Cliente Prazo', title: 'Projeto Hidrossanitario', estimatedAmount: '7000' })
+
+  await runMutation('createProjectFromLead', {
+    leadId: lead.id,
+    name: 'Projeto Hidrossanitario',
+    discipline: 'hidrossanitario',
+    salesOwner: 'Matheus',
+    contractAmount: '7000',
+  }, 'tester@example.com')
+
+  const created = await getBootstrapData()
+  const subproject = created.subprojects[0]
+
+  await runMutation('updateSubproject', {
+    id: subproject.id,
+    discipline: subproject.discipline,
+    responsiblePartner: 'Letícia',
+    amount: String(subproject.amount),
+    deadline: '2026-06-15',
+    observacao: 'Compatibilizar com arquitetura',
+  }, 'tester@example.com')
+
+  const data = await getBootstrapData()
+  assert.equal(data.subprojects[0].deadline, '2026-06-15')
+  assert.equal(data.subprojects[0].observacao, 'Compatibilizar com arquitetura')
+  assert.equal(data.subprojects[0].responsible_partner, 'Letícia')
+})
+
 test('addSubprojectComment stores comment with author and timestamp', async () => {
   const lead = await createWonLead({ clientName: 'Cliente Comments', title: 'Projeto Estrutural', estimatedAmount: '9000' })
 

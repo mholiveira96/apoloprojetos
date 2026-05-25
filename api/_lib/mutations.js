@@ -438,15 +438,12 @@ export async function runMutation(action, payload, actor) {
                   responsible_partner = ?,
                   deadline = ?,
                   observacao = ?,
-                  deadline = ?,
-                  observacao = ?,
                   updated_at = ?
               WHERE id = ?`,
         args: [
           normalizeText(payload.discipline),
           normalizeAmount(payload.amount),
           normalizeText(payload.responsiblePartner),
-          normalizeDate(payload.deadline),
           normalizeDate(payload.deadline),
           normalizeText(payload.observacao),
           timestamp,
