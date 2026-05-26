@@ -54,6 +54,20 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
     [data.payouts],
   )
 
+  const selectableProjects = useMemo(
+    () => data.projects.filter((project) => {
+      const stage = String(project.stage || '').trim().toLowerCase()
+      const contractAmount = numericValue(project.contract_amount)
+      const totalReceived = numericValue(project.total_received)
+      const isCompleted = stage === 'concluído'
+      const isFullyReceived = contractAmount > 0 && totalReceived >= contractAmount
+      const isArchived = Boolean(project.archived)
+
+      return !isArchived && !isCompleted && !isFullyReceived
+    }),
+    [data.projects],
+  )
+
   const filtered = useMemo(
     () => [...data.cashflow.filter((entry) => {
       if (entry.entry_date < startDate || entry.entry_date > endDate) return false
@@ -305,7 +319,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
             <form className="grid gap-4" onSubmit={handleEntradaSubmit}>
               <select required className={inputClass} value={receiptForm.projectId} onChange={(e) => setReceiptForm((c) => ({ ...c, projectId: e.target.value }))}>
                 <option value="">Selecione o projeto</option>
-                {data.projects.map((p) => (
+                {selectableProjects.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}{p.client_name ? ` · ${p.client_name}` : ''}</option>
                 ))}
               </select>
@@ -409,7 +423,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                 <>
                   <select required className={inputClass} value={payoutProjectId} onChange={(e) => { setPayoutProjectId(e.target.value); setPayoutForm((c) => ({ ...c, subprojectId: '' })) }}>
                     <option value="">Selecione o projeto</option>
-                    {data.projects.map((p) => (
+                    {selectableProjects.map((p) => (
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>
@@ -455,7 +469,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                 <>
                   <select className={inputClass} value={expenseForm.projectId} onChange={(e) => setExpenseForm((c) => ({ ...c, projectId: e.target.value }))}>
                     <option value="">Projeto (opcional)</option>
-                    {data.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    {selectableProjects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                   <input required type="number" min="0.01" step="0.01" className={inputClass} placeholder="Valor (R$)" value={expenseForm.amount} onChange={(e) => setExpenseForm((c) => ({ ...c, amount: e.target.value }))} />
                   <input className={inputClass} placeholder="Fornecedor (opcional)" value={expenseForm.vendor} onChange={(e) => setExpenseForm((c) => ({ ...c, vendor: e.target.value }))} />
