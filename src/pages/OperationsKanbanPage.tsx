@@ -13,7 +13,6 @@ import {
 import {
   X,
   Plus,
-  Eye,
   Pencil,
   GripVertical,
   ArrowUpDown,
@@ -35,7 +34,6 @@ import {
   Columns3,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
 import type { BootstrapData, ClientTimelineItem, Lead, Project, Subproject, SubprojectComment } from '@/types/app'
 import { Panel, EmptyState } from '@/components/workspace/ui'
 import { formatCurrency, formatDate, numericValue, stageLabel, toDateInputValue } from '@/lib/formatters'
@@ -217,7 +215,6 @@ function DraggableSubprojectCard({
   const hasAmount = numericValue(subproject.amount) > 0
   const hasContractAmount = numericValue(project.contract_amount) > 0
   const hasDeadline = Boolean(subproject.deadline)
-  const observationPreview = subproject.observacao?.trim()
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: subproject.id })
   const style: CSSProperties = {
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
@@ -266,12 +263,6 @@ function DraggableSubprojectCard({
             {stageLabel(subproject.stage)}
           </span>
         </div>
-
-        {observationPreview ? (
-          <div className="mt-2 line-clamp-2 text-xs leading-relaxed text-[var(--ink-soft)]">
-            {observationPreview}
-          </div>
-        ) : null}
       </div>
 
       {(hasAmount || hasContractAmount || hasDeadline) ? (
@@ -569,7 +560,7 @@ function ProjectDetailModal({ project, subproject, comments, timelineItems, onCl
     observacao: subproject?.observacao || '',
   })
   const [localSubprojectStage, setLocalSubprojectStage] = useState(subproject?.stage ?? '')
-  const [notesTab, setNotesTab] = useState<'edit' | 'preview'>('edit')
+  const [isEditingContractAmount, setIsEditingContractAmount] = useState(false)
   const firstRender = useRef(true)
   const onAutoSaveRef = useRef(onAutoSave)
   const formFingerprint = useMemo(() => JSON.stringify(form), [form])
@@ -650,7 +641,33 @@ function ProjectDetailModal({ project, subproject, comments, timelineItems, onCl
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do contrato</label>
-            <CurrencyInput className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.contractAmount} onChange={(v) => setForm((f) => ({ ...f, contractAmount: v }))} />
+            {isEditingContractAmount ? (
+              <div className="space-y-2">
+                <CurrencyInput className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.contractAmount} onChange={(v) => setForm((f) => ({ ...f, contractAmount: v }))} />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingContractAmount(false)}
+                    className="text-xs font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)]"
+                  >
+                    Fechar edição
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="group flex min-h-[42px] items-center justify-between gap-3 border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm text-[var(--ink-soft)]">
+                <span>{numericValue(form.contractAmount) > 0 ? formatCurrency(numericValue(form.contractAmount)) : 'Não informado'}</span>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingContractAmount(true)}
+                  className="text-[var(--ink-soft)] opacity-60 transition hover:text-[var(--ink)] md:opacity-0 md:group-hover:opacity-100"
+                  aria-label="Editar valor do contrato"
+                  title="Editar valor do contrato"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
           </div>
           {subproject ? (
             <div>
@@ -714,46 +731,17 @@ function ProjectDetailModal({ project, subproject, comments, timelineItems, onCl
             </div>
           </div>
 
-          <div className="md:col-span-2">
-            <div className="mb-2 flex items-center justify-between">
-              <div>
-                <label className="text-xs font-medium text-[var(--ink-soft)]">Observação do subprojeto</label>
-                {subproject ? <div className="mt-1 text-xs text-[var(--ink-soft)]">{subproject.discipline} · {subproject.responsible_partner || 'Sem responsável operacional'}</div> : null}
-              </div>
-              <div className="flex rounded-full border border-[var(--line)] bg-[var(--paper)] p-0.5 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setNotesTab('edit')}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 transition ${notesTab === 'edit' ? 'bg-[var(--bg-card-solid)] font-medium text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)]'}`}
-                >
-                  <Pencil className="h-3 w-3" /> Editar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNotesTab('preview')}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 transition ${notesTab === 'preview' ? 'bg-[var(--bg-card-solid)] font-medium text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)]'}`}
-                >
-                  <Eye className="h-3 w-3" /> Preview
-                </button>
-              </div>
-            </div>
-            {notesTab === 'edit' ? (
-              <textarea
-                className="min-h-[140px] w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm"
-                placeholder="Ex.: PGRCC, RITUR, memorial, licença, tipo de documento..."
+          {subproject ? (
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Observação do subprojeto</label>
+              <input
+                className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm"
+                placeholder="Ex.: PGRCC, RITUR, licença, tipo de documento..."
                 value={form.observacao}
                 onChange={set('observacao')}
               />
-            ) : (
-              <div className="min-h-[140px] rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--ink)]">
-                {form.observacao ? (
-                  <ReactMarkdown>{form.observacao}</ReactMarkdown>
-                ) : (
-                  <p className="text-[var(--ink-soft)]">Nenhuma observação definida para este subprojeto.</p>
-                )}
-              </div>
-            )}
-          </div>
+            </div>
+          ) : null}
 
           <div className="md:col-span-2 rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.82)] p-4">
             <div className="flex items-center justify-between gap-3">
@@ -838,7 +826,7 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
       setForm((f) => ({ ...f, [field]: e.target.value }))
 
   const setSp = (idx: number, field: 'discipline' | 'amount' | 'responsiblePartner' | 'deadline' | 'observacao') =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((f) => {
         const subprojects = [...f.subprojects]
         subprojects[idx] = { ...subprojects[idx], [field]: e.target.value }
@@ -922,8 +910,8 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
                       <X className="h-3.5 w-3.5" />
                     </button>
                   ) : <div />}
-                  <textarea
-                    className="col-span-5 min-h-[72px] rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs"
+                  <input
+                    className="col-span-5 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs"
                     placeholder="Observação do subprojeto"
                     value={sp.observacao}
                     onChange={setSp(idx, 'observacao')}
@@ -995,7 +983,7 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
     }))
   }
 
-  const set = (field: keyof CreateFromLeadForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+  const set = (field: keyof CreateFromLeadForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }))
 
   return (
@@ -1064,8 +1052,8 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
               </div>
               <div className="col-span-2">
                 <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Observação do subprojeto</label>
-                <textarea
-                  className="min-h-[96px] w-full rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm"
+                <input
+                  className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm"
                   value={form.observacao}
                   onChange={set('observacao')}
                   placeholder="Ex.: PGRCC, RITUR, licença, tipo de documento..."
