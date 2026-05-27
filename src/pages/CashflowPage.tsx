@@ -59,7 +59,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
       const stage = String(project.stage || '').trim().toLowerCase()
       const contractAmount = numericValue(project.contract_amount)
       const totalReceived = numericValue(project.total_received)
-      const archivedFlag = project.archived === true || project.archived === 1 || project.archived === '1'
+      const archivedFlag = project.archived === true || String(project.archived) === '1'
       const isCompleted = stage === 'concluído'
       const isFullyReceived = contractAmount > 0 && totalReceived >= contractAmount
 

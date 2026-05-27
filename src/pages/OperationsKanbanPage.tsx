@@ -49,7 +49,7 @@ type SortDirection = 'asc' | 'desc'
 function disciplineMeta(discipline: string): { Icon: LucideIcon; className: string } {
   const normalized = discipline.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
   if (normalized.includes('eletr') || normalized.includes('telecom')) return { Icon: Zap, className: 'border-[var(--yellow-border)] bg-[var(--yellow-bg)] text-[var(--yellow-text)]' }
-  if (normalized.includes('hidr') || normalized.includes('drenagem') || normalized.includes('gas')) return { Icon: Droplets, className: 'border-[var(--sky-border)] bg-[var(--sky-bg)] text-[var(--sky-text)]' }
+  if (normalized.includes('hidr') || normalized.includes('sanit') || normalized.includes('pluv') || normalized.includes('drenagem') || normalized.includes('gas')) return { Icon: Droplets, className: 'border-[var(--sky-border)] bg-[var(--sky-bg)] text-[var(--sky-text)]' }
   if (normalized.includes('incend') || normalized.includes('avcb') || normalized.includes('clcb')) return { Icon: Flame, className: 'border-[var(--rose-border)] bg-[var(--rose-bg)] text-[var(--rose-text)]' }
   if (normalized.includes('estrut')) return { Icon: Building2, className: 'border-[var(--stone-border)] bg-[var(--stone-bg)] text-[var(--stone-text)]' }
   if (normalized.includes('arquitet')) return { Icon: DraftingCompass, className: 'border-[var(--violet-border)] bg-[var(--violet-bg)] text-[var(--violet-text)]' }
@@ -215,7 +215,9 @@ function DraggableSubprojectCard({
 }) {
   const { Icon, className } = disciplineMeta(subproject.discipline)
   const hasAmount = numericValue(subproject.amount) > 0
+  const hasContractAmount = numericValue(project.contract_amount) > 0
   const hasDeadline = Boolean(subproject.deadline)
+  const observationPreview = subproject.observacao?.trim()
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: subproject.id })
   const style: CSSProperties = {
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
@@ -264,12 +266,21 @@ function DraggableSubprojectCard({
             {stageLabel(subproject.stage)}
           </span>
         </div>
+
+        {observationPreview ? (
+          <div className="mt-2 line-clamp-2 text-xs leading-relaxed text-[var(--ink-soft)]">
+            {observationPreview}
+          </div>
+        ) : null}
       </div>
 
-      {(hasAmount || hasDeadline) ? (
-        <div className="flex items-center gap-4 border-t border-[var(--line)] px-3 py-2 text-xs">
+      {(hasAmount || hasContractAmount || hasDeadline) ? (
+        <div className="flex flex-wrap items-center gap-4 border-t border-[var(--line)] px-3 py-2 text-xs">
           {hasAmount ? (
-            <span className="font-semibold text-[var(--ink)]">{formatCurrency(numericValue(subproject.amount))}</span>
+            <span className="font-semibold text-[var(--ink)]">Subprojeto {formatCurrency(numericValue(subproject.amount))}</span>
+          ) : null}
+          {hasContractAmount ? (
+            <span className="text-[var(--ink-soft)]">Contrato {formatCurrency(numericValue(project.contract_amount))}</span>
           ) : null}
           {hasDeadline ? (
             <span className="text-[var(--ink-soft)]">{formatDate(subproject.deadline)}</span>
@@ -529,6 +540,7 @@ interface ProjectModalForm {
   discipline: string
   stage: string
   contractAmount: string
+  subprojectAmount: string
   salesOwner: string
   statusNote: string
   subprojectDeadline: string
@@ -550,6 +562,7 @@ function ProjectDetailModal({ project, subproject, comments, timelineItems, onCl
     discipline: toSystemKey(subproject?.discipline || project.discipline || ''),
     stage: project.stage || 'backlog',
     contractAmount: String(project.contract_amount || ''),
+    subprojectAmount: String(subproject?.amount || ''),
     salesOwner: subproject?.responsible_partner || project.sales_owner || '',
     statusNote: project.status_note || '',
     subprojectDeadline: toDateInputValue(subproject?.deadline),
@@ -639,6 +652,12 @@ function ProjectDetailModal({ project, subproject, comments, timelineItems, onCl
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do contrato</label>
             <CurrencyInput className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.contractAmount} onChange={(v) => setForm((f) => ({ ...f, contractAmount: v }))} />
           </div>
+          {subproject ? (
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do subprojeto</label>
+              <CurrencyInput className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" value={form.subprojectAmount} onChange={(v) => setForm((f) => ({ ...f, subprojectAmount: v }))} />
+            </div>
+          ) : null}
           {subproject ? (
             <>
               <div>
@@ -791,13 +810,13 @@ function ProjectDetailModal({ project, subproject, comments, timelineItems, onCl
 
 // ─── Create project modal ─────────────────────────────────────────────────────
 
-interface CreateProjectForm {
+type CreateProjectForm = {
   clientName: string
   name: string
   code: string
   salesOwner: string
   contractAmount: string
-  subprojects: Array<{ discipline: string; amount: string; responsiblePartner: string; deadline: string }>
+  subprojects: Array<{ discipline: string; amount: string; responsiblePartner: string; deadline: string; observacao: string }>
 }
 
 function CreateProjectModal({ onClose, onCreate, mutating }: {
@@ -811,15 +830,15 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
     code: '',
     salesOwner: '',
     contractAmount: '',
-    subprojects: [{ discipline: '', amount: '', responsiblePartner: '', deadline: '' }],
+    subprojects: [{ discipline: '', amount: '', responsiblePartner: '', deadline: '', observacao: '' }],
   })
 
   const set = (field: keyof Omit<CreateProjectForm, 'subprojects'>) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [field]: e.target.value }))
 
-  const setSp = (idx: number, field: 'discipline' | 'amount' | 'responsiblePartner' | 'deadline') =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const setSp = (idx: number, field: 'discipline' | 'amount' | 'responsiblePartner' | 'deadline' | 'observacao') =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setForm((f) => {
         const subprojects = [...f.subprojects]
         subprojects[idx] = { ...subprojects[idx], [field]: e.target.value }
@@ -875,7 +894,7 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
               <span className="text-xs font-semibold text-[var(--ink-soft)]">Disciplinas</span>
               <button
                 type="button"
-                onClick={() => setForm((f) => ({ ...f, subprojects: [...f.subprojects, { discipline: '', amount: '', responsiblePartner: '', deadline: '' }] }))}
+                onClick={() => setForm((f) => ({ ...f, subprojects: [...f.subprojects, { discipline: '', amount: '', responsiblePartner: '', deadline: '', observacao: '' }] }))}
                 className="inline-flex items-center gap-1 rounded-xl border border-[var(--line)] px-3 py-1 text-xs text-[var(--ink)] transition hover:bg-[var(--paper)]"
               >
                 <Plus className="h-3 w-3" /> Adicionar
@@ -903,6 +922,12 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
                       <X className="h-3.5 w-3.5" />
                     </button>
                   ) : <div />}
+                  <textarea
+                    className="col-span-5 min-h-[72px] rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs"
+                    placeholder="Observação do subprojeto"
+                    value={sp.observacao}
+                    onChange={setSp(idx, 'observacao')}
+                  />
                 </div>
               ))}
             </div>
@@ -1260,7 +1285,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
               id: selectedSubproject.id,
               discipline: form.discipline,
               responsiblePartner: form.salesOwner,
-              amount: String(selectedSubproject.amount),
+              amount: form.subprojectAmount,
               deadline: form.subprojectDeadline || null,
               observacao: form.observacao,
             })
