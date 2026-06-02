@@ -98,9 +98,21 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
     [filtered],
   )
 
+  const globalBalance = useMemo(
+    () => data.cashflow.reduce((sum, entry) => sum + numericValue(entry.signed_amount), 0),
+    [data.cashflow],
+  )
+
+  const openingBalance = useMemo(
+    () => data.cashflow
+      .filter((entry) => entry.entry_date < startDate)
+      .reduce((sum, entry) => sum + numericValue(entry.signed_amount), 0),
+    [data.cashflow, startDate],
+  )
+
   const groupedByDay = useMemo(
-    () => computeCashflowDayGroups(filtered, sortOrder),
-    [filtered, sortOrder],
+    () => computeCashflowDayGroups(filtered, sortOrder, openingBalance),
+    [filtered, sortOrder, openingBalance],
   )
 
   // Selected subproject for payout form
@@ -181,9 +193,9 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
         <MetricCard label="Despesas" value={formatCurrency(metrics.expenses)} helper="Saídas operacionais no período" icon={ArrowUpCircle} />
         <MetricCard label="Repasses" value={formatCurrency(metrics.payouts)} helper="Repasses aos sócios no período" icon={HandCoins} />
         <MetricCard
-          label="Net"
-          value={formatCurrency(metrics.receipts - metrics.expenses - metrics.payouts)}
-          helper="Movimentação líquida no período"
+          label="Saldo global"
+          value={formatCurrency(globalBalance)}
+          helper="Acumulado desde o início — filtros só afetam a lista"
           icon={Landmark}
         />
       </div>

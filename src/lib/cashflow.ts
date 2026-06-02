@@ -14,6 +14,7 @@ export type CashflowDayGroup<TEntry extends CashflowLikeEntry> = {
 export function computeCashflowDayGroups<TEntry extends CashflowLikeEntry>(
   entries: TEntry[],
   sortOrder: 'oldest' | 'newest',
+  openingBalance = 0,
 ): CashflowDayGroup<TEntry>[] {
   const byDay = new Map<string, TEntry[]>()
 
@@ -23,7 +24,7 @@ export function computeCashflowDayGroups<TEntry extends CashflowLikeEntry>(
     byDay.get(day)!.push(entry)
   }
 
-  let running = 0
+  let running = openingBalance
   const chronologicalGroups = Array.from(byDay.entries()).map(([day, dayEntries]) => {
     const dayNet = dayEntries.reduce((sum, entry) => sum + Number(entry.signed_amount), 0)
     running += dayNet

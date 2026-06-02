@@ -25,3 +25,23 @@ test('computeCashflowDayGroups keeps running balances anchored to chronological 
     ],
   )
 })
+
+test('computeCashflowDayGroups applies opening balance before filtered entries', () => {
+  const entries = [
+    { id: 'e1', entry_date: '2026-01-10', signed_amount: -200 },
+    { id: 'r2', entry_date: '2026-01-12', signed_amount: 300 },
+  ]
+
+  const groups = computeCashflowDayGroups(entries, 'oldest', 1000)
+
+  assert.deepEqual(
+    groups.map((group) => ({
+      day: group.day,
+      runningBalance: group.runningBalance,
+    })),
+    [
+      { day: '2026-01-10', runningBalance: 800 },
+      { day: '2026-01-12', runningBalance: 1100 },
+    ],
+  )
+})
