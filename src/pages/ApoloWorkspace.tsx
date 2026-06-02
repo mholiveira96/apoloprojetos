@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
 import { getBootstrap, getSession, login, logout, mutate } from '@/lib/app-api'
-import type { BootstrapData, Lead, SessionUser } from '@/types/app'
+import type { BootstrapData, Lead, SessionUser, Subproject } from '@/types/app'
 import type { ConvertProjectForm, LeadDetailForm, ViewMode } from '@/types/forms'
 import { NAV_ITEMS, leadStages } from '@/lib/constants'
 import {
@@ -253,6 +253,10 @@ export function ApoloWorkspace() {
     setUser(null)
     setData(null)
     navigate('/app')
+  }
+
+  const openDashboardSubprojectCard = (subproject: Subproject) => {
+    navigate(`/app/operacoes?project=${encodeURIComponent(subproject.project_id)}&subproject=${encodeURIComponent(subproject.id)}`)
   }
 
   const selectedLead = useMemo(() => data?.leads?.find((lead) => lead.id === selectedLeadId) || null, [data?.leads, selectedLeadId])
@@ -644,7 +648,12 @@ export function ApoloWorkspace() {
                           const overdue = daysLeft < 0
                           const urgent = overdue || daysLeft <= 7
                           return (
-                            <div key={sp.id} className="flex items-start justify-between gap-3 border-b border-[var(--line)] py-3 text-sm last:border-b-0">
+                            <button
+                              key={sp.id}
+                              type="button"
+                              onClick={() => openDashboardSubprojectCard(sp)}
+                              className="flex w-full items-start justify-between gap-3 border-b border-[var(--line)] py-3 text-left text-sm transition hover:bg-[var(--paper)] last:border-b-0"
+                            >
                               <div className="min-w-0">
                                 <div className="truncate font-medium text-[var(--ink)]">{sp.project_name}</div>
                                 <div className="truncate text-xs text-[var(--ink-soft)]">{stageLabel(sp.discipline)}</div>
@@ -652,7 +661,7 @@ export function ApoloWorkspace() {
                               <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium ${urgent ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300' : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300'}`}>
                                 {overdue ? `${Math.abs(daysLeft)}d atrasado` : daysLeft === 0 ? 'hoje' : daysLeft === 1 ? 'amanhã' : `${daysLeft}d`}
                               </span>
-                            </div>
+                            </button>
                           )
                         })}
                       </div>

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   DndContext,
   useDroppable,
@@ -1086,6 +1087,7 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [selectedSubprojectId, setSelectedSubprojectId] = useState<string | null>(null)
   const [showCreateFromLead, setShowCreateFromLead] = useState(false)
@@ -1177,13 +1179,28 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
     [data.leads, data.projects],
   )
 
+  const querySelection = useMemo(() => {
+    const projectId = searchParams.get('project')
+    const subprojectId = searchParams.get('subproject')
+    if (!projectId || !subprojectId) return null
+
+    const projectExists = data.projects.some((project) => project.id === projectId)
+    const subprojectExists = data.subprojects.some((subproject) => subproject.id === subprojectId && subproject.project_id === projectId)
+    if (!projectExists || !subprojectExists) return null
+
+    return { projectId, subprojectId }
+  }, [data.projects, data.subprojects, searchParams])
+
+  const activeSelectedProjectId = selectedProjectId ?? querySelection?.projectId ?? null
+  const activeSelectedSubprojectId = selectedSubprojectId ?? querySelection?.subprojectId ?? null
+
   const selectedProject = useMemo(
-    () => data.projects.find((p) => p.id === selectedProjectId) ?? null,
-    [data.projects, selectedProjectId],
+    () => data.projects.find((p) => p.id === activeSelectedProjectId) ?? null,
+    [activeSelectedProjectId, data.projects],
   )
   const selectedSubproject = useMemo(
-    () => selectedSubprojectId ? (subprojectsWithOverrides.find((s) => s.id === selectedSubprojectId) ?? null) : null,
-    [selectedSubprojectId, subprojectsWithOverrides],
+    () => activeSelectedSubprojectId ? (subprojectsWithOverrides.find((s) => s.id === activeSelectedSubprojectId) ?? null) : null,
+    [activeSelectedSubprojectId, subprojectsWithOverrides],
   )
   const selectedSubprojectComments = useMemo(
     () => selectedSubproject
@@ -1513,7 +1530,13 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
           subproject={selectedSubproject}
           comments={selectedSubprojectComments}
           timelineItems={selectedProjectTimeline}
-          onClose={() => { setSelectedProjectId(null); setSelectedSubprojectId(null) }}
+          onClose={() => {
+            setSelectedProjectId(null)
+            setSelectedSubprojectId(null)
+            if (searchParams.has('project') || searchParams.has('subproject')) {
+              setSearchParams({}, { replace: true })
+            }
+          }}
           onAutoSave={handleProjectAutoSave}
           onSubprojectStageChange={handleSubprojectStageChangeFromModal}
           onAddComment={handleAddSubprojectComment}
