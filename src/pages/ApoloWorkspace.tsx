@@ -417,7 +417,7 @@ export function ApoloWorkspace() {
   )
 
   const in30DaysStr = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
-  const activeDeadlineStages = ['em-andamento', 'aguardando-revisao', 'bloqueado']
+  const activeDeadlineStages = ['em-andamento']
   const upcomingDeadlines = data.subprojects
     .filter((sp) => sp.deadline && sp.deadline <= in30DaysStr && activeDeadlineStages.includes(sp.stage))
     .sort((a, b) => a.deadline!.localeCompare(b.deadline!))
