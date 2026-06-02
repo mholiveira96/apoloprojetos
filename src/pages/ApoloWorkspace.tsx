@@ -32,6 +32,7 @@ import {
   formatDate,
   leadFollowUpMeta,
   numericValue,
+  parseDateValue,
   stageLabel,
   toDateInputValue,
 } from '@/lib/formatters'
@@ -412,8 +413,9 @@ export function ApoloWorkspace() {
   )
 
   const in30DaysStr = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+  const activeDeadlineStages = ['em-andamento', 'aguardando-revisao', 'bloqueado']
   const upcomingDeadlines = data.subprojects
-    .filter((sp) => sp.deadline && sp.deadline >= today && sp.deadline <= in30DaysStr)
+    .filter((sp) => sp.deadline && sp.deadline <= in30DaysStr && activeDeadlineStages.includes(sp.stage))
     .sort((a, b) => a.deadline!.localeCompare(b.deadline!))
     .slice(0, 8)
 
@@ -628,14 +630,19 @@ export function ApoloWorkspace() {
                     </div>
                   </Panel>
 
-                  <Panel title="Prazos nos próximos 30 dias" subtitle="Projetos com deadline se aproximando.">
+                  <Panel title="Prazos nos próximos 30 dias" subtitle="Projetos com deadline se aproximando ou já vencido.">
                     {upcomingDeadlines.length === 0 ? (
-                      <div className="border border-dashed border-[var(--line)] px-4 py-3 text-sm text-[var(--ink-soft)]">Nenhum prazo nos próximos 30 dias.</div>
+                      <div className="border border-dashed border-[var(--line)] px-4 py-3 text-sm text-[var(--ink-soft)]">Nenhum prazo próximo ou vencido.</div>
                     ) : (
                       <div>
                         {upcomingDeadlines.map((sp) => {
-                          const daysLeft = Math.ceil((new Date(sp.deadline!).getTime() - Date.now()) / 86400000)
-                          const urgent = daysLeft <= 7
+                          const deadlineDate = parseDateValue(sp.deadline)
+                          const todayDate = parseDateValue(today)
+                          const daysLeft = deadlineDate && todayDate
+                            ? Math.ceil((deadlineDate.getTime() - todayDate.getTime()) / 86400000)
+                            : 0
+                          const overdue = daysLeft < 0
+                          const urgent = overdue || daysLeft <= 7
                           return (
                             <div key={sp.id} className="flex items-start justify-between gap-3 border-b border-[var(--line)] py-3 text-sm last:border-b-0">
                               <div className="min-w-0">
@@ -643,7 +650,7 @@ export function ApoloWorkspace() {
                                 <div className="truncate text-xs text-[var(--ink-soft)]">{stageLabel(sp.discipline)}</div>
                               </div>
                               <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium ${urgent ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300' : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300'}`}>
-                                {daysLeft === 0 ? 'hoje' : daysLeft === 1 ? 'amanhã' : `${daysLeft}d`}
+                                {overdue ? `${Math.abs(daysLeft)}d atrasado` : daysLeft === 0 ? 'hoje' : daysLeft === 1 ? 'amanhã' : `${daysLeft}d`}
                               </span>
                             </div>
                           )
