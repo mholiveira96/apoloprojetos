@@ -33,6 +33,7 @@ import {
   ChevronRight,
   Search,
   Columns3,
+  Trash2,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { BootstrapData, ClientTimelineItem, Lead, Project, Subproject, SubprojectComment } from '@/types/app'
@@ -205,11 +206,13 @@ function DraggableSubprojectCard({
   subproject,
   project,
   onClick,
+  onDelete,
   ghost,
 }: {
   subproject: Subproject
   project: Project
   onClick?: () => void
+  onDelete?: () => void
   ghost?: boolean
 }) {
   const { Icon, className } = disciplineMeta(subproject.discipline)
@@ -237,15 +240,26 @@ function DraggableSubprojectCard({
           <Icon className="h-3 w-3 shrink-0" />
           <span>{showDiscipline(subproject.discipline)}</span>
         </div>
-        <button
-          {...listeners}
-          {...attributes}
-          className="shrink-0 cursor-grab touch-none text-[var(--ink-soft)]/30 hover:text-[var(--ink-soft)] active:cursor-grabbing"
-          aria-label="Arrastar"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          {onDelete ? (
+            <button
+              className="shrink-0 cursor-pointer touch-none text-[var(--ink-soft)]/30 transition hover:text-rose-600"
+              aria-label="Excluir"
+              onClick={(e) => { e.stopPropagation(); onDelete() }}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+          <button
+            {...listeners}
+            {...attributes}
+            className="shrink-0 cursor-grab touch-none text-[var(--ink-soft)]/30 hover:text-[var(--ink-soft)] active:cursor-grabbing"
+            aria-label="Arrastar"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       <div className="px-3 py-3">
@@ -507,6 +521,103 @@ function CompletionDateModal({
             className="bg-[var(--ink)] px-5 py-2.5 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
           >
             Concluir
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DeleteConfirmModal({
+  project,
+  subproject,
+  allSubprojects,
+  onCancel,
+  onDeleteSubproject,
+  onDeleteProject,
+  mutating,
+}: {
+  project: Project
+  subproject: Subproject
+  allSubprojects: Subproject[]
+  onCancel: () => void
+  onDeleteSubproject: () => void
+  onDeleteProject: () => void
+  mutating: boolean
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onCancel}>
+      <div className="absolute inset-0 bg-[var(--ink)]/20 backdrop-blur-sm" />
+      <div
+        className="relative z-10 w-full max-w-md [] border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[var(--shadow-panel)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]/70">Excluir</div>
+            <h2 className="mt-1 text-xl font-semibold text-[var(--ink)]">{project.name}</h2>
+            {project.client_name ? <div className="mt-0.5 text-sm text-[var(--ink-soft)]">{project.client_name}</div> : null}
+          </div>
+          <button onClick={onCancel} className="shrink-0 rounded-full border border-[var(--line)] p-2 text-[var(--ink-soft)] transition hover:bg-[var(--paper)]">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-5 space-y-3">
+          <button
+            type="button"
+            disabled={mutating}
+            onClick={onDeleteSubproject}
+            className="w-full border border-[var(--line)] bg-[var(--paper)] p-4 text-left transition hover:border-[var(--teal-active-border)] hover:bg-[var(--teal-active-bg)] disabled:opacity-60"
+          >
+            <div className="text-sm font-semibold text-[var(--ink)]">Excluir apenas esta disciplina</div>
+            <div className="mt-1 text-xs text-[var(--ink-soft)]">
+              Remove {showDiscipline(subproject.discipline)} deste projeto. As demais {allSubprojects.length - 1} disciplina{allSubprojects.length - 1 !== 1 ? 's' : ''} são mantidas.
+            </div>
+          </button>
+
+          {allSubprojects.length > 1 ? (
+            <button
+              type="button"
+              disabled={mutating}
+              onClick={onDeleteProject}
+              className="w-full border border-rose-200 bg-rose-50 p-4 text-left transition hover:border-rose-400 hover:bg-rose-100 disabled:opacity-60"
+            >
+              <div className="text-sm font-semibold text-rose-700">Excluir o projeto inteiro</div>
+              <div className="mt-1 text-xs text-rose-600/80">
+                Remove o projeto e todas as {allSubprojects.length} disciplinas:
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {allSubprojects.map((sp) => (
+                  <span
+                    key={sp.id}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${
+                      sp.id === subproject.id ? 'border-rose-300 bg-rose-100 text-rose-700 line-through' : 'border-rose-200 bg-white text-rose-600'
+                    }`}
+                  >
+                    {showDiscipline(sp.discipline)}
+                  </span>
+                ))}
+              </div>
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={mutating}
+              onClick={onDeleteProject}
+              className="w-full border border-rose-200 bg-rose-50 p-4 text-left transition hover:border-rose-400 hover:bg-rose-100 disabled:opacity-60"
+            >
+              <div className="text-sm font-semibold text-rose-700">Excluir projeto inteiro</div>
+              <div className="mt-1 text-xs text-rose-600/80">
+                Este projeto só tem esta disciplina. Excluir vai remover o projeto completamente.
+              </div>
+            </button>
+          )}
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <button type="button" onClick={onCancel} className="border border-[var(--line)] px-5 py-2.5 text-sm text-[var(--ink)] transition hover:bg-[var(--paper)]">
+            Cancelar
           </button>
         </div>
       </div>
@@ -1101,6 +1212,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
   const [searchQuery, setSearchQuery] = useState('')
   const [hiddenStages, setHiddenStages] = useState<Set<string>>(new Set())
   const [showColumnPicker, setShowColumnPicker] = useState(false)
+  const [deleteDraft, setDeleteDraft] = useState<{ subproject: Subproject; project: Project } | null>(null)
   const columnPickerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -1360,6 +1472,41 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
     [submitMutation],
   )
 
+  const handleDeleteSubproject = useCallback(() => {
+    if (!deleteDraft) return
+    const { subproject } = deleteDraft
+    void submitMutation(
+      'deleteSubproject',
+      { id: subproject.id },
+      () => {
+        setDeleteDraft(null)
+        setSelectedProjectId(null)
+        setSelectedSubprojectId(null)
+      },
+      'Disciplina excluída',
+    )
+  }, [deleteDraft, submitMutation])
+
+  const handleDeleteProject = useCallback(() => {
+    if (!deleteDraft) return
+    const { project } = deleteDraft
+    void submitMutation(
+      'deleteProject',
+      { projectId: project.id },
+      () => {
+        setDeleteDraft(null)
+        setSelectedProjectId(null)
+        setSelectedSubprojectId(null)
+      },
+      'Projeto excluído',
+    )
+  }, [deleteDraft, submitMutation])
+
+  const deleteDraftSubprojects = useMemo(
+    () => deleteDraft ? data.subprojects.filter((sp) => sp.project_id === deleteDraft.project.id) : [],
+    [deleteDraft, data.subprojects],
+  )
+
   return (
     <>
       <Panel
@@ -1507,6 +1654,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
                               setSelectedProjectId(project.id)
                               setSelectedSubprojectId(subproject.id)
                             }}
+                            onDelete={() => setDeleteDraft({ subproject, project })}
                           />
                         )
                       })
@@ -1569,6 +1717,18 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
           onChange={setCompletionDate}
           onCancel={() => setCompletionDraft(null)}
           onConfirm={handleConfirmCompletion}
+          mutating={mutating}
+        />
+      ) : null}
+
+      {deleteDraft ? (
+        <DeleteConfirmModal
+          project={deleteDraft.project}
+          subproject={deleteDraft.subproject}
+          allSubprojects={deleteDraftSubprojects}
+          onCancel={() => setDeleteDraft(null)}
+          onDeleteSubproject={handleDeleteSubproject}
+          onDeleteProject={handleDeleteProject}
           mutating={mutating}
         />
       ) : null}

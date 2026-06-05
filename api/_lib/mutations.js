@@ -844,6 +844,38 @@ export async function runMutation(action, payload, actor) {
       break
     }
 
+    case 'deleteSubproject': {
+      const id = normalizeText(payload.id)
+      if (!id) throw new Error('id é obrigatório')
+
+      await db.execute({ sql: 'DELETE FROM subproject_comments WHERE subproject_id = ?', args: [id] })
+      await db.execute({ sql: 'DELETE FROM partner_payouts WHERE subproject_id = ?', args: [id] })
+      await db.execute({ sql: 'DELETE FROM subprojects WHERE id = ?', args: [id] })
+
+      break
+    }
+
+    case 'deleteProject': {
+      const projectId = normalizeText(payload.projectId)
+      if (!projectId) throw new Error('projectId é obrigatório')
+
+      const spResult = await db.execute({ sql: 'SELECT id FROM subprojects WHERE project_id = ?', args: [projectId] })
+      const spIds = spResult.rows.map((r) => r.id)
+
+      for (const spId of spIds) {
+        await db.execute({ sql: 'DELETE FROM subproject_comments WHERE subproject_id = ?', args: [spId] })
+      }
+
+      await db.execute({ sql: 'DELETE FROM partner_payouts WHERE subproject_id IN (SELECT id FROM subprojects WHERE project_id = ?)', args: [projectId] })
+      await db.execute({ sql: 'DELETE FROM subprojects WHERE project_id = ?', args: [projectId] })
+      await db.execute({ sql: 'DELETE FROM project_logs WHERE project_id = ?', args: [projectId] })
+      await db.execute({ sql: 'DELETE FROM project_expenses WHERE project_id = ?', args: [projectId] })
+      await db.execute({ sql: 'DELETE FROM payment_receipts WHERE project_id = ?', args: [projectId] })
+      await db.execute({ sql: 'DELETE FROM projects WHERE id = ?', args: [projectId] })
+
+      break
+    }
+
     default:
       throw new Error(`Unknown action: ${action}`)
   }
