@@ -42,6 +42,7 @@ import { DroppableLeadColumn, DraggableLeadCard, LeadGhostCard } from '@/compone
 import { LeadModal, LeadDetailModal, ConvertProjectModal } from '@/components/workspace/commercial-modals'
 import { DashboardProjectRow, DashboardSubprojectRow } from '@/components/workspace/project-strip'
 import { LoginScreen } from '@/components/workspace/login-screen'
+import { InstallPrompt } from '@/components/workspace/install-prompt'
 import { OperationsKanbanPage } from '@/pages/OperationsKanbanPage'
 import { FinancialPage } from '@/pages/FinancialPage'
 import { CashflowPage } from '@/pages/CashflowPage'
@@ -1041,6 +1042,7 @@ export function ApoloWorkspace() {
       </div>
 
       <Toaster richColors position="top-right" />
+      <InstallPrompt />
     </div>
   )
 }
