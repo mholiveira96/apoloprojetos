@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv, type ViteDevServer } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
 import fs from 'node:fs/promises'
 import path from 'path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -64,7 +65,61 @@ export default defineConfig(({ mode }) => {
   Object.assign(process.env, env)
 
   return {
-    plugins: [react(), tailwindcss(), localApiPlugin()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      localApiPlugin(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['favicon.svg', 'favicon.png', 'logo-apolo.png', 'logo-apolo-darkmode.png'],
+        manifest: {
+          name: 'Apolo Projetos Inteligentes',
+          short_name: 'Apolo',
+          description: 'Gestão de projetos de engenharia — CRM, operações e financeiro',
+          theme_color: '#1a1a2e',
+          background_color: '#1a1a2e',
+          display: 'standalone',
+          scope: '/',
+          start_url: '/app',
+          icons: [
+            {
+              src: 'pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png',
+            },
+            {
+              src: 'pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+            },
+            {
+              src: 'maskable-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+          ],
+        },
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          globIgnores: ['**/assets/Modelo Portfolio*'],
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+          runtimeCaching: [
+            {
+              urlPattern: /^https?:\/\/.*\/api\/.*/i,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'api-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60, // 1h
+                },
+              },
+            },
+          ],
+        },
+      }),
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
