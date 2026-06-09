@@ -33,6 +33,7 @@ import {
   leadFollowUpMeta,
   numericValue,
   parseDateValue,
+  sanitizeCashflowText,
   stageLabel,
   toDateInputValue,
 } from '@/lib/formatters'
@@ -747,7 +748,7 @@ export function ApoloWorkspace() {
                         <div key={`${entry.entry_type}-${entry.id}`} className="flex items-center justify-between gap-3 border-b border-[var(--line)] py-3 text-sm last:border-b-0">
                           <div className="min-w-0">
                             <div className="truncate font-medium text-[var(--ink)]">{entry.project_name}</div>
-                            <div className="text-[var(--ink-soft)]">{stageLabel(entry.entry_type)}{entry.counterpart ? ` · ${entry.counterpart}` : ''}</div>
+                            <div className="text-[var(--ink-soft)]">{stageLabel(entry.entry_type)}{sanitizeCashflowText(entry.counterpart) ? ` - ${sanitizeCashflowText(entry.counterpart)}` : ''}</div>
                           </div>
                           <div className={`shrink-0 font-semibold ${entry.signed_amount >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {entry.signed_amount >= 0 ? '+' : '−'}{formatCurrency(Math.abs(numericValue(entry.signed_amount)))}

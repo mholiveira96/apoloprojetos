@@ -38,6 +38,7 @@ export const DISCIPLINE_ALIAS: Record<string, string> = {
 export const expenseCategories = [
   'aluguel',
   'endomarketing',
+  'ferias',
   'plotagem',
   'material',
   'software',
@@ -106,6 +107,7 @@ export const LABELS: Record<string, string> = {
   // Expense categories
   aluguel: 'Aluguel',
   endomarketing: 'Endomarketing',
+  ferias: 'F\u00e9rias',
   plotagem: 'Plotagem',
   material: 'Material',
   software: 'Software',

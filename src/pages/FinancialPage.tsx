@@ -19,6 +19,7 @@ type Props = {
 }
 
 const labelClass = 'text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70'
+type ProjectSortKey = 'project' | 'stage' | 'contract' | 'received' | 'outstanding' | 'expenses' | 'payouts' | 'pending'
 
 function ProjectHistoryModal({
   project,
@@ -202,6 +203,10 @@ function ProjectHistoryModal({
 export function FinancialPage({ data, submitMutation, mutating }: Props) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
+  const [projectSort, setProjectSort] = useState<{ direction: 'asc' | 'desc'; key: ProjectSortKey }>({
+    direction: 'asc',
+    key: 'project',
+  })
 
   const trackedProjects = useMemo(
     () => data.projects.filter((project) => !project.archived),
@@ -220,6 +225,15 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
     () => new Set(visibleProjects.map((project) => project.id)),
     [visibleProjects],
   )
+  const subprojectsByProjectId = useMemo(() => {
+    const map = new Map<string, typeof data.subprojects>()
+    for (const subproject of data.subprojects) {
+      const current = map.get(subproject.project_id) ?? []
+      current.push(subproject)
+      map.set(subproject.project_id, current)
+    }
+    return map
+  }, [data.subprojects])
 
   const activeProjects = trackedProjects.filter((project) => project.stage !== 'concluído')
   const activeContractTotal = activeProjects.reduce((sum, project) => sum + numericValue(project.contract_amount), 0)
@@ -267,6 +281,68 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
   const selectedReceipts = selectedProjectId ? data.receipts.filter((receipt) => receipt.project_id === selectedProjectId) : []
   const selectedExpenses = selectedProjectId ? data.expenses.filter((expense) => expense.project_id === selectedProjectId) : []
   const selectedPayouts = selectedProjectId ? data.payouts.filter((payout) => payout.project_id === selectedProjectId) : []
+  const projectRows = useMemo(() => {
+    const rows = visibleProjects.map((project) => {
+      const contract = numericValue(project.contract_amount)
+      const received = numericValue(project.total_received)
+      const expenses = numericValue(project.total_expenses)
+      const payouts = numericValue(project.total_payouts)
+      const outstanding = Math.max(0, contract - received)
+      const projectSubprojects = subprojectsByProjectId.get(project.id) ?? []
+      const split = numericValue(project.base_partner_split_percent) / 100
+      const partnerPool = projectSubprojects.reduce((sum, subproject) => sum + numericValue(subproject.amount) * split, 0)
+      const payoutPending = Math.max(0, partnerPool - payouts)
+
+      return {
+        contract,
+        expenses,
+        outstanding,
+        payoutPending,
+        payouts,
+        project,
+        received,
+        stage: stageLabel(project.stage),
+      }
+    })
+
+    const compareText = (a: string, b: string) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+    const compareNumber = (a: number, b: number) => a - b
+
+    rows.sort((a, b) => {
+      let result = 0
+      switch (projectSort.key) {
+        case 'project':
+          result = compareText(a.project.name, b.project.name)
+          if (result === 0) result = compareText(a.project.client_name ?? '', b.project.client_name ?? '')
+          break
+        case 'stage':
+          result = compareText(a.stage, b.stage)
+          break
+        case 'contract':
+          result = compareNumber(a.contract, b.contract)
+          break
+        case 'received':
+          result = compareNumber(a.received, b.received)
+          break
+        case 'outstanding':
+          result = compareNumber(a.outstanding, b.outstanding)
+          break
+        case 'expenses':
+          result = compareNumber(a.expenses, b.expenses)
+          break
+        case 'payouts':
+          result = compareNumber(a.payouts, b.payouts)
+          break
+        case 'pending':
+          result = compareNumber(a.payoutPending, b.payoutPending)
+          break
+      }
+
+      return projectSort.direction === 'asc' ? result : result * -1
+    })
+
+    return rows
+  }, [projectSort, subprojectsByProjectId, visibleProjects])
 
   const toggleArchive = (project: Project) => {
     void submitMutation(
@@ -277,6 +353,17 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
       },
       project.archived ? 'Projeto reativado no financeiro' : 'Projeto arquivado no financeiro',
     )
+  }
+  const toggleProjectSort = (key: ProjectSortKey) => {
+    setProjectSort((current) => (
+      current.key === key
+        ? { key, direction: current.direction === 'asc' ? 'desc' : 'asc' }
+        : { key, direction: key === 'project' || key === 'stage' ? 'asc' : 'desc' }
+    ))
+  }
+  const projectSortMarker = (key: ProjectSortKey) => {
+    if (projectSort.key !== key) return '↕'
+    return projectSort.direction === 'asc' ? '↑' : '↓'
   }
 
   return (
@@ -313,34 +400,56 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
           </label>
         )}
       >
-        {visibleProjects.length ? (
+        {projectRows.length ? (
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead>
                 <tr className="text-[var(--ink-soft)]">
-                  <th className="pb-3 pr-4 font-medium">Projeto</th>
-                  <th className="pb-3 pr-4 font-medium">Etapa</th>
-                  <th className="pb-3 pr-4 text-right font-medium">Contrato</th>
-                  <th className="pb-3 pr-4 text-right font-medium">Recebido</th>
-                  <th className="pb-3 pr-4 text-right font-medium">Saldo</th>
-                  <th className="pb-3 pr-4 text-right font-medium">Despesas</th>
-                  <th className="pb-3 pr-4 text-right font-medium">Repasses feitos</th>
-                  <th className="pb-3 pr-4 text-right font-medium">Repasse pendente</th>
+                  <th className="pb-3 pr-4 font-medium">
+                    <button type="button" className="inline-flex items-center gap-1 hover:text-[var(--ink)]" onClick={() => toggleProjectSort('project')}>
+                      Projeto <span className="text-[10px]">{projectSortMarker('project')}</span>
+                    </button>
+                  </th>
+                  <th className="pb-3 pr-4 font-medium">
+                    <button type="button" className="inline-flex items-center gap-1 hover:text-[var(--ink)]" onClick={() => toggleProjectSort('stage')}>
+                      Etapa <span className="text-[10px]">{projectSortMarker('stage')}</span>
+                    </button>
+                  </th>
+                  <th className="pb-3 pr-4 text-right font-medium">
+                    <button type="button" className="inline-flex items-center gap-1 hover:text-[var(--ink)]" onClick={() => toggleProjectSort('contract')}>
+                      Contrato <span className="text-[10px]">{projectSortMarker('contract')}</span>
+                    </button>
+                  </th>
+                  <th className="pb-3 pr-4 text-right font-medium">
+                    <button type="button" className="inline-flex items-center gap-1 hover:text-[var(--ink)]" onClick={() => toggleProjectSort('received')}>
+                      Recebido <span className="text-[10px]">{projectSortMarker('received')}</span>
+                    </button>
+                  </th>
+                  <th className="pb-3 pr-4 text-right font-medium">
+                    <button type="button" className="inline-flex items-center gap-1 hover:text-[var(--ink)]" onClick={() => toggleProjectSort('outstanding')}>
+                      Saldo <span className="text-[10px]">{projectSortMarker('outstanding')}</span>
+                    </button>
+                  </th>
+                  <th className="pb-3 pr-4 text-right font-medium">
+                    <button type="button" className="inline-flex items-center gap-1 hover:text-[var(--ink)]" onClick={() => toggleProjectSort('expenses')}>
+                      Despesas <span className="text-[10px]">{projectSortMarker('expenses')}</span>
+                    </button>
+                  </th>
+                  <th className="pb-3 pr-4 text-right font-medium">
+                    <button type="button" className="inline-flex items-center gap-1 hover:text-[var(--ink)]" onClick={() => toggleProjectSort('payouts')}>
+                      Repasses feitos <span className="text-[10px]">{projectSortMarker('payouts')}</span>
+                    </button>
+                  </th>
+                  <th className="pb-3 pr-4 text-right font-medium">
+                    <button type="button" className="inline-flex items-center gap-1 hover:text-[var(--ink)]" onClick={() => toggleProjectSort('pending')}>
+                      Repasse pendente <span className="text-[10px]">{projectSortMarker('pending')}</span>
+                    </button>
+                  </th>
                   <th className="pb-3 text-right font-medium">Arquivo</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">
-                {visibleProjects.map((project) => {
-                  const contract = numericValue(project.contract_amount)
-                  const received = numericValue(project.total_received)
-                  const expenses = numericValue(project.total_expenses)
-                  const payouts = numericValue(project.total_payouts)
-                  const outstanding = Math.max(0, contract - received)
-                  const projectSubprojects = data.subprojects.filter((subproject) => subproject.project_id === project.id)
-                  const split = numericValue(project.base_partner_split_percent) / 100
-                  const partnerPool = projectSubprojects.reduce((sum, subproject) => sum + numericValue(subproject.amount) * split, 0)
-                  const payoutPending = Math.max(0, partnerPool - payouts)
-
+                {projectRows.map(({ contract, expenses, outstanding, payoutPending, payouts, project, received, stage }) => {
                   return (
                     <tr
                       key={project.id}
@@ -358,7 +467,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
                         </div>
                         <div className="text-xs text-[var(--ink-soft)]">{project.client_name ?? '—'}</div>
                       </td>
-                      <td className="py-3 pr-4 text-[var(--ink-soft)]">{stageLabel(project.stage)}</td>
+                      <td className="py-3 pr-4 text-[var(--ink-soft)]">{stage}</td>
                       <td className="py-3 pr-4 text-right text-[var(--ink)]">{formatCurrency(contract)}</td>
                       <td className="py-3 pr-4 text-right text-emerald-600">{formatCurrency(received)}</td>
                       <td className={`py-3 pr-4 text-right font-medium ${outstanding > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>

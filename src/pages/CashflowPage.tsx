@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
-import { ArrowDownCircle, ArrowUpCircle, HandCoins, Landmark, Pencil, Plus, Trash2, X } from 'lucide-react'
-import type { BootstrapData, CashflowEntry } from '@/types/app'
+import { useEffect, useMemo, useState } from 'react'
+import { ArrowDownCircle, ArrowUpCircle, ChevronDown, ChevronRight, Eye, HandCoins, Landmark, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import type { BootstrapData, CashflowEntry, Subproject } from '@/types/app'
 import { expenseCategories, partners } from '@/lib/constants'
-import { formatCurrency, formatDate, numericValue, stageLabel } from '@/lib/formatters'
+import { formatCurrency, formatDate, normalizeSearchText, numericValue, sanitizeCashflowText, stageLabel } from '@/lib/formatters'
 import { EmptyState, MetricCard, Panel } from '@/components/workspace/ui'
 import { computeCashflowDayGroups } from '@/lib/cashflow'
 
@@ -19,7 +19,30 @@ type Props = {
   mutating: boolean
 }
 
+type PickerOption = {
+  value: string
+  label: string
+  searchText?: string
+}
+
+type TransactionDetails = {
+  account: string
+  amount: number
+  amountLabel: string
+  category: string
+  client: string
+  counterpart: string
+  date: string
+  discipline: string
+  note: string
+  partner: string
+  project: string
+  type: string
+  vendor: string
+}
+
 const inputClass = 'border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm w-full'
+const pickerInputClass = 'w-full rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3 text-sm text-[var(--ink)] outline-none transition-colors placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)]'
 const today = () => new Date().toISOString().slice(0, 10)
 const shiftDays = (date: string, days: number) => {
   const d = new Date(date)
@@ -29,36 +52,355 @@ const shiftDays = (date: string, days: number) => {
 
 const PAYOUT_KEY = 'repasse'
 
+function PickerField({
+  disabled = false,
+  inputClassName = pickerInputClass,
+  onChange,
+  options,
+  placeholder,
+  required = false,
+  value,
+}: {
+  disabled?: boolean
+  inputClassName?: string
+  onChange: (value: string) => void
+  options: PickerOption[]
+  placeholder: string
+  required?: boolean
+  value: string
+}) {
+  const selectedOption = useMemo(
+    () => options.find((option) => option.value === value) ?? null,
+    [options, value],
+  )
+  const [query, setQuery] = useState(selectedOption?.label ?? '')
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    setQuery(selectedOption?.label ?? '')
+  }, [selectedOption?.label])
+
+  const normalizedQuery = normalizeSearchText(query)
+  const filteredOptions = useMemo(() => {
+    if (!normalizedQuery) return options.slice(0, 40)
+    return options
+      .filter((option) => normalizeSearchText(`${option.label} ${option.searchText ?? ''}`).includes(normalizedQuery))
+      .slice(0, 40)
+  }, [normalizedQuery, options])
+
+  const chooseOption = (option: PickerOption) => {
+    onChange(option.value)
+    setQuery(option.label)
+    setOpen(false)
+  }
+
+  const commitQuery = () => {
+    const trimmed = query.trim()
+    if (!trimmed) {
+      onChange('')
+      setQuery('')
+      return
+    }
+
+    const exactMatch = options.find((option) => normalizeSearchText(option.label) === normalizeSearchText(trimmed))
+    if (exactMatch) {
+      chooseOption(exactMatch)
+      return
+    }
+
+    const startsWithMatch = options.filter((option) => normalizeSearchText(option.label).startsWith(normalizeSearchText(trimmed)))
+    if (startsWithMatch.length === 1) {
+      chooseOption(startsWithMatch[0])
+      return
+    }
+
+    setQuery(selectedOption?.label ?? '')
+  }
+
+  return (
+    <div className="relative">
+      {required ? (
+        <input
+          aria-hidden="true"
+          className="pointer-events-none absolute h-0 w-0 opacity-0"
+          readOnly
+          required
+          tabIndex={-1}
+          value={value}
+        />
+      ) : null}
+      <input
+        autoComplete="off"
+        className={inputClassName}
+        disabled={disabled}
+        placeholder={placeholder}
+        value={query}
+        onBlur={() => {
+          window.setTimeout(() => {
+            setOpen(false)
+            commitQuery()
+          }, 120)
+        }}
+        onChange={(event) => {
+          const nextQuery = event.target.value
+          setQuery(nextQuery)
+          if (!nextQuery) onChange('')
+          setOpen(true)
+        }}
+        onFocus={() => setOpen(true)}
+      />
+      {open && !disabled ? (
+        <div className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl border border-[var(--line)] bg-[var(--paper)] shadow-[0_18px_50px_rgba(12,26,26,0.12)]">
+          {filteredOptions.length ? (
+            filteredOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left text-sm text-[var(--ink)] transition hover:bg-[var(--teal-active-bg)]"
+                onMouseDown={(event) => {
+                  event.preventDefault()
+                  chooseOption(option)
+                }}
+              >
+                <span>{option.label}</span>
+              </button>
+            ))
+          ) : (
+            <div className="px-4 py-3 text-sm text-[var(--ink-soft)]">Nenhum resultado</div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function TransactionDetailModal({
+  details,
+  entry,
+  onClose,
+}: {
+  details: TransactionDetails | null
+  entry: CashflowEntry | null
+  onClose: () => void
+}) {
+  if (!entry || !details) return null
+
+  const rows = [
+    { label: 'Tipo', value: details.type },
+    { label: 'Projeto', value: details.project },
+    { label: 'Cliente', value: details.client },
+    { label: 'Parceiro', value: details.partner },
+    { label: 'Disciplina', value: details.discipline },
+    { label: 'Fornecedor', value: details.vendor },
+    { label: 'Categoria', value: details.category },
+    { label: 'Conta', value: details.account },
+    { label: 'Data', value: details.date },
+    { label: 'Contraparte', value: details.counterpart },
+    { label: 'Observacao', value: details.note },
+  ].filter((row) => row.value)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-lg border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_18px_50px_rgba(12,26,26,0.14)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-[var(--ink)]">Detalhes da transacao</h3>
+            <p className="mt-1 text-sm text-[var(--ink-soft)]">{details.amountLabel}</p>
+          </div>
+          <button type="button" className="rounded-full p-1 hover:bg-[var(--paper)]" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {rows.map((row) => (
+            <div key={row.label} className="border border-[var(--line)] bg-[var(--paper)] px-4 py-3">
+              <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">{row.label}</div>
+              <div className="mt-1 text-sm text-[var(--ink)]">{row.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DeleteTransactionModal({
+  confirmationText,
+  entry,
+  mutating,
+  onChangeConfirmationText,
+  onClose,
+  onConfirm,
+}: {
+  confirmationText: string
+  entry: CashflowEntry | null
+  mutating: boolean
+  onChangeConfirmationText: (value: string) => void
+  onClose: () => void
+  onConfirm: () => void
+}) {
+  if (!entry) return null
+
+  const canDelete = normalizeSearchText(confirmationText) === 'deletar'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_18px_50px_rgba(12,26,26,0.14)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h3 className="mb-2 text-lg font-semibold text-[var(--ink)]">Excluir transacao?</h3>
+        <p className="mb-4 text-sm text-[var(--ink-soft)]">
+          {stageLabel(entry.entry_type)} de <span className="font-medium text-[var(--ink)]">{formatCurrency(Math.abs(numericValue(entry.signed_amount)))}</span>
+          {entry.project_name ? ` - ${entry.project_name}` : ''} em {formatDate(entry.entry_date)}.
+        </p>
+        <p className="mb-3 text-sm text-[var(--ink-soft)]">
+          Digite <span className="font-semibold text-[var(--ink)]">deletar</span> para confirmar.
+        </p>
+        <input
+          autoComplete="off"
+          className={pickerInputClass}
+          placeholder="Digite deletar"
+          value={confirmationText}
+          onChange={(event) => onChangeConfirmationText(event.target.value)}
+        />
+        <div className="mt-5 flex gap-3">
+          <button type="button" className="flex-1 border border-[var(--line)] px-4 py-2.5 text-sm text-[var(--ink)] hover:bg-[var(--paper)]" onClick={onClose}>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="flex-1 bg-rose-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50"
+            disabled={!canDelete || mutating}
+            onClick={onConfirm}
+          >
+            Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function CashflowPage({ data, submitMutation, mutating }: Props) {
   const [startDate, setStartDate] = useState(() => shiftDays(today(), -30))
   const [endDate, setEndDate] = useState(() => shiftDays(today(), 30))
   const [entryFilter, setEntryFilter] = useState<'all' | 'expense' | 'payout'>('all')
   const [projectFilterId, setProjectFilterId] = useState('')
   const [partnerFilter, setPartnerFilter] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [sortOrder, setSortOrder] = useState<'oldest' | 'newest'>('newest')
 
   const [showEntrada, setShowEntrada] = useState(false)
   const [showSaida, setShowSaida] = useState(false)
+  const [collapsedDays, setCollapsedDays] = useState<string[]>([])
 
+  const [viewingEntry, setViewingEntry] = useState<CashflowEntry | null>(null)
   const [editingEntry, setEditingEntry] = useState<CashflowEntry | null>(null)
   const [deletingEntry, setDeletingEntry] = useState<CashflowEntry | null>(null)
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('')
   const [editForm, setEditForm] = useState({ amount: '', entryDate: '', bankAccount: '', note: '', category: '', projectId: '', vendor: '', partnerName: '' })
 
   const [receiptForm, setReceiptForm] = useState({ projectId: '', amount: '', bankAccount: '', entryDate: today(), note: '' })
   const [expenseForm, setExpenseForm] = useState({ category: '', projectId: '', amount: '', vendor: '', bankAccount: '', entryDate: today(), note: '' })
-  const [payoutForm, setPayoutForm] = useState({ subprojectId: '', partnerName: partners[0], percentage: '', bankAccount: '', entryDate: today(), note: '' })
+  const [payoutForm, setPayoutForm] = useState({ projectId: '', subprojectId: '', partnerName: partners[0], percentage: '', bankAccount: '', entryDate: today(), note: '' })
   const [saidaType, setSaidaType] = useState<string>('')
 
+  const receiptsById = useMemo(
+    () => new Map(data.receipts.map((receipt) => [receipt.id, receipt])),
+    [data.receipts],
+  )
+  const expensesById = useMemo(
+    () => new Map(data.expenses.map((expense) => [expense.id, expense])),
+    [data.expenses],
+  )
+  const payoutsById = useMemo(
+    () => new Map(data.payouts.map((payout) => [payout.id, payout])),
+    [data.payouts],
+  )
   const payoutPartnerById = useMemo(
     () => new Map(data.payouts.map((payout) => [payout.id, payout.partner_name])),
     [data.payouts],
   )
+  const projectsById = useMemo(
+    () => new Map(data.projects.map((project) => [project.id, project])),
+    [data.projects],
+  )
+  const subprojectsById = useMemo(
+    () => new Map(data.subprojects.map((subproject) => [subproject.id, subproject])),
+    [data.subprojects],
+  )
 
   const selectableProjects = useMemo(
-    () => data.projects
-      .filter((project) => !(project.archived === true || String(project.archived) === '1'))
+    () => [...data.projects]
+      .filter((project) => !project.archived)
       .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })),
     [data.projects],
+  )
+  const projectOptions = useMemo(
+    () => selectableProjects.map((project) => ({
+      value: project.id,
+      label: project.client_name ? `${project.name} - ${project.client_name}` : project.name,
+      searchText: `${project.client_name ?? ''} ${project.discipline ?? ''} ${project.code ?? ''}`,
+    })),
+    [selectableProjects],
+  )
+  const partnerOptions = useMemo(
+    () => partners.map((partner) => ({ value: partner, label: partner })),
+    [],
+  )
+  const normalizedPartnerFilter = normalizeSearchText(partnerFilter)
+  const subprojectsForProject = useMemo(
+    () => data.subprojects
+      .filter((subproject) => subproject.project_id === payoutForm.projectId)
+      .sort((a, b) => stageLabel(a.discipline).localeCompare(stageLabel(b.discipline), 'pt-BR', { sensitivity: 'base' })),
+    [data.subprojects, payoutForm.projectId],
+  )
+  const subprojectOptions = useMemo(
+    () => subprojectsForProject.map((subproject) => ({
+      value: subproject.id,
+      label: `${stageLabel(subproject.discipline)} - ${formatCurrency(numericValue(subproject.amount))}`,
+      searchText: `${subproject.project_name} ${subproject.responsible_partner}`,
+    })),
+    [subprojectsForProject],
+  )
+  const selectedSubproject = useMemo(
+    () => (payoutForm.subprojectId ? subprojectsById.get(payoutForm.subprojectId) ?? null : null),
+    [payoutForm.subprojectId, subprojectsById],
+  )
+  const payoutAmount = selectedSubproject && payoutForm.percentage
+    ? numericValue(selectedSubproject.amount) * Number(payoutForm.percentage) / 100
+    : null
+
+  const normalizedSearchQuery = normalizeSearchText(searchQuery)
+  const cashflowSearchIndex = useMemo(
+    () => new Map(data.cashflow.map((entry) => {
+      const project = entry.project_id ? projectsById.get(entry.project_id) : null
+      const receipt = entry.entry_type === 'receipt' ? receiptsById.get(entry.id) : null
+      const expense = entry.entry_type === 'expense' ? expensesById.get(entry.id) : null
+      const payout = entry.entry_type === 'payout' ? payoutsById.get(entry.id) : null
+      const searchableText = normalizeSearchText([
+        entry.project_name,
+        sanitizeCashflowText(entry.counterpart),
+        entry.note,
+        entry.bank_account,
+        entry.entry_type,
+        stageLabel(entry.entry_type),
+        project?.client_name,
+        project?.discipline,
+        receipt?.client_name,
+        expense?.vendor,
+        expense?.category,
+        payout?.partner_name,
+        payout?.discipline,
+      ].filter(Boolean).join(' '))
+
+      return [`${entry.entry_type}:${entry.id}`, searchableText]
+    })),
+    [data.cashflow, expensesById, payoutsById, projectsById, receiptsById],
   )
 
   const filtered = useMemo(
@@ -66,24 +408,35 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
       if (entry.entry_date < startDate || entry.entry_date > endDate) return false
       if (entryFilter !== 'all' && entry.entry_type !== entryFilter) return false
       if (projectFilterId && entry.project_id !== projectFilterId) return false
+      if (normalizedSearchQuery) {
+        const searchableText = cashflowSearchIndex.get(`${entry.entry_type}:${entry.id}`) ?? ''
+        if (!searchableText.includes(normalizedSearchQuery)) return false
+      }
       if (partnerFilter) {
-        if (entry.entry_type !== 'payout') return false
-        return payoutPartnerById.get(entry.id) === partnerFilter
+        if (entry.entry_type === 'payout') {
+          return normalizeSearchText(payoutPartnerById.get(entry.id) ?? '') === normalizedPartnerFilter
+        }
+        if (entry.entry_type === 'expense') {
+          const expense = expensesById.get(entry.id)
+          return normalizeSearchText(expense?.category ?? '') === 'ferias'
+            && normalizeSearchText(expense?.vendor ?? '') === normalizedPartnerFilter
+        }
+        return false
       }
       return true
     })].sort((a, b) => sortOrder === 'oldest'
       ? a.entry_date.localeCompare(b.entry_date)
       : b.entry_date.localeCompare(a.entry_date)),
-    [data.cashflow, startDate, endDate, entryFilter, projectFilterId, partnerFilter, payoutPartnerById, sortOrder],
+    [cashflowSearchIndex, data.cashflow, entryFilter, expensesById, normalizedPartnerFilter, normalizedSearchQuery, partnerFilter, payoutPartnerById, projectFilterId, sortOrder, startDate, endDate],
   )
 
   const metrics = useMemo(
     () =>
       filtered.reduce(
-        (acc, e) => {
-          if (e.entry_type === 'receipt') acc.receipts += numericValue(e.amount)
-          if (e.entry_type === 'expense') acc.expenses += numericValue(e.amount)
-          if (e.entry_type === 'payout') acc.payouts += numericValue(e.amount)
+        (acc, entry) => {
+          if (entry.entry_type === 'receipt') acc.receipts += numericValue(entry.amount)
+          if (entry.entry_type === 'expense') acc.expenses += numericValue(entry.amount)
+          if (entry.entry_type === 'payout') acc.payouts += numericValue(entry.amount)
           return acc
         },
         { receipts: 0, expenses: 0, payouts: 0 },
@@ -95,415 +448,538 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
     () => data.cashflow.reduce((sum, entry) => sum + numericValue(entry.signed_amount), 0),
     [data.cashflow],
   )
-
   const openingBalance = useMemo(
     () => data.cashflow
       .filter((entry) => entry.entry_date < startDate)
       .reduce((sum, entry) => sum + numericValue(entry.signed_amount), 0),
     [data.cashflow, startDate],
   )
-
   const groupedByDay = useMemo(
     () => computeCashflowDayGroups(filtered, sortOrder, openingBalance),
-    [filtered, sortOrder, openingBalance],
+    [filtered, openingBalance, sortOrder],
   )
 
-  // Selected subproject for payout form
-  const selectedSubproject = useMemo(
-    () => data.subprojects.find((sp) => sp.id === payoutForm.subprojectId) ?? null,
-    [data.subprojects, payoutForm.subprojectId],
-  )
-  const payoutAmount = selectedSubproject && payoutForm.percentage
-    ? numericValue(selectedSubproject.amount) * Number(payoutForm.percentage) / 100
-    : null
+  const viewedReceipt = viewingEntry?.entry_type === 'receipt' ? receiptsById.get(viewingEntry.id) ?? null : null
+  const viewedExpense = viewingEntry?.entry_type === 'expense' ? expensesById.get(viewingEntry.id) ?? null : null
+  const viewedPayout = viewingEntry?.entry_type === 'payout' ? payoutsById.get(viewingEntry.id) ?? null : null
+  const viewingDetails = useMemo<TransactionDetails | null>(() => {
+    if (!viewingEntry) return null
 
-  // Group subprojects by project for the payout project→subproject picker
-  const [payoutProjectId, setPayoutProjectId] = useState('')
-  const subprojectsForProject = useMemo(
-    () => data.subprojects.filter((sp) => sp.project_id === payoutProjectId),
-    [data.subprojects, payoutProjectId],
-  )
+    return {
+      account: viewingEntry.bank_account ?? '',
+      amount: numericValue(viewingEntry.amount),
+      amountLabel: `${viewingEntry.signed_amount >= 0 ? '+' : '-'}${formatCurrency(Math.abs(numericValue(viewingEntry.signed_amount)))}`,
+      category: viewedExpense?.category ? stageLabel(viewedExpense.category) : '',
+      client: viewedReceipt?.client_name ?? '',
+      counterpart: sanitizeCashflowText(viewingEntry.counterpart),
+      date: formatDate(viewingEntry.entry_date),
+      discipline: viewedPayout?.discipline ? stageLabel(viewedPayout.discipline) : '',
+      note: viewingEntry.note ?? '',
+      partner: viewedPayout?.partner_name ?? (normalizeSearchText(viewedExpense?.category ?? '') === 'ferias' ? viewedExpense?.vendor ?? '' : ''),
+      project: viewingEntry.project_name ?? '',
+      type: stageLabel(viewingEntry.entry_type),
+      vendor: viewedExpense?.vendor ?? '',
+    }
+  }, [viewedExpense?.category, viewedExpense?.vendor, viewedPayout?.discipline, viewedPayout?.partner_name, viewedReceipt?.client_name, viewingEntry])
 
   const resetEntrada = () => setReceiptForm({ projectId: '', amount: '', bankAccount: '', entryDate: today(), note: '' })
   const resetSaida = () => {
     setExpenseForm({ category: '', projectId: '', amount: '', vendor: '', bankAccount: '', entryDate: today(), note: '' })
-    setPayoutForm({ subprojectId: '', partnerName: partners[0], percentage: '', bankAccount: '', entryDate: today(), note: '' })
-    setPayoutProjectId('')
+    setPayoutForm({ projectId: '', subprojectId: '', partnerName: partners[0], percentage: '', bankAccount: '', entryDate: today(), note: '' })
     setSaidaType('')
   }
 
-  const handleEntradaSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    void submitMutation('addReceipt', receiptForm, () => { resetEntrada(); setShowEntrada(false) }, 'Entrada registrada')
+  const toggleCollapsedDay = (day: string) => {
+    setCollapsedDays((current) => (
+      current.includes(day)
+        ? current.filter((value) => value !== day)
+        : [...current, day]
+    ))
+  }
+
+  const handleEntradaSubmit = (event: React.FormEvent) => {
+    event.preventDefault()
+    void submitMutation('addReceipt', receiptForm, () => {
+      resetEntrada()
+      setShowEntrada(false)
+    }, 'Entrada registrada')
   }
 
   const handleEditOpen = (entry: CashflowEntry) => {
     setEditingEntry(entry)
     if (entry.entry_type === 'receipt') {
-      const r = data.receipts.find((r) => r.id === entry.id)
-      setEditForm({ amount: String(r?.amount ?? ''), entryDate: (r?.received_at ?? entry.entry_date).slice(0, 10), bankAccount: r?.bank_account ?? '', note: r?.note ?? '', category: '', projectId: '', vendor: '', partnerName: '' })
-    } else if (entry.entry_type === 'expense') {
-      const ex = data.expenses.find((ex) => ex.id === entry.id)
-      setEditForm({ amount: String(ex?.amount ?? ''), entryDate: (ex?.paid_at ?? entry.entry_date).slice(0, 10), bankAccount: ex?.bank_account ?? '', note: ex?.note ?? '', category: ex?.category ?? '', projectId: ex?.project_id ?? '', vendor: ex?.vendor ?? '', partnerName: '' })
-    } else {
-      const p = data.payouts.find((p) => p.id === entry.id)
-      setEditForm({ amount: String(p?.amount ?? ''), entryDate: (p?.paid_at ?? entry.entry_date).slice(0, 10), bankAccount: p?.bank_account ?? '', note: p?.note ?? '', category: '', projectId: '', vendor: '', partnerName: p?.partner_name ?? partners[0] })
+      const receipt = receiptsById.get(entry.id)
+      setEditForm({
+        amount: String(receipt?.amount ?? ''),
+        entryDate: (receipt?.received_at ?? entry.entry_date).slice(0, 10),
+        bankAccount: receipt?.bank_account ?? '',
+        note: receipt?.note ?? '',
+        category: '',
+        projectId: '',
+        vendor: '',
+        partnerName: '',
+      })
+      return
     }
+
+    if (entry.entry_type === 'expense') {
+      const expense = expensesById.get(entry.id)
+      setEditForm({
+        amount: String(expense?.amount ?? ''),
+        entryDate: (expense?.paid_at ?? entry.entry_date).slice(0, 10),
+        bankAccount: expense?.bank_account ?? '',
+        note: expense?.note ?? '',
+        category: expense?.category ?? '',
+        projectId: expense?.project_id ?? '',
+        vendor: expense?.vendor ?? '',
+        partnerName: '',
+      })
+      return
+    }
+
+    const payout = payoutsById.get(entry.id)
+    setEditForm({
+      amount: String(payout?.amount ?? ''),
+      entryDate: (payout?.paid_at ?? entry.entry_date).slice(0, 10),
+      bankAccount: payout?.bank_account ?? '',
+      note: payout?.note ?? '',
+      category: '',
+      projectId: '',
+      vendor: '',
+      partnerName: payout?.partner_name ?? partners[0],
+    })
   }
 
-  const handleEditSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleEditSubmit = (event: React.FormEvent) => {
+    event.preventDefault()
     if (!editingEntry) return
-    const type = editingEntry.entry_type
-    const action = type === 'receipt' ? 'updateReceipt' : type === 'expense' ? 'updateExpense' : 'updatePayout'
-    const payload = type === 'receipt'
-      ? { id: editingEntry.id, amount: editForm.amount, bankAccount: editForm.bankAccount, entryDate: editForm.entryDate, note: editForm.note }
-      : type === 'expense'
-        ? { id: editingEntry.id, amount: editForm.amount, category: editForm.category, vendor: editForm.vendor, bankAccount: editForm.bankAccount, entryDate: editForm.entryDate, note: editForm.note, projectId: editForm.projectId }
-        : { id: editingEntry.id, amount: editForm.amount, partnerName: editForm.partnerName, bankAccount: editForm.bankAccount, entryDate: editForm.entryDate, note: editForm.note }
+
+    const action = editingEntry.entry_type === 'receipt'
+      ? 'updateReceipt'
+      : editingEntry.entry_type === 'expense'
+        ? 'updateExpense'
+        : 'updatePayout'
+
+    const payload = editingEntry.entry_type === 'receipt'
+      ? {
+        id: editingEntry.id,
+        amount: editForm.amount,
+        bankAccount: editForm.bankAccount,
+        entryDate: editForm.entryDate,
+        note: editForm.note,
+      }
+      : editingEntry.entry_type === 'expense'
+        ? {
+          id: editingEntry.id,
+          amount: editForm.amount,
+          category: editForm.category,
+          vendor: editForm.vendor,
+          bankAccount: editForm.bankAccount,
+          entryDate: editForm.entryDate,
+          note: editForm.note,
+          projectId: editForm.projectId,
+        }
+        : {
+          id: editingEntry.id,
+          amount: editForm.amount,
+          partnerName: editForm.partnerName,
+          bankAccount: editForm.bankAccount,
+          entryDate: editForm.entryDate,
+          note: editForm.note,
+        }
+
     void submitMutation(action, payload, () => setEditingEntry(null), 'Salvo')
   }
 
   const handleDeleteConfirm = () => {
-    if (!deletingEntry) return
+    if (!deletingEntry || normalizeSearchText(deleteConfirmationText) !== 'deletar') return
     const action = deletingEntry.entry_type === 'receipt' ? 'deleteReceipt' : deletingEntry.entry_type === 'expense' ? 'deleteExpense' : 'deletePayout'
-    void submitMutation(action, { id: deletingEntry.id }, () => setDeletingEntry(null), 'Excluído')
+    void submitMutation(action, { id: deletingEntry.id }, () => {
+      setDeletingEntry(null)
+      setDeleteConfirmationText('')
+    }, 'Excluido')
   }
 
-  const handleSaidaSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSaidaSubmit = (event: React.FormEvent) => {
+    event.preventDefault()
     if (saidaType === PAYOUT_KEY) {
-      void submitMutation('addPayout', payoutForm, () => { resetSaida(); setShowSaida(false) }, 'Repasse registrado')
-    } else {
-      void submitMutation('addExpense', { ...expenseForm, category: saidaType }, () => { resetSaida(); setShowSaida(false) }, 'Despesa registrada')
+      void submitMutation('addPayout', payoutForm, () => {
+        resetSaida()
+        setShowSaida(false)
+      }, 'Repasse registrado')
+      return
     }
+
+    void submitMutation('addExpense', { ...expenseForm, category: saidaType }, () => {
+      resetSaida()
+      setShowSaida(false)
+    }, 'Despesa registrada')
   }
 
   return (
     <>
+      <TransactionDetailModal details={viewingDetails} entry={viewingEntry} onClose={() => setViewingEntry(null)} />
+      <DeleteTransactionModal
+        confirmationText={deleteConfirmationText}
+        entry={deletingEntry}
+        mutating={mutating}
+        onChangeConfirmationText={setDeleteConfirmationText}
+        onClose={() => {
+          setDeletingEntry(null)
+          setDeleteConfirmationText('')
+        }}
+        onConfirm={handleDeleteConfirm}
+      />
+
       <div className="grid gap-4 md:grid-cols-4">
-        <MetricCard label="Entradas" value={formatCurrency(metrics.receipts)} helper={`${startDate} → ${endDate}`} icon={ArrowDownCircle} />
-        <MetricCard label="Despesas" value={formatCurrency(metrics.expenses)} helper="Saídas operacionais no período" icon={ArrowUpCircle} />
-        <MetricCard label="Repasses" value={formatCurrency(metrics.payouts)} helper="Repasses aos sócios no período" icon={HandCoins} />
-        <MetricCard
-          label="Saldo global"
-          value={formatCurrency(globalBalance)}
-          helper="Acumulado desde o início — filtros só afetam a lista"
-          icon={Landmark}
-        />
+        <MetricCard label="Entradas" value={formatCurrency(metrics.receipts)} helper={`${startDate} -> ${endDate}`} icon={ArrowDownCircle} />
+        <MetricCard label="Despesas" value={formatCurrency(metrics.expenses)} helper="Saidas operacionais no periodo" icon={ArrowUpCircle} />
+        <MetricCard label="Repasses" value={formatCurrency(metrics.payouts)} helper="Repasses aos socios no periodo" icon={HandCoins} />
+        <MetricCard label="Saldo global" value={formatCurrency(globalBalance)} helper="Acumulado desde o inicio; filtros so afetam a lista" icon={Landmark} />
       </div>
 
       <Panel
         title="Livro-caixa"
-        subtitle="Entradas, despesas e repasses no período selecionado."
-        actions={
+        subtitle="Entradas, despesas e repasses no periodo selecionado."
+        actions={(
           <div className="flex flex-wrap items-center gap-2">
-            <input type="date" className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            <span className="text-xs text-[var(--ink-soft)]">→</span>
-            <input type="date" className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <input type="date" className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+            <span className="text-xs text-[var(--ink-soft)]">-></span>
+            <input type="date" className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
             <button
               type="button"
-              onClick={() => setSortOrder((current) => current === 'oldest' ? 'newest' : 'oldest')}
               className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs font-medium text-[var(--ink)] hover:bg-[var(--paper)]"
+              onClick={() => setSortOrder((current) => current === 'oldest' ? 'newest' : 'oldest')}
             >
               Ordenar: {sortOrder === 'oldest' ? 'mais antigas' : 'mais recentes'}
             </button>
-            <button
-              onClick={() => setShowEntrada(true)}
-              className="inline-flex items-center gap-1.5 bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700"
-            >
+            <button type="button" className="inline-flex items-center gap-1.5 bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700" onClick={() => setShowEntrada(true)}>
               <Plus className="h-3.5 w-3.5" /> Entrada
             </button>
-            <button
-              onClick={() => setShowSaida(true)}
-              className="inline-flex items-center gap-1.5 bg-rose-600 px-3 py-2 text-xs font-medium text-white hover:bg-rose-700"
-            >
-              <Plus className="h-3.5 w-3.5" /> Saída
+            <button type="button" className="inline-flex items-center gap-1.5 bg-rose-600 px-3 py-2 text-xs font-medium text-white hover:bg-rose-700" onClick={() => setShowSaida(true)}>
+              <Plus className="h-3.5 w-3.5" /> Saida
             </button>
           </div>
-        }
+        )}
       >
-        <div className="mb-4 grid gap-2 md:grid-cols-3">
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-soft)]" />
+          <input
+            className="w-full rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] py-2.5 pl-10 pr-4 text-sm text-[var(--ink)] outline-none transition-colors placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)]"
+            placeholder="Buscar por projeto, cliente, disciplina, socio, fornecedor, nota ou conta..."
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
+        </div>
+
+        <div className="mb-4 grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <select
             className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]"
             value={entryFilter}
-            onChange={(e) => setEntryFilter(e.target.value as 'all' | 'expense' | 'payout')}
+            onChange={(event) => setEntryFilter(event.target.value as 'all' | 'expense' | 'payout')}
           >
-            <option value="all">Todas as movimentações</option>
-            <option value="expense">Só despesas</option>
-            <option value="payout">Só repasses</option>
+            <option value="all">Todas as movimentacoes</option>
+            <option value="expense">So despesas</option>
+            <option value="payout">So repasses</option>
           </select>
-          <select
-            className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]"
+          <PickerField
+            options={[{ value: '', label: 'Todos os projetos' }, ...projectOptions]}
+            placeholder="Filtrar por projeto"
             value={projectFilterId}
-            onChange={(e) => setProjectFilterId(e.target.value)}
-          >
-            <option value="">Todos os projetos</option>
-            {selectableProjects.map((project) => (
-              <option key={project.id} value={project.id}>{project.name}</option>
-            ))}
-          </select>
-          <select
-            className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]"
-            value={partnerFilter}
-            onChange={(e) => {
-              setPartnerFilter(e.target.value)
-              if (e.target.value) setEntryFilter('payout')
-            }}
-          >
-            <option value="">Todos os sócios</option>
-            {partners.map((partner) => (
-              <option key={partner} value={partner}>{partner}</option>
-            ))}
-          </select>
+            onChange={setProjectFilterId}
+          />
+          <PickerField
+                    options={[{ value: '', label: 'Todos os socios' }, ...partnerOptions]}
+                    placeholder="Filtrar por socio"
+                    value={partnerFilter}
+                    onChange={setPartnerFilter}
+                  />
         </div>
+
         {groupedByDay.length ? (
           <div className="divide-y divide-[var(--line)]">
-            {groupedByDay.map(({ day, entries, dayNet, runningBalance }) => (
-              <div key={day}>
-                {/* Day header */}
-                <div className="flex items-center justify-between gap-4 bg-[var(--paper)] px-4 py-2.5">
-                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">
-                    {formatDate(day)}
-                  </span>
-                  <div className="flex items-center gap-4">
-                    <span className={`text-xs font-medium ${dayNet >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
-                      {dayNet >= 0 ? '+' : '−'}{formatCurrency(Math.abs(dayNet))} no dia
-                    </span>
-                    <span className="text-xs text-[var(--ink-soft)]">
-                      saldo <span className={`font-semibold ${runningBalance >= 0 ? 'text-[var(--ink)]' : 'text-rose-700 dark:text-rose-400'}`}>{formatCurrency(runningBalance)}</span>
-                    </span>
-                  </div>
-                </div>
-                {/* Entries for this day */}
-                <div className="divide-y divide-[var(--line)]">
-                  {entries.map((entry) => (
-                    <div key={`${entry.entry_type}-${entry.id}`} className="group flex items-center gap-3 px-4 py-3 hover:bg-[var(--teal-active-bg)]">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium text-[var(--ink)]">{entry.project_name ?? '—'}</span>
-                          {entry.counterpart && <span className="text-xs text-[var(--ink-soft)]">{entry.counterpart}</span>}
-                        </div>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-[var(--ink-soft)]">
-                          <span>{stageLabel(entry.entry_type)}</span>
-                          {entry.bank_account && <><span>·</span><span>{entry.bank_account}</span></>}
-                        </div>
-                      </div>
-                      <span className={`shrink-0 text-sm font-semibold tabular-nums ${entry.signed_amount >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
-                        {entry.signed_amount >= 0 ? '+' : '−'}{formatCurrency(Math.abs(numericValue(entry.signed_amount)))}
+            {groupedByDay.map(({ day, entries, dayNet, runningBalance }) => {
+              const collapsed = collapsedDays.includes(day)
+
+              return (
+                <div key={day}>
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-4 bg-[var(--paper)] px-4 py-2.5 text-left"
+                    onClick={() => toggleCollapsedDay(day)}
+                  >
+                    <div className="flex items-center gap-3">
+                      {collapsed ? <ChevronRight className="h-4 w-4 text-[var(--ink-soft)]" /> : <ChevronDown className="h-4 w-4 text-[var(--ink-soft)]" />}
+                      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">
+                        {formatDate(day)}
                       </span>
-                      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                        <button onClick={() => handleEditOpen(entry)} className="rounded p-1 text-[var(--ink-soft)] hover:bg-[var(--paper)] hover:text-[var(--ink)]">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button onClick={() => setDeletingEntry(entry)} className="rounded p-1 text-[var(--ink-soft)] hover:bg-rose-50 hover:text-rose-600">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
                     </div>
-                  ))}
+                    <div className="flex items-center gap-4">
+                      <span className={`text-xs font-medium ${dayNet >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
+                        {dayNet >= 0 ? '+' : '-'}{formatCurrency(Math.abs(dayNet))} no dia
+                      </span>
+                      <span className="text-xs text-[var(--ink-soft)]">
+                        saldo <span className={`font-semibold ${runningBalance >= 0 ? 'text-[var(--ink)]' : 'text-rose-700 dark:text-rose-400'}`}>{formatCurrency(runningBalance)}</span>
+                      </span>
+                    </div>
+                  </button>
+
+                  {!collapsed ? (
+                    <div className="divide-y divide-[var(--line)]">
+                      {entries.map((entry) => (
+                        <div key={`${entry.entry_type}-${entry.id}`} className="group flex items-center gap-3 px-4 py-3 hover:bg-[var(--teal-active-bg)]">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-medium text-[var(--ink)]">{entry.project_name ?? '-'}</span>
+                              {sanitizeCashflowText(entry.counterpart) ? <span className="text-xs text-[var(--ink-soft)]">{sanitizeCashflowText(entry.counterpart)}</span> : null}
+                            </div>
+                            <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-[var(--ink-soft)]">
+                              <span>{stageLabel(entry.entry_type)}</span>
+                              {entry.bank_account ? <><span>-</span><span>{entry.bank_account}</span></> : null}
+                            </div>
+                          </div>
+                          <span className={`shrink-0 text-sm font-semibold tabular-nums ${entry.signed_amount >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
+                            {entry.signed_amount >= 0 ? '+' : '-'}{formatCurrency(Math.abs(numericValue(entry.signed_amount)))}
+                          </span>
+                          <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                            <button type="button" className="rounded p-1 text-[var(--ink-soft)] hover:bg-[var(--paper)] hover:text-[var(--ink)]" onClick={() => setViewingEntry(entry)}>
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
+                            <button type="button" className="rounded p-1 text-[var(--ink-soft)] hover:bg-[var(--paper)] hover:text-[var(--ink)]" onClick={() => handleEditOpen(entry)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded p-1 text-[var(--ink-soft)] hover:bg-rose-50 hover:text-rose-600"
+                              onClick={() => {
+                                setDeletingEntry(entry)
+                                setDeleteConfirmationText('')
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         ) : (
-          <EmptyState title="Sem movimentação no período" body="Ajuste o intervalo de datas ou registre entradas e saídas." />
+          <EmptyState title="Sem movimentacao no periodo" body="Ajuste o intervalo de datas ou registre entradas e saidas." />
         )}
       </Panel>
 
-      {/* Entrada modal */}
-      {showEntrada && (
+      {showEntrada ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md [] border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_8px_32px_rgba(12,26,26,0.08)]">
+          <div className="w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_8px_32px_rgba(12,26,26,0.08)]">
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-[var(--ink)]">Registrar entrada</h3>
-              <button onClick={() => { setShowEntrada(false); resetEntrada() }} className="rounded-full p-1 hover:bg-[var(--paper)]">
+              <button type="button" className="rounded-full p-1 hover:bg-[var(--paper)]" onClick={() => { setShowEntrada(false); resetEntrada() }}>
                 <X className="h-4 w-4" />
               </button>
             </div>
             <form className="grid gap-4" onSubmit={handleEntradaSubmit}>
-              <select required className={inputClass} value={receiptForm.projectId} onChange={(e) => setReceiptForm((c) => ({ ...c, projectId: e.target.value }))}>
-                <option value="">Selecione o projeto</option>
-                {selectableProjects.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}{p.client_name ? ` · ${p.client_name}` : ''}</option>
-                ))}
-              </select>
-              <input required type="number" min="0.01" step="0.01" className={inputClass} placeholder="Valor (R$)" value={receiptForm.amount} onChange={(e) => setReceiptForm((c) => ({ ...c, amount: e.target.value }))} />
-              <input type="date" required className={inputClass} value={receiptForm.entryDate} onChange={(e) => setReceiptForm((c) => ({ ...c, entryDate: e.target.value }))} />
-              <input className={inputClass} placeholder="Conta bancária (opcional)" value={receiptForm.bankAccount} onChange={(e) => setReceiptForm((c) => ({ ...c, bankAccount: e.target.value }))} />
-              <textarea className={`${inputClass} min-h-20`} placeholder="Observação (opcional)" value={receiptForm.note} onChange={(e) => setReceiptForm((c) => ({ ...c, note: e.target.value }))} />
+              <PickerField
+                required
+                inputClassName={pickerInputClass}
+                options={projectOptions}
+                placeholder="Selecione o projeto"
+                value={receiptForm.projectId}
+                onChange={(projectId) => setReceiptForm((current) => ({ ...current, projectId }))}
+              />
+              <input required type="number" min="0.01" step="0.01" className={inputClass} placeholder="Valor (R$)" value={receiptForm.amount} onChange={(event) => setReceiptForm((current) => ({ ...current, amount: event.target.value }))} />
+              <input required type="date" className={inputClass} value={receiptForm.entryDate} onChange={(event) => setReceiptForm((current) => ({ ...current, entryDate: event.target.value }))} />
+              <input className={inputClass} placeholder="Conta bancaria (opcional)" value={receiptForm.bankAccount} onChange={(event) => setReceiptForm((current) => ({ ...current, bankAccount: event.target.value }))} />
+              <textarea className={`${inputClass} min-h-20`} placeholder="Observacao (opcional)" value={receiptForm.note} onChange={(event) => setReceiptForm((current) => ({ ...current, note: event.target.value }))} />
               <button type="submit" disabled={mutating} className="bg-emerald-600 px-4 py-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
                 Salvar entrada
               </button>
             </form>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Edit modal */}
-      {editingEntry && (
+      {editingEntry ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_8px_32px_rgba(12,26,26,0.08)]">
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-[var(--ink)]">Editar {stageLabel(editingEntry.entry_type)}</h3>
-              <button onClick={() => setEditingEntry(null)} className="rounded-full p-1 hover:bg-[var(--paper)]">
+              <button type="button" className="rounded-full p-1 hover:bg-[var(--paper)]" onClick={() => setEditingEntry(null)}>
                 <X className="h-4 w-4" />
               </button>
             </div>
             <form className="grid gap-4" onSubmit={handleEditSubmit}>
-              {editingEntry.entry_type === 'expense' && (
-                <select required className={inputClass} value={editForm.category} onChange={(e) => setEditForm((c) => ({ ...c, category: e.target.value }))}>
+              {editingEntry.entry_type === 'expense' ? (
+                <select required className={inputClass} value={editForm.category} onChange={(event) => setEditForm((current) => ({ ...current, category: event.target.value }))}>
                   <option value="">Tipo de despesa</option>
-                  {expenseCategories.map((cat) => (
-                    <option key={cat} value={cat}>{stageLabel(cat)}</option>
+                  {expenseCategories.map((category) => (
+                    <option key={category} value={category}>{stageLabel(category)}</option>
                   ))}
                 </select>
-              )}
-              {editingEntry.entry_type === 'expense' && (
-                <select className={inputClass} value={editForm.projectId} onChange={(e) => setEditForm((c) => ({ ...c, projectId: e.target.value }))}>
-                  <option value="">Projeto (opcional)</option>
-                  {selectableProjects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              ) : null}
+              {editingEntry.entry_type === 'expense' ? (
+                <PickerField
+                  inputClassName={pickerInputClass}
+                  options={[{ value: '', label: 'Projeto (opcional)' }, ...projectOptions]}
+                  placeholder="Projeto (opcional)"
+                  value={editForm.projectId}
+                  onChange={(projectId) => setEditForm((current) => ({ ...current, projectId }))}
+                />
+              ) : null}
+              {editingEntry.entry_type === 'payout' ? (
+                <select className={inputClass} value={editForm.partnerName} onChange={(event) => setEditForm((current) => ({ ...current, partnerName: event.target.value }))}>
+                  {partners.map((partner) => <option key={partner} value={partner}>{partner}</option>)}
                 </select>
-              )}
-              {editingEntry.entry_type === 'payout' && (
-                <select className={inputClass} value={editForm.partnerName} onChange={(e) => setEditForm((c) => ({ ...c, partnerName: e.target.value }))}>
-                  {partners.map((p) => <option key={p} value={p}>{p}</option>)}
-                </select>
-              )}
-              <input required type="number" min="0.01" step="0.01" className={inputClass} placeholder="Valor (R$)" value={editForm.amount} onChange={(e) => setEditForm((c) => ({ ...c, amount: e.target.value }))} />
-              {editingEntry.entry_type === 'expense' && (
-                <input className={inputClass} placeholder="Fornecedor (opcional)" value={editForm.vendor} onChange={(e) => setEditForm((c) => ({ ...c, vendor: e.target.value }))} />
-              )}
-              <input type="date" required className={inputClass} value={editForm.entryDate} onChange={(e) => setEditForm((c) => ({ ...c, entryDate: e.target.value }))} />
-              <input className={inputClass} placeholder="Conta bancária (opcional)" value={editForm.bankAccount} onChange={(e) => setEditForm((c) => ({ ...c, bankAccount: e.target.value }))} />
-              <textarea className={`${inputClass} min-h-20`} placeholder="Observação (opcional)" value={editForm.note} onChange={(e) => setEditForm((c) => ({ ...c, note: e.target.value }))} />
+              ) : null}
+              <input required type="number" min="0.01" step="0.01" className={inputClass} placeholder="Valor (R$)" value={editForm.amount} onChange={(event) => setEditForm((current) => ({ ...current, amount: event.target.value }))} />
+              {editingEntry.entry_type === 'expense' ? (
+                editForm.category === 'ferias' ? (
+                  <PickerField
+                    inputClassName={pickerInputClass}
+                    options={partnerOptions}
+                    placeholder="Socio"
+                    value={editForm.vendor}
+                    onChange={(vendor) => setEditForm((current) => ({ ...current, vendor }))}
+                  />
+                ) : (
+                  <input className={inputClass} placeholder="Fornecedor (opcional)" value={editForm.vendor} onChange={(event) => setEditForm((current) => ({ ...current, vendor: event.target.value }))} />
+                )
+              ) : null}
+              <input required type="date" className={inputClass} value={editForm.entryDate} onChange={(event) => setEditForm((current) => ({ ...current, entryDate: event.target.value }))} />
+              <input className={inputClass} placeholder="Conta bancaria (opcional)" value={editForm.bankAccount} onChange={(event) => setEditForm((current) => ({ ...current, bankAccount: event.target.value }))} />
+              <textarea className={`${inputClass} min-h-20`} placeholder="Observacao (opcional)" value={editForm.note} onChange={(event) => setEditForm((current) => ({ ...current, note: event.target.value }))} />
               <button type="submit" disabled={mutating} className="bg-[var(--ink)] px-4 py-3 text-sm font-medium text-[var(--bg-card-solid)] hover:opacity-80 disabled:opacity-50">
-                Salvar alterações
+                Salvar alteracoes
               </button>
             </form>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Delete confirmation */}
-      {deletingEntry && (
+      {showSaida ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_8px_32px_rgba(12,26,26,0.08)]">
-            <h3 className="mb-2 text-lg font-semibold text-[var(--ink)]">Excluir transação?</h3>
-            <p className="mb-6 text-sm text-[var(--ink-soft)]">
-              {stageLabel(deletingEntry.entry_type)} de <span className="font-medium text-[var(--ink)]">{formatCurrency(Math.abs(numericValue(deletingEntry.signed_amount)))}</span>{deletingEntry.project_name ? ` · ${deletingEntry.project_name}` : ''} em {formatDate(deletingEntry.entry_date)}. Esta ação não pode ser desfeita.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeletingEntry(null)} className="flex-1 border border-[var(--line)] px-4 py-2.5 text-sm text-[var(--ink)] hover:bg-[var(--paper)]">
-                Cancelar
-              </button>
-              <button onClick={handleDeleteConfirm} disabled={mutating} className="flex-1 bg-rose-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50">
-                Excluir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Saída modal */}
-      {showSaida && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md [] border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_8px_32px_rgba(12,26,26,0.08)]">
+          <div className="w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_8px_32px_rgba(12,26,26,0.08)]">
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-[var(--ink)]">Registrar saída</h3>
-              <button onClick={() => { setShowSaida(false); resetSaida() }} className="rounded-full p-1 hover:bg-[var(--paper)]">
+              <h3 className="text-lg font-semibold text-[var(--ink)]">Registrar saida</h3>
+              <button type="button" className="rounded-full p-1 hover:bg-[var(--paper)]" onClick={() => { setShowSaida(false); resetSaida() }}>
                 <X className="h-4 w-4" />
               </button>
             </div>
             <form className="grid gap-4" onSubmit={handleSaidaSubmit}>
-              <select required className={inputClass} value={saidaType} onChange={(e) => setSaidaType(e.target.value)}>
-                <option value="">Tipo de saída</option>
-                {expenseCategories.map((cat) => (
-                  <option key={cat} value={cat}>{stageLabel(cat)}</option>
+              <select required className={inputClass} value={saidaType} onChange={(event) => setSaidaType(event.target.value)}>
+                <option value="">Tipo de saida</option>
+                {expenseCategories.map((category) => (
+                  <option key={category} value={category}>{stageLabel(category)}</option>
                 ))}
-                <option value={PAYOUT_KEY}>Repasse para sócio</option>
+                <option value={PAYOUT_KEY}>Repasse para socio</option>
               </select>
 
               {saidaType === PAYOUT_KEY ? (
                 <>
-                  <select required className={inputClass} value={payoutProjectId} onChange={(e) => { setPayoutProjectId(e.target.value); setPayoutForm((c) => ({ ...c, subprojectId: '' })) }}>
-                    <option value="">Selecione o projeto</option>
-                    {selectableProjects.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                  {payoutProjectId && (
-                    <select required className={inputClass} value={payoutForm.subprojectId} onChange={(e) => {
-                      const sp = data.subprojects.find((s) => s.id === e.target.value)
-                      setPayoutForm((c) => ({ ...c, subprojectId: e.target.value, partnerName: sp?.responsible_partner ?? partners[0] }))
-                    }}>
-                      <option value="">Selecione a disciplina</option>
-                      {subprojectsForProject.map((sp) => (
-                        <option key={sp.id} value={sp.id}>
-                          {stageLabel(sp.discipline)} — {formatCurrency(numericValue(sp.amount))}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  {selectedSubproject && (
+                  <PickerField
+                    required
+                    inputClassName={pickerInputClass}
+                    options={projectOptions}
+                    placeholder="Selecione o projeto"
+                    value={payoutForm.projectId}
+                    onChange={(projectId) => setPayoutForm((current) => ({ ...current, projectId, subprojectId: '' }))}
+                  />
+                  {payoutForm.projectId ? (
+                    <PickerField
+                      required
+                      inputClassName={pickerInputClass}
+                      options={subprojectOptions}
+                      placeholder="Selecione a disciplina"
+                      value={payoutForm.subprojectId}
+                      onChange={(subprojectId) => {
+                        const subproject = subprojectsById.get(subprojectId) as Subproject | undefined
+                        setPayoutForm((current) => ({
+                          ...current,
+                          subprojectId,
+                          partnerName: subproject?.responsible_partner ?? partners[0],
+                        }))
+                      }}
+                    />
+                  ) : null}
+                  {selectedSubproject ? (
                     <div className="border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--ink-soft)]">
                       Valor do subprojeto: <span className="font-semibold text-[var(--ink)]">{formatCurrency(numericValue(selectedSubproject.amount))}</span>
                     </div>
-                  )}
-                  <select className={inputClass} value={payoutForm.partnerName} onChange={(e) => setPayoutForm((c) => ({ ...c, partnerName: e.target.value }))}>
-                    {partners.map((p) => <option key={p} value={p}>{p}</option>)}
+                  ) : null}
+                  <select className={inputClass} value={payoutForm.partnerName} onChange={(event) => setPayoutForm((current) => ({ ...current, partnerName: event.target.value }))}>
+                    {partners.map((partner) => <option key={partner} value={partner}>{partner}</option>)}
                   </select>
                   <div className="flex items-center gap-3">
-                    <input
-                      required
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      className={inputClass}
-                      placeholder="Percentual (%)"
-                      value={payoutForm.percentage}
-                      onChange={(e) => setPayoutForm((c) => ({ ...c, percentage: e.target.value }))}
-                    />
-                    {payoutAmount != null && (
-                      <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">= {formatCurrency(payoutAmount)}</span>
-                    )}
+                    <input required type="number" min="0" max="100" step="0.01" className={inputClass} placeholder="Percentual (%)" value={payoutForm.percentage} onChange={(event) => setPayoutForm((current) => ({ ...current, percentage: event.target.value }))} />
+                    {payoutAmount != null ? <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">= {formatCurrency(payoutAmount)}</span> : null}
                   </div>
                 </>
               ) : saidaType ? (
                 <>
-                  <select className={inputClass} value={expenseForm.projectId} onChange={(e) => setExpenseForm((c) => ({ ...c, projectId: e.target.value }))}>
-                    <option value="">Projeto (opcional)</option>
-                    {selectableProjects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                  <input required type="number" min="0.01" step="0.01" className={inputClass} placeholder="Valor (R$)" value={expenseForm.amount} onChange={(e) => setExpenseForm((c) => ({ ...c, amount: e.target.value }))} />
-                  <input className={inputClass} placeholder="Fornecedor (opcional)" value={expenseForm.vendor} onChange={(e) => setExpenseForm((c) => ({ ...c, vendor: e.target.value }))} />
+                  <PickerField
+                    inputClassName={pickerInputClass}
+                    options={[{ value: '', label: 'Projeto (opcional)' }, ...projectOptions]}
+                    placeholder="Projeto (opcional)"
+                    value={expenseForm.projectId}
+                    onChange={(projectId) => setExpenseForm((current) => ({ ...current, projectId }))}
+                  />
+                  <input required type="number" min="0.01" step="0.01" className={inputClass} placeholder="Valor (R$)" value={expenseForm.amount} onChange={(event) => setExpenseForm((current) => ({ ...current, amount: event.target.value }))} />
+                  {saidaType === 'ferias' ? (
+                    <PickerField
+                      inputClassName={pickerInputClass}
+                      options={partnerOptions}
+                      placeholder="Socio"
+                      value={expenseForm.vendor}
+                      onChange={(vendor) => setExpenseForm((current) => ({ ...current, vendor }))}
+                    />
+                  ) : (
+                    <input className={inputClass} placeholder="Fornecedor (opcional)" value={expenseForm.vendor} onChange={(event) => setExpenseForm((current) => ({ ...current, vendor: event.target.value }))} />
+                  )}
                 </>
               ) : null}
 
-              {saidaType && (
+              {saidaType ? (
                 <>
-                  <input type="date" required className={inputClass} value={saidaType === PAYOUT_KEY ? payoutForm.entryDate : expenseForm.entryDate} onChange={(e) => {
-                    if (saidaType === PAYOUT_KEY) setPayoutForm((c) => ({ ...c, entryDate: e.target.value }))
-                    else setExpenseForm((c) => ({ ...c, entryDate: e.target.value }))
-                  }} />
-                  <input className={inputClass} placeholder="Conta bancária (opcional)" value={saidaType === PAYOUT_KEY ? payoutForm.bankAccount : expenseForm.bankAccount} onChange={(e) => {
-                    if (saidaType === PAYOUT_KEY) setPayoutForm((c) => ({ ...c, bankAccount: e.target.value }))
-                    else setExpenseForm((c) => ({ ...c, bankAccount: e.target.value }))
-                  }} />
-                  <textarea className={`${inputClass} min-h-20`} placeholder="Observação (opcional)" value={saidaType === PAYOUT_KEY ? payoutForm.note : expenseForm.note} onChange={(e) => {
-                    if (saidaType === PAYOUT_KEY) setPayoutForm((c) => ({ ...c, note: e.target.value }))
-                    else setExpenseForm((c) => ({ ...c, note: e.target.value }))
-                  }} />
+                  <input
+                    required
+                    type="date"
+                    className={inputClass}
+                    value={saidaType === PAYOUT_KEY ? payoutForm.entryDate : expenseForm.entryDate}
+                    onChange={(event) => {
+                      if (saidaType === PAYOUT_KEY) setPayoutForm((current) => ({ ...current, entryDate: event.target.value }))
+                      else setExpenseForm((current) => ({ ...current, entryDate: event.target.value }))
+                    }}
+                  />
+                  <input
+                    className={inputClass}
+                    placeholder="Conta bancaria (opcional)"
+                    value={saidaType === PAYOUT_KEY ? payoutForm.bankAccount : expenseForm.bankAccount}
+                    onChange={(event) => {
+                      if (saidaType === PAYOUT_KEY) setPayoutForm((current) => ({ ...current, bankAccount: event.target.value }))
+                      else setExpenseForm((current) => ({ ...current, bankAccount: event.target.value }))
+                    }}
+                  />
+                  <textarea
+                    className={`${inputClass} min-h-20`}
+                    placeholder="Observacao (opcional)"
+                    value={saidaType === PAYOUT_KEY ? payoutForm.note : expenseForm.note}
+                    onChange={(event) => {
+                      if (saidaType === PAYOUT_KEY) setPayoutForm((current) => ({ ...current, note: event.target.value }))
+                      else setExpenseForm((current) => ({ ...current, note: event.target.value }))
+                    }}
+                  />
                   <button type="submit" disabled={mutating} className="bg-rose-600 px-4 py-3 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50">
-                    Salvar saída
+                    Salvar saida
                   </button>
                 </>
-              )}
+              ) : null}
             </form>
           </div>
         </div>
-      )}
+      ) : null}
     </>
   )
 }

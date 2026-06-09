@@ -28,6 +28,21 @@ export function stageLabel(value: string) {
   return LABELS[value] || value
 }
 
+export function normalizeSearchText(value: string | null | undefined) {
+  return (value ?? '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+export function sanitizeCashflowText(value: string | null | undefined) {
+  return (value ?? '')
+    .replace(/\s*(?:Ã‚Â·|Â·)\s*/g, ' - ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 export function stageTone(stage: string) {
   const normalized = stage.toLowerCase()
   if (['won', 'concluído', 'done'].includes(normalized)) return 'bg-[var(--emerald-bg)] text-[var(--emerald-text)] border-[var(--emerald-border)]'
