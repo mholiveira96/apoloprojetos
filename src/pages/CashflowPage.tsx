@@ -35,7 +35,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
   const [entryFilter, setEntryFilter] = useState<'all' | 'expense' | 'payout'>('all')
   const [projectFilterId, setProjectFilterId] = useState('')
   const [partnerFilter, setPartnerFilter] = useState('')
-  const [sortOrder, setSortOrder] = useState<'oldest' | 'newest'>('oldest')
+  const [sortOrder, setSortOrder] = useState<'oldest' | 'newest'>('newest')
 
   const [showEntrada, setShowEntrada] = useState(false)
   const [showSaida, setShowSaida] = useState(false)
