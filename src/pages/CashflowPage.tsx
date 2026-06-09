@@ -200,9 +200,9 @@ function TransactionDetailModal({
   ].filter((row) => row.value)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="workspace-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_18px_50px_rgba(12,26,26,0.14)]"
+        className="workspace-modal-panel w-full max-w-lg border border-[var(--line)] bg-[var(--bg-card-solid)] p-6"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-5 flex items-start justify-between gap-4">
@@ -247,9 +247,9 @@ function DeleteTransactionModal({
   const canDelete = normalizeSearchText(confirmationText) === 'deletar'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="workspace-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_18px_50px_rgba(12,26,26,0.14)]"
+        className="workspace-modal-panel w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6"
         onClick={(event) => event.stopPropagation()}
       >
         <h3 className="mb-2 text-lg font-semibold text-[var(--ink)]">Excluir transacao?</h3>
@@ -705,7 +705,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                 <div key={day}>
                   <button
                     type="button"
-                    className="flex w-full items-center justify-between gap-4 bg-[var(--paper)] px-4 py-2.5 text-left"
+                    className="workspace-row flex w-full items-center justify-between gap-4 bg-[var(--paper)] px-4 py-2.5 text-left hover:bg-[var(--teal-active-bg)]"
                     onClick={() => toggleCollapsedDay(day)}
                   >
                     <div className="flex items-center gap-3">
@@ -727,7 +727,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                   {!collapsed ? (
                     <div className="divide-y divide-[var(--line)]">
                       {entries.map((entry) => (
-                        <div key={`${entry.entry_type}-${entry.id}`} className="group flex items-center gap-3 px-4 py-3 hover:bg-[var(--teal-active-bg)]">
+                        <div key={`${entry.entry_type}-${entry.id}`} className="workspace-row group flex items-center gap-3 px-4 py-3 hover:bg-[var(--teal-active-bg)]">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-medium text-[var(--ink)]">{entry.project_name ?? '-'}</span>
@@ -773,8 +773,8 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
       </Panel>
 
       {showEntrada ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_8px_32px_rgba(12,26,26,0.08)]">
+        <div className="workspace-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="workspace-modal-panel w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6">
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-[var(--ink)]">Registrar entrada</h3>
               <button type="button" className="rounded-full p-1 hover:bg-[var(--paper)]" onClick={() => { setShowEntrada(false); resetEntrada() }}>
@@ -803,8 +803,8 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
       ) : null}
 
       {editingEntry ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_8px_32px_rgba(12,26,26,0.08)]">
+        <div className="workspace-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="workspace-modal-panel w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6">
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-[var(--ink)]">Editar {stageLabel(editingEntry.entry_type)}</h3>
               <button type="button" className="rounded-full p-1 hover:bg-[var(--paper)]" onClick={() => setEditingEntry(null)}>
@@ -860,8 +860,8 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
       ) : null}
 
       {showSaida ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[0_8px_32px_rgba(12,26,26,0.08)]">
+        <div className="workspace-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="workspace-modal-panel w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6">
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-[var(--ink)]">Registrar saida</h3>
               <button type="button" className="rounded-full p-1 hover:bg-[var(--paper)]" onClick={() => { setShowSaida(false); resetSaida() }}>

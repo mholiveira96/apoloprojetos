@@ -70,6 +70,12 @@
   --stone-bg: rgba(120,113,108,0.08);
   --stone-border: rgba(120,113,108,0.18);
   --stone-text: #57534e;
+  --motion-duration-fast: 180ms;
+  --motion-duration-base: 280ms;
+  --motion-duration-slow: 420ms;
+  --motion-ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-shadow-hover: 0 18px 38px rgba(10, 26, 26, 0.08);
+  --motion-shadow-modal: 0 30px 80px rgba(10, 26, 26, 0.14);
 }
 
 .dark {
@@ -235,4 +241,101 @@ img {
 .overflow-y-auto:hover::-webkit-scrollbar-thumb:hover,
 .overflow-x-auto:hover::-webkit-scrollbar-thumb:hover {
   background: rgba(13, 148, 136, 0.45);
+}
+
+@keyframes workspace-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes workspace-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes workspace-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.workspace-appear {
+  animation: workspace-fade-up var(--motion-duration-slow) var(--motion-ease-soft) both;
+}
+
+.workspace-appear-delayed {
+  animation-delay: 90ms;
+}
+
+.workspace-surface {
+  transition:
+    transform var(--motion-duration-base) var(--motion-ease-soft),
+    border-color var(--motion-duration-base) ease,
+    background-color var(--motion-duration-base) ease,
+    box-shadow var(--motion-duration-base) var(--motion-ease-soft);
+}
+
+.workspace-surface:hover {
+  box-shadow: var(--motion-shadow-hover);
+}
+
+.workspace-card-pop:hover {
+  transform: translateY(-3px);
+}
+
+.workspace-row {
+  transition:
+    transform var(--motion-duration-fast) var(--motion-ease-soft),
+    background-color var(--motion-duration-fast) ease,
+    border-color var(--motion-duration-fast) ease,
+    opacity var(--motion-duration-fast) ease;
+}
+
+.workspace-row:hover {
+  transform: translateX(2px);
+}
+
+.workspace-modal-backdrop {
+  animation: workspace-fade-in var(--motion-duration-fast) ease both;
+  backdrop-filter: blur(8px);
+}
+
+.workspace-modal-panel {
+  animation: workspace-modal-in 220ms var(--motion-ease-soft) both;
+  box-shadow: var(--motion-shadow-modal);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .workspace-row:hover,
+  .workspace-card-pop:hover {
+    transform: none;
+  }
 }

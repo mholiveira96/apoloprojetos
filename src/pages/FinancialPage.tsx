@@ -43,11 +43,11 @@ function ProjectHistoryModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+      className="workspace-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/30"
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto [] border border-[var(--line)] bg-[var(--paper)] p-6 shadow-[0_24px_80px_rgba(12,26,26,0.08)]"
+        className="workspace-modal-panel max-h-[90vh] w-full max-w-3xl overflow-y-auto [] border border-[var(--line)] bg-[var(--paper)] p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-start justify-between gap-4">
@@ -74,21 +74,21 @@ function ProjectHistoryModal({
         </div>
 
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="[] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
+          <div className="workspace-surface rounded-2xl [] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
             <div className={labelClass}>Contrato</div>
             <div className="mt-1 text-base font-semibold text-[var(--ink)]">{formatCurrency(contract)}</div>
           </div>
-          <div className="[] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
+          <div className="workspace-surface rounded-2xl [] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
             <div className={labelClass}>Recebido</div>
             <div className="mt-1 text-base font-semibold text-emerald-600">{formatCurrency(received)}</div>
           </div>
-          <div className="[] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
+          <div className="workspace-surface rounded-2xl [] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
             <div className={labelClass}>A receber</div>
             <div className={`mt-1 text-base font-semibold ${outstanding > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
               {formatCurrency(outstanding)}
             </div>
           </div>
-          <div className="[] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
+          <div className="workspace-surface rounded-2xl [] border border-[var(--line)] bg-[var(--bg-card-80)] px-4 py-3">
             <div className={labelClass}>Despesas</div>
             <div className="mt-1 text-base font-semibold text-rose-600">{formatCurrency(expensesTotal)}</div>
           </div>
@@ -453,7 +453,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
                   return (
                     <tr
                       key={project.id}
-                      className={`cursor-pointer transition hover:bg-[var(--paper)] ${project.archived ? 'opacity-70' : ''}`}
+                      className={`workspace-row cursor-pointer hover:bg-[var(--paper)] ${project.archived ? 'opacity-70' : ''}`}
                       onClick={() => setSelectedProjectId(project.id)}
                     >
                       <td className="py-3 pr-4">
@@ -510,7 +510,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
             const paid = partnerPaid[partner] ?? 0
             const balance = Math.max(0, owed - paid)
             return (
-              <div key={partner} className="[] border border-[var(--line)] bg-[var(--bg-card-80)] p-5 space-y-4">
+              <div key={partner} className="workspace-surface workspace-card-pop rounded-[24px] [] border border-[var(--line)] bg-[var(--bg-card-80)] p-5 space-y-4">
                 <div className="font-semibold text-[var(--ink)]">{partner}</div>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div>

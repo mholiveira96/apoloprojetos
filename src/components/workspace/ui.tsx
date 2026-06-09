@@ -3,7 +3,7 @@ import type { ViewMode } from '@/types/forms'
 
 export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="border border-dashed border-[var(--line)] px-5 py-4 text-sm text-[var(--ink-soft)]">
+    <div className="workspace-appear border border-dashed border-[var(--line)] px-5 py-4 text-sm text-[var(--ink-soft)]">
       <div className="font-semibold text-[var(--ink)]">{title}</div>
       <p className="mt-1.5 max-w-xl leading-6">{body}</p>
     </div>
@@ -12,7 +12,7 @@ export function EmptyState({ title, body }: { title: string; body: string }) {
 
 export function Panel({ title, subtitle, children, actions }: { title: string; subtitle?: string; children: ReactNode; actions?: ReactNode }) {
   return (
-    <section>
+    <section className="workspace-appear workspace-appear-delayed workspace-surface rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-80)] p-5 sm:p-6">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-[var(--line)] pb-4">
         <div>
           <h2 className="text-base font-semibold tracking-tight text-[var(--ink)]">{title}</h2>
@@ -28,7 +28,7 @@ export function Panel({ title, subtitle, children, actions }: { title: string; s
 export function MetricCard({ label, value, helper, icon: Icon, onClick }: { label: string; value: string; helper: string; icon: ComponentType<{ className?: string }>; onClick?: () => void }) {
   return (
     <div
-      className={`border-t-2 border-[var(--teal)] pt-4 ${onClick ? 'cursor-pointer transition-colors hover:border-[var(--teal-bright)]' : ''}`}
+      className={`workspace-appear workspace-surface workspace-card-pop rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-80)] p-5 ${onClick ? 'cursor-pointer hover:border-[var(--teal-bright)]' : ''}`}
       onClick={onClick}
     >
       <div className="flex items-start justify-between gap-2">
