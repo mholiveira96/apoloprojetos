@@ -55,16 +55,9 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
   )
 
   const selectableProjects = useMemo(
-    () => data.projects.filter((project) => {
-      const stage = String(project.stage || '').trim().toLowerCase()
-      const contractAmount = numericValue(project.contract_amount)
-      const totalReceived = numericValue(project.total_received)
-      const archivedFlag = project.archived === true || String(project.archived) === '1'
-      const isCompleted = stage === 'concluído'
-      const isFullyReceived = contractAmount > 0 && totalReceived >= contractAmount
-
-      return !archivedFlag && !isCompleted && !isFullyReceived
-    }),
+    () => data.projects
+      .filter((project) => !(project.archived === true || String(project.archived) === '1'))
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })),
     [data.projects],
   )
 
@@ -246,7 +239,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
             onChange={(e) => setProjectFilterId(e.target.value)}
           >
             <option value="">Todos os projetos</option>
-            {data.projects.map((project) => (
+            {selectableProjects.map((project) => (
               <option key={project.id} value={project.id}>{project.name}</option>
             ))}
           </select>
@@ -369,7 +362,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
               {editingEntry.entry_type === 'expense' && (
                 <select className={inputClass} value={editForm.projectId} onChange={(e) => setEditForm((c) => ({ ...c, projectId: e.target.value }))}>
                   <option value="">Projeto (opcional)</option>
-                  {data.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  {selectableProjects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               )}
               {editingEntry.entry_type === 'payout' && (

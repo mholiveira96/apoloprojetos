@@ -268,7 +268,6 @@ export async function getBootstrapData() {
         LEFT JOIN subprojects ON subprojects.id = partner_payouts.subproject_id
       )
       ORDER BY entry_date DESC
-      LIMIT 80
     `),
     db.execute(`
       SELECT
