@@ -644,7 +644,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
         actions={(
           <div className="flex flex-wrap items-center gap-2">
             <input type="date" className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
-            <span className="text-xs text-[var(--ink-soft)]">-></span>
+            <span className="text-xs text-[var(--ink-soft)]">→</span>
             <input type="date" className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
             <button
               type="button"
