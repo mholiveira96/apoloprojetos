@@ -848,9 +848,36 @@ export async function runMutation(action, payload, actor) {
       const id = normalizeText(payload.id)
       if (!id) throw new Error('id é obrigatório')
 
+      // Grab the parent project id before deleting so we can re-sync
+      const delSpResult = await db.execute({ sql: 'SELECT project_id FROM subprojects WHERE id = ?', args: [id] })
+      const delSpProjectId = delSpResult.rows[0]?.project_id ?? null
+
       await db.execute({ sql: 'DELETE FROM subproject_comments WHERE subproject_id = ?', args: [id] })
       await db.execute({ sql: 'DELETE FROM partner_payouts WHERE subproject_id = ?', args: [id] })
       await db.execute({ sql: 'DELETE FROM subprojects WHERE id = ?', args: [id] })
+
+      // Re-sync parent project stage after deletion
+      if (delSpProjectId) {
+        const remainSp = await db.execute({ sql: 'SELECT stage FROM subprojects WHERE project_id = ?', args: [delSpProjectId] })
+        const remainStages = remainSp.rows.map((r) => String(r.stage))
+        if (remainStages.length === 0) {
+          // No subprojects left — fall back to aguardar
+          await db.execute({ sql: "UPDATE projects SET stage = 'aguardar', updated_at = ? WHERE id = ?", args: [timestamp, delSpProjectId] })
+        } else {
+          const allDone = remainStages.every((s) => s === 'concluído')
+          const hasActive = remainStages.some((s) => s !== 'a-fazer' && s !== 'concluído')
+          let nextStage = 'aguardar'
+          if (allDone) nextStage = 'concluído'
+          else if (hasActive) nextStage = 'em-andamento'
+          else nextStage = 'em-andamento'
+
+          const projStageResult = await db.execute({ sql: 'SELECT stage FROM projects WHERE id = ?', args: [delSpProjectId] })
+          const curStage = String(projStageResult.rows[0]?.stage ?? '')
+          if (curStage !== nextStage) {
+            await db.execute({ sql: 'UPDATE projects SET stage = ?, updated_at = ? WHERE id = ?', args: [nextStage, timestamp, delSpProjectId] })
+          }
+        }
+      }
 
       break
     }
