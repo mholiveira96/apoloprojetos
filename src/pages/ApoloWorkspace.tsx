@@ -429,8 +429,11 @@ export function ApoloWorkspace() {
     .filter((p) => p.stage === 'em-andamento' || p.stage === 'bloqueado')
     .reduce((s, p) => s + numericValue(p.pending_count), 0)
 
+  const completedProjectIds = new Set(
+    data.projects.filter((p) => p.stage === 'concluído').map((p) => p.id),
+  )
   const overdueLogs = data.logs
-    .filter((log) => log.status !== 'done' && log.due_date && log.due_date < today)
+    .filter((log) => log.status !== 'done' && log.due_date && log.due_date < today && !completedProjectIds.has(log.project_id))
     .sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? ''))
     .slice(0, 8)
 
