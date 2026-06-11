@@ -882,6 +882,77 @@ export async function runMutation(action, payload, actor) {
       break
     }
 
+    case 'createRevision': {
+      const revisionId = createId('rev')
+      await db.execute({
+        sql: `INSERT INTO revisions (id, client_name, description, project_id, responsible_partner, deadline, delivery_date, stage, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          revisionId,
+          normalizeText(payload.clientName),
+          normalizeText(payload.description),
+          normalizeText(payload.projectId) || null,
+          normalizeText(payload.responsiblePartner),
+          normalizeDate(payload.deadline),
+          normalizeDate(payload.deliveryDate),
+          normalizeText(payload.stage) || 'pendente',
+          timestamp,
+        ],
+      })
+      return { ok: true }
+    }
+
+    case 'updateRevision': {
+      const revId = normalizeText(payload.id)
+      if (!revId) throw new Error('id é obrigatório')
+      await db.execute({
+        sql: `UPDATE revisions
+              SET client_name = ?,
+                  description = ?,
+                  project_id = ?,
+                  responsible_partner = ?,
+                  deadline = ?,
+                  delivery_date = ?
+              WHERE id = ?`,
+        args: [
+          normalizeText(payload.clientName),
+          normalizeText(payload.description),
+          normalizeText(payload.projectId) || null,
+          normalizeText(payload.responsiblePartner),
+          normalizeDate(payload.deadline),
+          normalizeDate(payload.deliveryDate),
+          revId,
+        ],
+      })
+      return { ok: true }
+    }
+
+    case 'updateRevisionStage': {
+      const revStageId = normalizeText(payload.id)
+      const revNewStage = normalizeText(payload.stage)
+      if (!revStageId) throw new Error('id é obrigatório')
+
+      if (revNewStage === 'concluída' && payload.deliveryDate) {
+        await db.execute({
+          sql: `UPDATE revisions SET stage = ?, delivery_date = ?, created_at = created_at WHERE id = ?`,
+          args: [revNewStage, normalizeDate(payload.deliveryDate), revStageId],
+        })
+      } else {
+        await db.execute({
+          sql: `UPDATE revisions SET stage = ? WHERE id = ?`,
+          args: [revNewStage, revStageId],
+        })
+      }
+      return { ok: true }
+    }
+
+    case 'deleteRevision': {
+      const delRevId = normalizeText(payload.id)
+      if (!delRevId) throw new Error('id é obrigatório')
+      await db.execute({ sql: 'DELETE FROM revisions WHERE id = ?', args: [delRevId] })
+      return { ok: true }
+    }
+
     case 'deleteProject': {
       const projectId = normalizeText(payload.projectId)
       if (!projectId) throw new Error('projectId é obrigatório')

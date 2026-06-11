@@ -147,6 +147,19 @@ export type SubprojectComment = {
   created_at: string
 }
 
+export type Revision = {
+  id: string
+  client_name: string
+  description: string
+  project_id: string | null
+  responsible_partner: string
+  deadline: string | null
+  delivery_date: string | null
+  stage: string
+  created_at: string
+  project_name: string | null
+}
+
 export type CashflowEntry = {
   id: string
   project_id: string | null
@@ -172,4 +185,5 @@ export type BootstrapData = {
   cashflow: CashflowEntry[]
   subprojects: Subproject[]
   subprojectComments: SubprojectComment[]
+  revisions: Revision[]
 }

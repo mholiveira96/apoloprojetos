@@ -23,6 +23,7 @@ export async function getBootstrapData() {
     cashflowResult,
     subprojectsResult,
     subprojectCommentsResult,
+    revisionsResult,
   ] = await Promise.all([
     db.execute(`SELECT COUNT(*) AS total FROM leads WHERE stage NOT IN ('won', 'lost')`),
     db.execute(`SELECT COUNT(*) AS total FROM projects WHERE stage NOT IN ('concluÃ­do')`),
@@ -297,6 +298,30 @@ export async function getBootstrapData() {
       FROM subproject_comments
       ORDER BY subproject_comments.created_at DESC
     `),
+    db.execute(`
+      SELECT
+        revisions.id,
+        revisions.client_name,
+        revisions.description,
+        revisions.project_id,
+        revisions.responsible_partner,
+        revisions.deadline,
+        revisions.delivery_date,
+        revisions.stage,
+        revisions.created_at,
+        projects.name AS project_name
+      FROM revisions
+      LEFT JOIN projects ON projects.id = revisions.project_id
+      ORDER BY
+        CASE revisions.stage
+          WHEN 'pendente' THEN 0
+          WHEN 'em-andamento' THEN 1
+          WHEN 'bloqueado' THEN 2
+          WHEN 'concluída' THEN 3
+          ELSE 4
+        END,
+        COALESCE(revisions.deadline, revisions.created_at) ASC
+    `),
   ])
 
   const financial = financialSummaryResult.rows[0] ?? {}
@@ -336,5 +361,6 @@ export async function getBootstrapData() {
     cashflow: cashflowResult.rows,
     subprojects: subprojectsResult.rows,
     subprojectComments: subprojectCommentsResult.rows,
+    revisions: revisionsResult.rows,
   }
 }

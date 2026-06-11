@@ -146,7 +146,20 @@ const schemaStatements = [
   `CREATE INDEX IF NOT EXISTS idx_project_logs_project ON project_logs(project_id, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_receipts_project ON payment_receipts(project_id, received_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_expenses_project ON project_expenses(project_id, paid_at DESC)`,
-  `CREATE INDEX IF NOT EXISTS idx_payouts_project ON partner_payouts(project_id, paid_at DESC)`
+  `CREATE INDEX IF NOT EXISTS idx_payouts_project ON partner_payouts(project_id, paid_at DESC)`,
+  `CREATE TABLE IF NOT EXISTS revisions (
+    id TEXT PRIMARY KEY,
+    client_name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    project_id TEXT,
+    responsible_partner TEXT NOT NULL DEFAULT '',
+    deadline TEXT,
+    delivery_date TEXT,
+    stage TEXT NOT NULL DEFAULT 'pendente',
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES projects(id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_revisions_stage ON revisions(stage)`
 ]
 
 export function getDb() {
@@ -373,13 +386,14 @@ async function runExpenseSchemaMigrations() {
   }
 }
 
-const SCHEMA_VERSION = '8'
+const SCHEMA_VERSION = '9'
 
 async function hasExpectedSchemaShape(db) {
   try {
     await db.execute(`SELECT lead_id FROM projects LIMIT 0`)
     await db.execute(`SELECT observacao FROM subprojects LIMIT 0`)
     await db.execute(`SELECT 1 FROM subproject_comments LIMIT 0`)
+    await db.execute(`SELECT stage FROM revisions LIMIT 0`)
     return true
   } catch {
     return false

@@ -1,6 +1,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   AlertTriangle,
   Banknote,
@@ -47,12 +47,14 @@ import { InstallPrompt } from '@/components/workspace/install-prompt'
 import { OperationsKanbanPage } from '@/pages/OperationsKanbanPage'
 import { FinancialPage } from '@/pages/FinancialPage'
 import { CashflowPage } from '@/pages/CashflowPage'
+import { RevisoesKanbanPage } from '@/pages/RevisoesKanbanPage'
 import { buildClientTimeline } from '@/lib/client-timeline'
 import { useTheme } from '@/lib/theme-context'
 
 export function ApoloWorkspace() {
   const location = useLocation()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { theme, toggle: toggleTheme } = useTheme()
   const [checkingSession, setCheckingSession] = useState(true)
   const [user, setUser] = useState<SessionUser | null>(null)
@@ -1030,9 +1032,35 @@ export function ApoloWorkspace() {
               </>
             ) : null}
 
-            {section === 'operacoes' ? (
-              <OperationsKanbanPage data={data} submitMutation={submitMutation} mutating={mutating} />
-            ) : null}
+            {section === 'operacoes' ? (() => {
+              const opsView = searchParams.get('view') || 'operacoes'
+              return (
+                <>
+                  <div className="mb-4 flex border border-[var(--line)] bg-[var(--bg-card-80)] p-0.5 w-fit">
+                    <button
+                      type="button"
+                      onClick={() => setSearchParams({}, { replace: true })}
+                      className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition ${opsView === 'operacoes' ? 'bg-[var(--teal)] text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+                    >
+                      <FolderKanban className="h-3.5 w-3.5" />
+                      Operações
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSearchParams({ view: 'revisoes' }, { replace: true })}
+                      className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition ${opsView === 'revisoes' ? 'bg-[var(--teal)] text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+                    >
+                      Revisões
+                    </button>
+                  </div>
+                  {opsView === 'revisoes' ? (
+                    <RevisoesKanbanPage data={data} submitMutation={submitMutation} mutating={mutating} />
+                  ) : (
+                    <OperationsKanbanPage data={data} submitMutation={submitMutation} mutating={mutating} />
+                  )}
+                </>
+              )
+            })() : null}
 
             {section === 'financeiro' ? (
               <FinancialPage data={data} submitMutation={submitMutation} mutating={mutating} />
