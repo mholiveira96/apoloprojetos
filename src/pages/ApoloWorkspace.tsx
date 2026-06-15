@@ -453,7 +453,7 @@ export function ApoloWorkspace() {
       <div className={`mx-auto grid max-w-[1600px] transition-[grid-template-columns] duration-300 ${sidebarCollapsed ? 'lg:grid-cols-[64px_minmax(0,1fr)]' : 'lg:grid-cols-[240px_minmax(0,1fr)]'}`}>
 
         {/* ── Sidebar ── */}
-        <aside className={`sticky top-0 h-screen overflow-y-auto flex flex-col border-b border-[var(--line)] lg:border-b-0 lg:border-r transition-all duration-300`}>
+        <aside className={`sticky top-0 h-screen overflow-y-auto overflow-x-hidden flex flex-col border-b border-[var(--line)] lg:border-b-0 lg:border-r transition-all duration-300`}>
 
           {/* Mobile bar */}
           <div className="flex items-center justify-between gap-3 px-4 py-3 lg:hidden">
