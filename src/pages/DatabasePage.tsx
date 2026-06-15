@@ -504,7 +504,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                     </td>
                     <td className="px-3 py-2 font-medium text-[var(--ink)] max-w-[200px]">
                       <EditableText
-                        value={project.name}
+                        value={editing?.id === project.id && editing?.field === 'name' ? editValue : project.name}
                         isEditing={editing?.id === project.id && editing?.field === 'name'}
                         onStart={() => startEdit(project.id, 'name', project.name)}
                         onChange={setEditValue}
@@ -515,7 +515,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                     </td>
                     <td className="px-3 py-2 text-[var(--ink-soft)]">
                       <EditableText
-                        value={project.code || ''}
+                        value={editing?.id === project.id && editing?.field === 'code' ? editValue : (project.code || '')}
                         isEditing={editing?.id === project.id && editing?.field === 'code'}
                         onStart={() => startEdit(project.id, 'code', project.code || '')}
                         onChange={setEditValue}
@@ -526,7 +526,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                     </td>
                     <td className="px-3 py-2">
                       <EditableSelect
-                        value={project.stage}
+                        value={editing?.id === project.id && editing?.field === 'stage' ? editValue : project.stage}
                         options={[...projectStages]}
                         isEditing={editing?.id === project.id && editing?.field === 'stage'}
                         onStart={() => startEdit(project.id, 'stage', project.stage)}
@@ -538,7 +538,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                     </td>
                     <td className="px-3 py-2 text-right">
                       <EditableCurrency
-                        value={project.contract_amount}
+                        value={editing?.id === project.id && editing?.field === 'contract_amount' ? Number(editValue) : project.contract_amount}
                         isEditing={editing?.id === project.id && editing?.field === 'contract_amount'}
                         onStart={() =>
                           startEdit(project.id, 'contract_amount', String(project.contract_amount))
@@ -558,7 +558,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                     </td>
                     <td className="px-3 py-2">
                       <EditableSelect
-                        value={project.sales_owner || ''}
+                        value={editing?.id === project.id && editing?.field === 'sales_owner' ? editValue : (project.sales_owner || '')}
                         options={['', ...partners]}
                         isEditing={editing?.id === project.id && editing?.field === 'sales_owner'}
                         onStart={() => startEdit(project.id, 'sales_owner', project.sales_owner || '')}
@@ -592,7 +592,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         </td>
                         <td className="px-3 py-2 pl-10" colSpan={2}>
                           <EditableSelect
-                            value={sp.discipline}
+                            value={editing?.id === sp.id && editing?.field === 'discipline' ? editValue : sp.discipline}
                             options={[...disciplines]}
                             isEditing={editing?.id === sp.id && editing?.field === 'discipline'}
                             onStart={() => startEdit(sp.id, 'discipline', sp.discipline)}
@@ -604,7 +604,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         </td>
                         <td className="px-3 py-2">
                           <EditableSelect
-                            value={sp.stage}
+                            value={editing?.id === sp.id && editing?.field === 'stage' ? editValue : sp.stage}
                             options={[...subprojectStages]}
                             isEditing={editing?.id === sp.id && editing?.field === 'stage'}
                             onStart={() => startEdit(sp.id, 'stage', sp.stage)}
@@ -616,7 +616,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         </td>
                         <td className="px-3 py-2 text-right">
                           <EditableCurrency
-                            value={sp.amount}
+                            value={editing?.id === sp.id && editing?.field === 'amount' ? Number(editValue) : sp.amount}
                             isEditing={editing?.id === sp.id && editing?.field === 'amount'}
                             onStart={() => startEdit(sp.id, 'amount', String(sp.amount))}
                             onChange={setEditValue}
@@ -627,7 +627,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         </td>
                         <td className="px-3 py-2">
                           <EditableSelect
-                            value={sp.responsible_partner}
+                            value={editing?.id === sp.id && editing?.field === 'responsible_partner' ? editValue : sp.responsible_partner}
                             options={[...partners]}
                             isEditing={editing?.id === sp.id && editing?.field === 'responsible_partner'}
                             onStart={() =>
@@ -648,7 +648,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         </td>
                         <td className="px-3 py-2">
                           <EditableDate
-                            value={sp.deadline}
+                            value={editing?.id === sp.id && editing?.field === 'deadline' ? editValue : sp.deadline}
                             isEditing={editing?.id === sp.id && editing?.field === 'deadline'}
                             onStart={() =>
                               startEdit(sp.id, 'deadline', toDateInputValue(sp.deadline))
