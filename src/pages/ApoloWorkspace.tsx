@@ -450,10 +450,10 @@ export function ApoloWorkspace() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-body-workspace)] text-[var(--ink)] transition-colors duration-300">
-      <div className={`mx-auto grid min-h-screen max-w-[1600px] transition-[grid-template-columns] duration-300 ${sidebarCollapsed ? 'lg:grid-cols-[64px_minmax(0,1fr)]' : 'lg:grid-cols-[240px_minmax(0,1fr)]'}`}>
+      <div className={`mx-auto grid max-w-[1600px] transition-[grid-template-columns] duration-300 ${sidebarCollapsed ? 'lg:grid-cols-[64px_minmax(0,1fr)]' : 'lg:grid-cols-[240px_minmax(0,1fr)]'}`}>
 
         {/* ── Sidebar ── */}
-        <aside className={`relative flex flex-col border-b border-[var(--line)] lg:border-b-0 lg:border-r transition-all duration-300`}>
+        <aside className={`sticky top-0 h-screen overflow-y-auto flex flex-col border-b border-[var(--line)] lg:border-b-0 lg:border-r transition-all duration-300`}>
 
           {/* Mobile bar */}
           <div className="flex items-center justify-between gap-3 px-4 py-3 lg:hidden">
@@ -574,7 +574,7 @@ export function ApoloWorkspace() {
           </div>
         </aside>
 
-        <main className="min-w-0">
+        <main className="min-w-0 min-h-screen">
           {/* Header — stats only, no redundant title */}
           <header className="border-b border-[var(--line)] px-6 py-4 md:px-8">
             <div className="flex items-center gap-6 text-sm">
