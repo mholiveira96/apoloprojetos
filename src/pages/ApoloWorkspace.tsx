@@ -26,7 +26,7 @@ import { Toaster, toast } from 'sonner'
 import { getBootstrap, getSession, login, logout, mutate } from '@/lib/app-api'
 import type { BootstrapData, Lead, SessionUser, Subproject } from '@/types/app'
 import type { ConvertProjectForm, LeadDetailForm, ViewMode } from '@/types/forms'
-import { NAV_ITEMS, leadStages } from '@/lib/constants'
+import { NAV_ITEMS, BOTTOM_NAV_ITEMS, leadStages } from '@/lib/constants'
 import {
   formatCurrency,
   formatDate,
@@ -48,6 +48,7 @@ import { OperationsKanbanPage } from '@/pages/OperationsKanbanPage'
 import { FinancialPage } from '@/pages/FinancialPage'
 import { CashflowPage } from '@/pages/CashflowPage'
 import { RevisoesKanbanPage } from '@/pages/RevisoesKanbanPage'
+import DatabasePage from '@/pages/DatabasePage'
 import { buildClientTimeline } from '@/lib/client-timeline'
 import { useTheme } from '@/lib/theme-context'
 
@@ -515,7 +516,34 @@ export function ApoloWorkspace() {
             </nav>
 
             {/* User / actions — sits right after nav */}
-            <div className={`border-t border-[var(--line)] transition-all duration-300 ${sidebarCollapsed ? 'p-2' : 'p-4'}`}>
+            <div className={`mt-auto border-t border-[var(--line)] transition-all duration-300 ${sidebarCollapsed ? 'p-2' : 'p-4'}`}>
+              {/* Bottom nav */}
+              <nav className="py-2">
+                {BOTTOM_NAV_ITEMS.map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <NavLink
+                      key={item.key}
+                      to={item.href}
+                      title={sidebarCollapsed ? item.label : undefined}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 border-l-2 transition-colors ${
+                          sidebarCollapsed ? 'justify-center px-0 py-3' : 'px-4 py-2.5 text-sm'
+                        } ${
+                          isActive
+                            ? 'border-l-[var(--teal)] bg-[var(--teal-active-bg)] text-[var(--teal)]'
+                            : 'border-l-transparent text-[var(--ink-soft)] hover:bg-[var(--teal-active-bg)] hover:text-[var(--ink)]'
+                        }`
+                      }
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      {!sidebarCollapsed && <span>{item.label}</span>}
+                    </NavLink>
+                  )
+                })}
+              </nav>
+
+              {/* User info */}
               {!sidebarCollapsed && (
                 <div className="mb-3">
                   <div className="text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">Sessão</div>
@@ -1068,6 +1096,10 @@ export function ApoloWorkspace() {
 
             {section === 'fluxo' ? (
               <CashflowPage data={data} submitMutation={submitMutation} mutating={mutating} />
+            ) : null}
+
+            {section === 'database' ? (
+              <DatabasePage data={data} submitMutation={submitMutation} mutating={mutating} />
             ) : null}
           </div>
         </main>

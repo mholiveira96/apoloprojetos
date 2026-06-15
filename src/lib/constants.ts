@@ -4,6 +4,7 @@ import {
   FolderKanban,
   Landmark,
   LayoutDashboard,
+  Table2,
 } from 'lucide-react'
 
 export const NAV_ITEMS = [
@@ -12,6 +13,10 @@ export const NAV_ITEMS = [
   { key: 'operacoes', label: 'Operações', href: '/app/operacoes', icon: FolderKanban },
   { key: 'financeiro', label: 'Financeiro', href: '/app/financeiro', icon: CircleDollarSign },
   { key: 'fluxo', label: 'Fluxo de caixa', href: '/app/fluxo', icon: Landmark },
+]
+
+export const BOTTOM_NAV_ITEMS = [
+  { key: 'database', label: 'Database', href: '/app/database', icon: Table2 },
 ]
 
 export const leadStages = ['incoming', 'qualified', 'proposal', 'negotiation', 'won', 'lost'] as const
