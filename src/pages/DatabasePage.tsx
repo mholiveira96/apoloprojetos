@@ -276,7 +276,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<{ id: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState('')
-  const [sort, setSort] = useState<{ field: string; dir: 'asc' | 'desc' } | null>(null)
+  const [sort, setSort] = useState<{ field: string; dir: 'asc' | 'desc' } | null>({ field: 'code', dir: 'asc' })
   const [search, setSearch] = useState('')
   const [confirmModal, setConfirmModal] = useState<ConfirmData | null>(null)
 
