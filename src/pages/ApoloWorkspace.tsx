@@ -123,6 +123,27 @@ export function ApoloWorkspace() {
     cashflow: 'fluxo',
   }
   const section = legacySectionMap[rawSection] || rawSection
+  const opsView = searchParams.get('view') || 'operacoes'
+
+  const renderOperationsViewSwitch = (compact = false) => (
+    <div className={`flex border border-[var(--line)] bg-[var(--bg-card-80)] p-0.5 ${compact ? 'w-full sm:w-auto' : 'w-fit'}`}>
+      <button
+        type="button"
+        onClick={() => setSearchParams({}, { replace: true })}
+        className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium transition ${opsView === 'operacoes' ? 'bg-[var(--teal)] text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'} ${compact ? 'flex-1 sm:flex-none' : ''}`}
+      >
+        <FolderKanban className="h-3.5 w-3.5" />
+        Operações
+      </button>
+      <button
+        type="button"
+        onClick={() => setSearchParams({ view: 'revisoes' }, { replace: true })}
+        className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium transition ${opsView === 'revisoes' ? 'bg-[var(--teal)] text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'} ${compact ? 'flex-1 sm:flex-none' : ''}`}
+      >
+        Revisões
+      </button>
+    </div>
+  )
 
   const loadBootstrap = async () => {
     setLoadingData(true)
@@ -453,7 +474,7 @@ export function ApoloWorkspace() {
       <div className={`mx-auto grid max-w-[1600px] transition-[grid-template-columns] duration-300 ${sidebarCollapsed ? 'lg:grid-cols-[64px_minmax(0,1fr)]' : 'lg:grid-cols-[240px_minmax(0,1fr)]'}`}>
 
         {/* ── Sidebar ── */}
-        <aside className={`sticky top-0 h-screen overflow-y-auto overflow-x-hidden flex flex-col border-b border-[var(--line)] lg:border-b-0 lg:border-r transition-all duration-300`}>
+        <aside className={`sticky top-0 z-20 h-screen overflow-y-auto overflow-x-hidden flex flex-col border-b border-[var(--line)] lg:border-b-0 lg:border-r transition-all duration-300`}>
 
           {/* Mobile bar */}
           <div className="flex items-center justify-between gap-3 px-4 py-3 lg:hidden">
@@ -472,17 +493,12 @@ export function ApoloWorkspace() {
           <div className={`flex flex-col gap-0 lg:flex-1 ${mobileNavOpen ? 'block border-t border-[var(--line)]' : 'hidden lg:flex'}`}>
 
             {/* Logo area */}
-            <div className={`border-b border-[var(--line)] transition-all duration-300 ${sidebarCollapsed ? 'flex items-center justify-center p-3' : 'p-4'}`}>
+            <div className={`relative border-b border-[var(--line)] transition-all duration-300 ${sidebarCollapsed ? 'flex items-center justify-center p-3' : 'p-4 pr-12'}`}>
               <img src={theme === 'dark' ? '/logo-apolo-darkmode.png' : '/logo-apolo.png'} alt="Apolo" className={sidebarCollapsed ? 'h-9 w-9 object-contain' : 'w-full h-auto object-contain'} />
-            </div>
-
-            {/* Collapse toggle */}
-            <div className="hidden lg:block relative h-0">
               <button
                 type="button"
                 onClick={() => setSidebarCollapsed((c) => !c)}
-                className="absolute top-3 z-10 flex items-center justify-center border border-[var(--line)] bg-[var(--paper)] p-1 text-[var(--ink-soft)] transition hover:text-[var(--ink)]"
-                style={{ right: '-13px' }}
+                className="absolute right-3 top-3 z-30 hidden items-center justify-center border border-[var(--line)] bg-[var(--paper)] p-1 text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:flex"
                 aria-label={sidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}
               >
                 {sidebarCollapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
@@ -577,21 +593,24 @@ export function ApoloWorkspace() {
         <main className="min-w-0 min-h-screen">
           {/* Header — stats only, no redundant title */}
           <header className="border-b border-[var(--line)] px-6 py-4 md:px-8">
-            <div className="flex items-center gap-6 text-sm">
-              <div>
-                <div className="text-xs uppercase tracking-[0.12em] text-[var(--ink-soft)]">Leads abertos</div>
-                <div className="mt-0.5 font-bold text-[var(--ink)]">{data.summary.openLeads}</div>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex flex-wrap items-center gap-4 text-sm md:gap-6">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.12em] text-[var(--ink-soft)]">Leads abertos</div>
+                  <div className="mt-0.5 font-bold text-[var(--ink)]">{data.summary.openLeads}</div>
+                </div>
+                <div className="hidden h-7 w-px bg-[var(--line)] sm:block" />
+                <div>
+                  <div className="text-xs uppercase tracking-[0.12em] text-[var(--ink-soft)]">Projetos ativos</div>
+                  <div className="mt-0.5 font-bold text-[var(--ink)]">{data.summary.activeProjects}</div>
+                </div>
+                <div className="hidden h-7 w-px bg-[var(--line)] sm:block" />
+                <div>
+                  <div className="text-xs uppercase tracking-[0.12em] text-[var(--ink-soft)]">Caixa líquido</div>
+                  <div className="mt-0.5 font-bold text-[var(--ink)]">{formatCurrency(data.summary.netCash)}</div>
+                </div>
               </div>
-              <div className="h-7 w-px bg-[var(--line)]" />
-              <div>
-                <div className="text-xs uppercase tracking-[0.12em] text-[var(--ink-soft)]">Projetos ativos</div>
-                <div className="mt-0.5 font-bold text-[var(--ink)]">{data.summary.activeProjects}</div>
-              </div>
-              <div className="h-7 w-px bg-[var(--line)]" />
-              <div>
-                <div className="text-xs uppercase tracking-[0.12em] text-[var(--ink-soft)]">Caixa líquido</div>
-                <div className="mt-0.5 font-bold text-[var(--ink)]">{formatCurrency(data.summary.netCash)}</div>
-              </div>
+              {section === 'operacoes' ? renderOperationsViewSwitch(true) : null}
             </div>
           </header>
 
@@ -1060,35 +1079,13 @@ export function ApoloWorkspace() {
               </>
             ) : null}
 
-            {section === 'operacoes' ? (() => {
-              const opsView = searchParams.get('view') || 'operacoes'
-              return (
-                <>
-                  <div className="mb-4 flex border border-[var(--line)] bg-[var(--bg-card-80)] p-0.5 w-fit">
-                    <button
-                      type="button"
-                      onClick={() => setSearchParams({}, { replace: true })}
-                      className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition ${opsView === 'operacoes' ? 'bg-[var(--teal)] text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
-                    >
-                      <FolderKanban className="h-3.5 w-3.5" />
-                      Operações
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSearchParams({ view: 'revisoes' }, { replace: true })}
-                      className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition ${opsView === 'revisoes' ? 'bg-[var(--teal)] text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
-                    >
-                      Revisões
-                    </button>
-                  </div>
-                  {opsView === 'revisoes' ? (
-                    <RevisoesKanbanPage data={data} submitMutation={submitMutation} mutating={mutating} />
-                  ) : (
-                    <OperationsKanbanPage data={data} submitMutation={submitMutation} mutating={mutating} />
-                  )}
-                </>
+            {section === 'operacoes' ? (
+              opsView === 'revisoes' ? (
+                <RevisoesKanbanPage data={data} submitMutation={submitMutation} mutating={mutating} />
+              ) : (
+                <OperationsKanbanPage data={data} submitMutation={submitMutation} mutating={mutating} />
               )
-            })() : null}
+            ) : null}
 
             {section === 'financeiro' ? (
               <FinancialPage data={data} submitMutation={submitMutation} mutating={mutating} />
