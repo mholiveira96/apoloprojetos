@@ -614,7 +614,7 @@ export function ApoloWorkspace() {
             </div>
           </header>
 
-          <div className="space-y-8 px-6 py-6 md:px-8 md:py-8">
+          <div className="space-y-8 px-6 pb-6 pt-4 md:px-8 md:pb-8 md:pt-5">
             {section === 'dashboard' ? (
               <>
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
