@@ -494,8 +494,10 @@ export function ApoloWorkspace() {
           <div className={`flex flex-col gap-0 lg:flex-1 ${mobileNavOpen ? 'block border-t border-[var(--line)]' : 'hidden lg:flex'}`}>
 
             {/* Logo area */}
-            <div className={`relative border-b border-[var(--line)] transition-all duration-300 ${sidebarCollapsed ? 'flex items-center justify-center p-3' : 'p-4 pr-12'}`}>
-              <img src={theme === 'dark' ? '/logo-apolo-darkmode.png' : '/logo-apolo.png'} alt="Apolo" className={sidebarCollapsed ? 'h-9 w-9 object-contain' : 'w-full h-auto object-contain'} />
+            <div className={`relative hidden border-b border-[var(--line)] transition-all duration-300 lg:block ${sidebarCollapsed ? 'p-3' : 'p-4 pr-12'}`}>
+              <div className={sidebarCollapsed ? 'flex items-center justify-center' : ''}>
+                <img src={theme === 'dark' ? '/logo-apolo-darkmode.png' : '/logo-apolo.png'} alt="Apolo" className={sidebarCollapsed ? 'h-9 w-9 object-contain' : 'w-full h-auto object-contain'} />
+              </div>
               <button
                 type="button"
                 onClick={() => setSidebarCollapsed((c) => !c)}
