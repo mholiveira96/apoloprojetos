@@ -185,7 +185,7 @@ function EditableDate({
   isEditing: boolean
   onStart: () => void
   onChange: (v: string) => void
-  onCommit: () => void
+  onCommit: (nextValue?: string) => void
 }) {
   const ref = useRef<HTMLInputElement>(null)
   useEffect(() => {
@@ -199,10 +199,11 @@ function EditableDate({
         type="date"
         value={value || ''}
         onChange={e => {
-          onChange(e.target.value)
-          onCommit()
+          const nextValue = e.target.value
+          onChange(nextValue)
+          onCommit(nextValue)
         }}
-        onBlur={onCommit}
+        onBlur={e => onCommit(e.target.value)}
         className="w-full bg-[var(--bg)] border border-[var(--teal)] px-2 py-1 text-sm text-[var(--ink)] outline-none"
       />
     )
@@ -242,10 +243,9 @@ function ConfirmModal({
   onCancel: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={onCancel}>
-      <div className="absolute inset-0 bg-[var(--ink)]/20 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={onCancel}>
       <div
-        className="relative z-10 w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[var(--shadow-panel)]"
+        className="relative z-10 w-full max-w-md border border-[var(--line)] bg-[var(--paper)] p-6 shadow-[var(--motion-shadow-modal)] dark:bg-[#1c1c20]"
         onClick={(event) => event.stopPropagation()}
       >
         <h2 className="text-base font-semibold text-[var(--ink)] mb-4">
@@ -281,7 +281,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<{ id: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState('')
-  const [sort, setSort] = useState<{ field: string; dir: 'asc' | 'desc' } | null>({ field: 'code', dir: 'asc' })
+  const [sort, setSort] = useState<{ field: string; dir: 'asc' | 'desc' } | null>({ field: 'code', dir: 'desc' })
   const [search, setSearch] = useState('')
   const [confirmModal, setConfirmModal] = useState<ConfirmData | null>(null)
 
@@ -299,7 +299,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
 
   const toggleSort = useCallback((field: string) => {
     setSort(prev => {
-      if (prev?.field !== field) return { field, dir: 'asc' }
+      if (prev?.field !== field) return { field, dir: field === 'code' ? 'desc' : 'asc' }
       if (prev.dir === 'asc') return { field, dir: 'desc' }
       return null
     })
@@ -314,7 +314,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
       if (typeof aVal === 'number' && typeof bVal === 'number') {
         return sort.dir === 'asc' ? aVal - bVal : bVal - aVal
       }
-      const cmp = String(aVal ?? '').localeCompare(String(bVal ?? ''), 'pt-BR')
+      const cmp = String(aVal ?? '').localeCompare(String(bVal ?? ''), 'pt-BR', { numeric: true, sensitivity: 'base' })
       return sort.dir === 'asc' ? cmp : -cmp
     })
   }, [data.projects, sort])
@@ -687,8 +687,8 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                               startEdit(sp.id, 'deadline', toDateInputValue(sp.deadline))
                             }
                             onChange={setEditValue}
-                            onCommit={() =>
-                              handleCommit(sp, 'subproject', 'deadline', 'Prazo', sp.deadline || '', editValue)
+                            onCommit={(nextValue) =>
+                              handleCommit(sp, 'subproject', 'deadline', 'Prazo', sp.deadline || '', editValue, nextValue)
                             }
                           />
                         </td>
