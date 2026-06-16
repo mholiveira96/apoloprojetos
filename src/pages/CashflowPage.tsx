@@ -157,7 +157,7 @@ function PickerField({
                 key={option.value}
                 type="button"
                 className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left text-sm text-[var(--ink)] transition hover:bg-[var(--teal-active-bg)]"
-                onMouseDown={(event) => {
+                onPointerDown={(event) => {
                   event.preventDefault()
                   chooseOption(option)
                 }}
