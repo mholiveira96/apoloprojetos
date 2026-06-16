@@ -224,15 +224,16 @@ export async function runMutation(action, payload, actor) {
       const clientId = await upsertClient(normalizeText(payload.clientName), payload)
       await db.execute({
         sql: `INSERT INTO projects (
-                id, client_id, name, code, discipline, stage, archived, contract_amount,
+                id, client_id, name, code, area, discipline, stage, archived, contract_amount,
                 sales_owner, sales_bonus_percent, base_partner_split_percent,
                 status_note, created_at, updated_at
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           projectId,
           clientId,
           normalizeText(payload.name),
           normalizeText(payload.code),
+          normalizeAmount(payload.area),
           normalizeText(payload.discipline),
           normalizeText(payload.stage) || 'aguardar',
           0,
@@ -278,6 +279,7 @@ export async function runMutation(action, payload, actor) {
         sql: `UPDATE projects
               SET name = ?,
                   code = ?,
+                  area = ?,
                   discipline = ?,
                   stage = ?,
                   contract_amount = ?,
@@ -289,6 +291,7 @@ export async function runMutation(action, payload, actor) {
         args: [
           normalizeText(payload.name),
           normalizeText(payload.code),
+          normalizeAmount(payload.area),
           normalizeText(payload.discipline),
           normalizeText(payload.stage) || 'aguardar',
           normalizeAmount(payload.contractAmount),
@@ -332,15 +335,16 @@ export async function runMutation(action, payload, actor) {
 
       await db.execute({
         sql: `INSERT INTO projects (
-                id, client_id, name, code, discipline, stage, archived, contract_amount,
+                id, client_id, name, code, area, discipline, stage, archived, contract_amount,
                 sales_owner, sales_bonus_percent, base_partner_split_percent,
                 status_note, lead_id, created_at, updated_at
-              ) VALUES (?, ?, ?, ?, ?, 'aguardar', ?, ?, ?, 10, 50, ?, ?, ?, ?)`,
+              ) VALUES (?, ?, ?, ?, ?, ?, 'aguardar', ?, ?, ?, 10, 50, ?, ?, ?, ?)`,
         args: [
           projectId,
           clientId,
           normalizeText(payload.name) || String(lead.title ?? ''),
           normalizeText(payload.code),
+          normalizeAmount(payload.area),
           null,
           0,
           contractAmount,

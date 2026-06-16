@@ -48,6 +48,7 @@ const schemaStatements = [
     client_id TEXT,
     name TEXT NOT NULL,
     code TEXT,
+    area REAL NOT NULL DEFAULT 0,
     discipline TEXT,
     stage TEXT NOT NULL,
     archived INTEGER NOT NULL DEFAULT 0,
@@ -214,6 +215,8 @@ async function runProjectSchemaMigrations() {
   await ensureColumn('projects', 'lead_id', 'lead_id TEXT REFERENCES leads(id)')
   await ensureColumn('projects', 'notes', 'notes TEXT')
   await ensureColumn('projects', 'archived', 'archived INTEGER NOT NULL DEFAULT 0')
+  await ensureColumn('projects', 'area', 'area REAL NOT NULL DEFAULT 0')
+  await db.execute(`UPDATE projects SET area = 0 WHERE area IS NULL`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_projects_client ON projects(client_id)`)
   await db.execute(`
     UPDATE projects
@@ -386,11 +389,12 @@ async function runExpenseSchemaMigrations() {
   }
 }
 
-const SCHEMA_VERSION = '9'
+const SCHEMA_VERSION = '10'
 
 async function hasExpectedSchemaShape(db) {
   try {
     await db.execute(`SELECT lead_id FROM projects LIMIT 0`)
+    await db.execute(`SELECT area FROM projects LIMIT 0`)
     await db.execute(`SELECT observacao FROM subprojects LIMIT 0`)
     await db.execute(`SELECT 1 FROM subproject_comments LIMIT 0`)
     await db.execute(`SELECT stage FROM revisions LIMIT 0`)

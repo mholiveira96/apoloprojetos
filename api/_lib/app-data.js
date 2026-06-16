@@ -105,6 +105,7 @@ export async function getBootstrapData() {
         projects.id,
         projects.name,
         projects.code,
+        projects.area,
         projects.discipline,
         projects.stage,
         projects.archived,

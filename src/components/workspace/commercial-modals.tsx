@@ -300,6 +300,7 @@ export function ConvertProjectModal({
             <div className="mt-1 font-medium text-[var(--ink)]">{form.clientName}</div>
           </div>
           <input className="border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" placeholder="Nome do projeto" value={form.name} onChange={(e) => setForm((c) => ({ ...c, name: e.target.value }))} required />
+          <input className="border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" placeholder="Área *" type="number" min="0" step="0.01" value={form.area} onChange={(e) => setForm((c) => ({ ...c, area: e.target.value }))} required />
           <input className="border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" placeholder="Valor do contrato *" type="number" value={form.contractAmount} onChange={(e) => setForm((c) => ({ ...c, contractAmount: e.target.value }))} required />
           <div className="border border-[var(--line)] bg-[var(--bg-card-60)] px-4 py-3 text-sm">
             <span className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Responsável comercial</span>

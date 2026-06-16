@@ -18,6 +18,7 @@ export type LeadDetailForm = {
 export type ProjectDetailForm = {
   name: string
   code: string
+  area: string
   discipline: string
   stage: string
   contractAmount: string
@@ -50,6 +51,7 @@ export type ProjectForm = {
   clientName: string
   name: string
   code: string
+  area: string
   discipline: string
   stage: string
   contractAmount: string
@@ -104,6 +106,7 @@ export type ConvertProjectForm = {
   leadId: string
   clientName: string
   name: string
+  area: string
   contractAmount: string
   salesOwner: string
   firstContactAt: string

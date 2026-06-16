@@ -86,7 +86,7 @@ function EditableSelect({
   isEditing: boolean
   onStart: () => void
   onChange: (v: string) => void
-  onCommit: () => void
+  onCommit: (nextValue?: string) => void
 }) {
   const ref = useRef<HTMLSelectElement>(null)
   useEffect(() => {
@@ -99,10 +99,11 @@ function EditableSelect({
         ref={ref}
         value={value}
         onChange={e => {
-          onChange(e.target.value)
-          onCommit()
+          const nextValue = e.target.value
+          onChange(nextValue)
+          onCommit(nextValue)
         }}
-        onBlur={onCommit}
+        onBlur={e => onCommit(e.target.value)}
         className="w-full bg-[var(--bg)] border border-[var(--teal)] px-2 py-1 text-sm text-[var(--ink)] outline-none"
       >
         {options.map(opt => (
@@ -241,8 +242,12 @@ function ConfirmModal({
   onCancel: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-[var(--bg)] border border-[var(--line)] p-6 max-w-md w-full mx-4 shadow-lg">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={onCancel}>
+      <div className="absolute inset-0 bg-[var(--ink)]/20 backdrop-blur-sm" />
+      <div
+        className="relative z-10 w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 shadow-[var(--shadow-panel)]"
+        onClick={(event) => event.stopPropagation()}
+      >
         <h2 className="text-base font-semibold text-[var(--ink)] mb-4">
           Confirmar alteração
         </h2>
@@ -342,14 +347,16 @@ export default function DatabasePage({ data, submitMutation }: Props) {
       fieldLabel: string,
       oldValue: string | number,
       newValue: string,
+      committedValue?: string,
     ) => {
       setEditing(null)
+      const effectiveValue = committedValue ?? newValue
       const newValueRaw =
-        field === 'amount' || field === 'contract_amount'
-          ? Number(newValue) || 0
-          : newValue
+        field === 'amount' || field === 'contract_amount' || field === 'area'
+          ? Number(effectiveValue) || 0
+          : effectiveValue
       const oldRaw =
-        field === 'amount' || field === 'contract_amount' ? oldValue : String(oldValue)
+        field === 'amount' || field === 'contract_amount' || field === 'area' ? oldValue : String(oldValue)
 
       if (String(oldRaw) === String(newValueRaw)) return
 
@@ -380,6 +387,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
         id: p.id,
         name: p.name,
         code: p.code,
+        area: p.area,
         stage: p.stage,
         contractAmount: p.contract_amount,
         salesOwner: p.sales_owner,
@@ -388,22 +396,33 @@ export default function DatabasePage({ data, submitMutation }: Props) {
       }
       // Override the changed field
       if (field === 'contract_amount') payload.contractAmount = newValueRaw
+      else if (field === 'area') payload.area = newValueRaw
       else if (field === 'sales_owner') payload.salesOwner = newValueRaw
       else payload[field] = newValueRaw
     } else {
       const sp = entity as Subproject
-      action = 'updateSubproject'
-      payload = {
-        id: sp.id,
-        discipline: sp.discipline,
-        amount: sp.amount,
-        responsiblePartner: sp.responsible_partner,
-        deadline: sp.deadline,
-        observacao: sp.observacao,
+      if (field === 'stage') {
+        action = 'updateSubprojectStage'
+        payload = {
+          id: sp.id,
+          projectId: sp.project_id,
+          stage: newValueRaw,
+          completedAt: newValueRaw === 'concluído' ? new Date().toISOString().slice(0, 10) : undefined,
+        }
+      } else {
+        action = 'updateSubproject'
+        payload = {
+          id: sp.id,
+          discipline: sp.discipline,
+          amount: sp.amount,
+          responsiblePartner: sp.responsible_partner,
+          deadline: sp.deadline,
+          observacao: sp.observacao,
+        }
+        // Override the changed field
+        if (field === 'responsible_partner') payload.responsiblePartner = newValueRaw
+        else payload[field] = newValueRaw
       }
-      // Override the changed field
-      if (field === 'responsible_partner') payload.responsiblePartner = newValueRaw
-      else payload[field] = newValueRaw
     }
 
     setConfirmModal(null)
@@ -476,6 +495,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
               <th className="w-10 px-3 py-2" />
               <SortableHeader field="name" label="Nome" />
               <SortableHeader field="code" label="Código" />
+              <SortableHeader field="area" label="Área" className="text-right" />
               <SortableHeader field="stage" label="Estágio" />
               <SortableHeader field="contract_amount" label="Contrato" className="text-right" />
               <SortableHeader field="sales_owner" label="Responsável" />
@@ -524,6 +544,17 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         }
                       />
                     </td>
+                    <td className="px-3 py-2 text-right">
+                      <EditableCurrency
+                        value={editing?.id === project.id && editing?.field === 'area' ? Number(editValue) : project.area}
+                        isEditing={editing?.id === project.id && editing?.field === 'area'}
+                        onStart={() => startEdit(project.id, 'area', String(project.area ?? 0))}
+                        onChange={setEditValue}
+                        onCommit={() =>
+                          handleCommit(project, 'project', 'area', 'Área', project.area, editValue)
+                        }
+                      />
+                    </td>
                     <td className="px-3 py-2">
                       <EditableSelect
                         value={editing?.id === project.id && editing?.field === 'stage' ? editValue : project.stage}
@@ -531,8 +562,8 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         isEditing={editing?.id === project.id && editing?.field === 'stage'}
                         onStart={() => startEdit(project.id, 'stage', project.stage)}
                         onChange={setEditValue}
-                        onCommit={() =>
-                          handleCommit(project, 'project', 'stage', 'Estágio', project.stage, editValue)
+                        onCommit={(nextValue) =>
+                          handleCommit(project, 'project', 'stage', 'Estágio', project.stage, editValue, nextValue)
                         }
                       />
                     </td>
@@ -563,7 +594,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         isEditing={editing?.id === project.id && editing?.field === 'sales_owner'}
                         onStart={() => startEdit(project.id, 'sales_owner', project.sales_owner || '')}
                         onChange={setEditValue}
-                        onCommit={() =>
+                        onCommit={(nextValue) =>
                           handleCommit(
                             project,
                             'project',
@@ -571,6 +602,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                             'Responsável',
                             project.sales_owner || '',
                             editValue,
+                            nextValue,
                           )
                         }
                       />
@@ -597,8 +629,8 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                             isEditing={editing?.id === sp.id && editing?.field === 'discipline'}
                             onStart={() => startEdit(sp.id, 'discipline', sp.discipline)}
                             onChange={setEditValue}
-                            onCommit={() =>
-                              handleCommit(sp, 'subproject', 'discipline', 'Disciplina', sp.discipline, editValue)
+                            onCommit={(nextValue) =>
+                              handleCommit(sp, 'subproject', 'discipline', 'Disciplina', sp.discipline, editValue, nextValue)
                             }
                           />
                         </td>
@@ -609,8 +641,8 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                             isEditing={editing?.id === sp.id && editing?.field === 'stage'}
                             onStart={() => startEdit(sp.id, 'stage', sp.stage)}
                             onChange={setEditValue}
-                            onCommit={() =>
-                              handleCommit(sp, 'subproject', 'stage', 'Estágio', sp.stage, editValue)
+                            onCommit={(nextValue) =>
+                              handleCommit(sp, 'subproject', 'stage', 'Estágio', sp.stage, editValue, nextValue)
                             }
                           />
                         </td>
@@ -634,7 +666,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                               startEdit(sp.id, 'responsible_partner', sp.responsible_partner)
                             }
                             onChange={setEditValue}
-                            onCommit={() =>
+                            onCommit={(nextValue) =>
                               handleCommit(
                                 sp,
                                 'subproject',
@@ -642,6 +674,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                                 'Parceiro',
                                 sp.responsible_partner,
                                 editValue,
+                                nextValue,
                               )
                             }
                           />

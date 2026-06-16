@@ -40,6 +40,7 @@ export type Project = {
   id: string
   name: string
   code: string | null
+  area: number
   discipline: string | null
   stage: string
   archived: boolean

@@ -640,6 +640,7 @@ interface ProjectModalProps {
 interface ProjectModalForm {
   name: string
   code: string
+  area: string
   discipline: string
   stage: string
   contractAmount: string
@@ -662,6 +663,7 @@ function ProjectDetailModal({ project, subproject, comments, timelineItems, onCl
   const [form, setForm] = useState<ProjectModalForm>({
     name: project.name || '',
     code: project.code || '',
+    area: String(project.area ?? 0),
     discipline: toSystemKey(subproject?.discipline || project.discipline || ''),
     stage: project.stage || 'backlog',
     contractAmount: String(project.contract_amount || ''),
@@ -731,6 +733,10 @@ function ProjectDetailModal({ project, subproject, comments, timelineItems, onCl
               <option value="">Sem disciplina</option>
               {disciplines.map((d) => <option key={d} value={d}>{LABELS[d]}</option>)}
             </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Área</label>
+            <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" min="0" step="0.01" value={form.area} onChange={set('area')} />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Observação</label>
@@ -914,6 +920,7 @@ type CreateProjectForm = {
   clientName: string
   name: string
   code: string
+  area: string
   salesOwner: string
   contractAmount: string
   subprojects: Array<{ discipline: string; amount: string; responsiblePartner: string; deadline: string; observacao: string }>
@@ -928,6 +935,7 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
     clientName: '',
     name: '',
     code: '',
+    area: '',
     salesOwner: '',
     contractAmount: '',
     subprojects: [{ discipline: '', amount: '', responsiblePartner: '', deadline: '', observacao: '' }],
@@ -982,6 +990,10 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
                 <option value="">—</option>
                 {partners.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Área *</label>
+              <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" min="0" step="0.01" value={form.area} onChange={set('area')} required />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do contrato</label>
@@ -1041,7 +1053,7 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
           <button
             type="button"
             onClick={() => onCreate(form)}
-            disabled={mutating || !form.name.trim()}
+            disabled={mutating || !form.name.trim() || !form.area.trim()}
             className="bg-[var(--ink)] px-5 py-2.5 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
           >
             Criar projeto
@@ -1064,6 +1076,7 @@ interface CreateFromLeadModalProps {
 interface CreateFromLeadForm {
   name: string
   code: string
+  area: string
   discipline: string
   salesOwner: string
   contractAmount: string
@@ -1077,6 +1090,7 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
   const [form, setForm] = useState<CreateFromLeadForm>({
     name: selectedLead?.title || '',
     code: '',
+    area: '',
     discipline: '',
     salesOwner: selectedLead?.sales_owner || '',
     contractAmount: String(selectedLead?.estimated_amount || ''),
@@ -1159,6 +1173,10 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
                 </select>
               </div>
               <div>
+                <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Área *</label>
+                <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" min="0" step="0.01" value={form.area} onChange={set('area')} required />
+              </div>
+              <div>
                 <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do contrato</label>
                 <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" value={form.contractAmount} onChange={set('contractAmount')} />
               </div>
@@ -1183,7 +1201,7 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
             <button
               type="button"
               onClick={() => onCreate(selectedLeadId, form)}
-              disabled={mutating || !selectedLeadId || !form.name}
+              disabled={mutating || !selectedLeadId || !form.name || !form.area.trim()}
               className="bg-[var(--ink)] px-5 py-2.5 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
             >
               Criar projeto

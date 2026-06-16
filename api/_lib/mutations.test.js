@@ -55,6 +55,7 @@ test('createProjectFromLead creates an operational subproject with responsible p
   await runMutation('createProjectFromLead', {
     leadId: lead.id,
     name: 'Projeto Eletrico',
+    area: '145.5',
     discipline: 'eletrico',
     salesOwner: 'Matheus',
     contractAmount: '12500',
@@ -65,6 +66,7 @@ test('createProjectFromLead creates an operational subproject with responsible p
 
   const data = await getBootstrapData()
   assert.equal(data.projects.length, 1)
+  assert.equal(data.projects[0].area, 145.5)
   assert.equal(data.subprojects.length, 1)
   assert.equal(data.subprojects[0].discipline, 'eletrico')
   assert.equal(data.subprojects[0].responsible_partner, 'Matheus')
@@ -78,6 +80,7 @@ test('updateProject updates observacao on selected subproject instead of parent 
   await runMutation('createProjectFromLead', {
     leadId: lead.id,
     name: 'Projeto Legalizacao',
+    area: '80',
     discipline: 'legalizacao',
     salesOwner: 'Letícia',
     contractAmount: '8000',
@@ -91,6 +94,7 @@ test('updateProject updates observacao on selected subproject instead of parent 
     id: project.id,
     name: project.name,
     code: project.code,
+    area: '120',
     discipline: project.discipline,
     stage: project.stage,
     contractAmount: String(project.contract_amount),
@@ -102,6 +106,7 @@ test('updateProject updates observacao on selected subproject instead of parent 
   }, 'tester@example.com')
 
   const data = await getBootstrapData()
+  assert.equal(data.projects[0].area, 120)
   assert.equal(data.projects[0].notes ?? null, null)
   assert.equal(data.subprojects[0].observacao, 'RITUR')
   assert.equal(data.subprojects[0].responsible_partner, 'Matheus')
@@ -113,6 +118,7 @@ test('updateSubproject updates deadline and observacao without SQL placeholder m
   await runMutation('createProjectFromLead', {
     leadId: lead.id,
     name: 'Projeto Hidrossanitario',
+    area: '95',
     discipline: 'hidrossanitario',
     salesOwner: 'Matheus',
     contractAmount: '7000',
@@ -142,6 +148,7 @@ test('addSubprojectComment stores comment with author and timestamp', async () =
   await runMutation('createProjectFromLead', {
     leadId: lead.id,
     name: 'Projeto Estrutural',
+    area: '200',
     discipline: 'estrutural',
     salesOwner: 'Matheus',
     contractAmount: '9000',
