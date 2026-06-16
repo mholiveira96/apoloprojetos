@@ -10,6 +10,7 @@ import {
   LABELS,
 } from '@/lib/constants'
 import {
+  formatArea,
   formatCurrency,
   formatDate,
   normalizeSearchText,
@@ -165,12 +166,14 @@ function EditableCurrency({
   onStart,
   onChange,
   onCommit,
+  formatValue = formatCurrency,
 }: {
   value: number
   isEditing: boolean
   onStart: () => void
   onChange: (v: string) => void
   onCommit: () => void
+  formatValue?: (value: number) => string
 }) {
   const ref = useRef<HTMLInputElement>(null)
   useEffect(() => {
@@ -200,7 +203,7 @@ function EditableCurrency({
 
   return (
     <FieldDisplay onStart={onStart} tone="default">
-      {formatCurrency(value)}
+      {formatValue(value)}
     </FieldDisplay>
   )
 }
@@ -447,8 +450,8 @@ export default function DatabasePage({ data, submitMutation }: Props) {
         entityType,
         field,
         fieldLabel,
-        oldValue: String(oldRaw),
-        newValue: String(newValueRaw),
+        oldValue: field === 'area' ? formatArea(Number(oldRaw) || 0) : String(oldRaw),
+        newValue: field === 'area' ? formatArea(Number(newValueRaw) || 0) : String(newValueRaw),
         newValueRaw,
       })
     },
@@ -711,6 +714,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         onCommit={() =>
                           handleCommit(project, 'project', 'area', 'Área', project.area, editValue)
                         }
+                        formatValue={formatArea}
                       />
                     </td>
                     <td className="px-3 py-3 align-top">
