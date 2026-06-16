@@ -879,22 +879,24 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
 
               {saidaType === PAYOUT_KEY ? (
                 <>
-                  <PickerField
+                  <select
                     required
-                    inputClassName={pickerInputClass}
-                    options={projectOptions}
-                    placeholder="Selecione o projeto"
+                    className={inputClass}
                     value={payoutForm.projectId}
-                    onChange={(projectId) => setPayoutForm((current) => ({ ...current, projectId, subprojectId: '' }))}
-                  />
+                    onChange={(event) => setPayoutForm((current) => ({ ...current, projectId: event.target.value, subprojectId: '' }))}
+                  >
+                    <option value="">Selecione o projeto</option>
+                    {projectOptions.map((project) => (
+                      <option key={project.value} value={project.value}>{project.label}</option>
+                    ))}
+                  </select>
                   {payoutForm.projectId ? (
-                    <PickerField
+                    <select
                       required
-                      inputClassName={pickerInputClass}
-                      options={subprojectOptions}
-                      placeholder="Selecione a disciplina"
+                      className={inputClass}
                       value={payoutForm.subprojectId}
-                      onChange={(subprojectId) => {
+                      onChange={(event) => {
+                        const subprojectId = event.target.value
                         const subproject = subprojectsById.get(subprojectId) as Subproject | undefined
                         setPayoutForm((current) => ({
                           ...current,
@@ -902,7 +904,12 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                           partnerName: subproject?.responsible_partner ?? partners[0],
                         }))
                       }}
-                    />
+                    >
+                      <option value="">Selecione a disciplina</option>
+                      {subprojectOptions.map((subproject) => (
+                        <option key={subproject.value} value={subproject.value}>{subproject.label}</option>
+                      ))}
+                    </select>
                   ) : null}
                   {selectedSubproject ? (
                     <div className="border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--ink-soft)]">
@@ -919,13 +926,16 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                 </>
               ) : saidaType ? (
                 <>
-                  <PickerField
-                    inputClassName={pickerInputClass}
-                    options={[{ value: '', label: 'Projeto (opcional)' }, ...projectOptions]}
-                    placeholder="Projeto (opcional)"
+                  <select
+                    className={inputClass}
                     value={expenseForm.projectId}
-                    onChange={(projectId) => setExpenseForm((current) => ({ ...current, projectId }))}
-                  />
+                    onChange={(event) => setExpenseForm((current) => ({ ...current, projectId: event.target.value }))}
+                  >
+                    <option value="">Projeto (opcional)</option>
+                    {projectOptions.map((project) => (
+                      <option key={project.value} value={project.value}>{project.label}</option>
+                    ))}
+                  </select>
                   <input required type="number" min="0.01" step="0.01" className={inputClass} placeholder="Valor (R$)" value={expenseForm.amount} onChange={(event) => setExpenseForm((current) => ({ ...current, amount: event.target.value }))} />
                   {saidaType === 'ferias' ? (
                     <PickerField
