@@ -594,8 +594,8 @@ export function ApoloWorkspace() {
         </aside>
 
         <main className="min-w-0 min-h-screen">
-          {/* Header — stats only, no redundant title */}
-          <header className="border-b border-[var(--line)] px-6 py-4 md:px-8">
+          {/* Desktop / tablet header — hidden on mobile to avoid a large dead zone before content */}
+          <header className="hidden border-b border-[var(--line)] px-6 py-4 md:block md:px-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex flex-wrap items-center gap-4 text-sm md:gap-6">
                 <div>
@@ -617,7 +617,13 @@ export function ApoloWorkspace() {
             </div>
           </header>
 
-          <div className="space-y-8 px-6 pb-6 pt-4 md:px-8 md:pb-8 md:pt-5">
+          <div className="space-y-6 px-4 pb-6 pt-3 sm:px-6 md:space-y-8 md:px-8 md:pb-8 md:pt-5">
+            {section === 'operacoes' ? (
+              <div className="md:hidden">
+                {renderOperationsViewSwitch(true)}
+              </div>
+            ) : null}
+
             {section === 'dashboard' ? (
               <>
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
