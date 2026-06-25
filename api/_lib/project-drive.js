@@ -8,7 +8,7 @@ function getBlobToken() {
 }
 
 function getBlobStoreId() {
-  return process.env.BLOB_STORE_ID || undefined
+  return process.env.BLOBPUBLIC_STORE_ID || process.env.BLOB_STORE_ID || undefined
 }
 
 function sanitizeSegment(value) {
