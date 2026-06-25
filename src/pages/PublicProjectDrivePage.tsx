@@ -92,7 +92,7 @@ export function PublicProjectDrivePage() {
           subtitle={data?.project.client_name || 'Arquivos compartilhados pela Apolo para acompanhamento do projeto.'}
         >
           {loading ? (
-            <div className="rounded-[24px] border border-[var(--line)] bg-white px-5 py-8 text-sm text-[var(--ink-soft)]">
+            <div className="rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-solid)] px-5 py-8 text-sm text-[var(--ink-soft)]">
               Carregando arquivos...
             </div>
           ) : error ? (
@@ -102,13 +102,13 @@ export function PublicProjectDrivePage() {
           ) : (
             <div className="space-y-4">
               {groupedFiles.map((group) => (
-                <section key={group.key} className="rounded-[24px] border border-[var(--line)] bg-white/85 p-4">
+                <section key={group.key} className="rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-85)] p-4">
                   <div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">
                     <FileText className="h-4 w-4" /> {group.label}
                   </div>
                   <div className="mt-4 space-y-3">
                     {group.files.map((file) => (
-                      <div key={file.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[var(--line)] bg-white px-4 py-3">
+                      <div key={file.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3">
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-medium text-[var(--ink)]">{file.filename}</div>
                           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--ink-soft)]">

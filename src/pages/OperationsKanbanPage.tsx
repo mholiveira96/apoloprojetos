@@ -604,7 +604,7 @@ function DeleteConfirmModal({
                   <span
                     key={sp.id}
                     className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${
-                      sp.id === subproject.id ? 'border-rose-300 bg-rose-100 text-rose-700 line-through' : 'border-rose-200 bg-white text-rose-600'
+                      sp.id === subproject.id ? 'border-rose-300 bg-rose-100 text-rose-700 line-through' : 'border-rose-200 bg-[var(--bg-card-solid)] text-rose-600'
                     }`}
                   >
                     {showDiscipline(sp.discipline)}
@@ -888,7 +888,7 @@ function ProjectDetailModal({
             </div>
           ) : null}
 
-          <div className="md:col-span-2 rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.82)] p-4">
+          <div className="md:col-span-2 rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-92)] p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Drive do projeto</div>
@@ -897,22 +897,22 @@ function ProjectDetailModal({
               <button
                 type="button"
                 onClick={onOpenDrivePage}
-                className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
+                className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
               >
                 <FolderOpen className="h-4 w-4" /> Abrir drive
               </button>
             </div>
-            <div className="mt-3 rounded-2xl border border-dashed border-[var(--line)] bg-white/70 px-4 py-3 text-xs text-[var(--ink-soft)]">
+            <div className="mt-3 rounded-2xl border border-dashed border-[var(--line)] bg-[var(--bg-card-70)] px-4 py-3 text-xs text-[var(--ink-soft)]">
               {project.drive_enabled
                 ? (driveUrl || 'Drive ativo. Abra a página do drive para copiar o link público.')
                 : 'Drive inativo. Abra a página do drive para ativar, subir arquivos e gerar o link público.'}
             </div>
           </div>
 
-          <div className="md:col-span-2 rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.82)] p-4">
+          <div className="md:col-span-2 rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-92)] p-4">
             <div className="mt-4 space-y-3">
               {comments.map((comment) => (
-                <div key={comment.id} className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3">
+                <div key={comment.id} className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3">
                   <div className="flex items-center justify-between gap-3 text-xs text-[var(--ink-soft)]">
                     <span className="font-medium text-[var(--ink)]">{comment.created_by || 'Equipe Apolo'}</span>
                     <span>{formatDate(comment.created_at)}</span>
@@ -921,7 +921,7 @@ function ProjectDetailModal({
                 </div>
               ))}
               {comments.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/75 px-4 py-3 text-sm text-[var(--ink-soft)]">
+                <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[var(--bg-card-75)] px-4 py-3 text-sm text-[var(--ink-soft)]">
                   Ainda não há comentários para esse subprojeto.
                 </div>
               ) : null}
@@ -941,7 +941,7 @@ function ProjectDetailModal({
                     onAddComment(commentDraft)
                     setCommentDraft('')
                   }}
-                  className="rounded-2xl border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] disabled:opacity-60"
+                  className="rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] disabled:opacity-60"
                 >
                   Adicionar comentário
                 </button>

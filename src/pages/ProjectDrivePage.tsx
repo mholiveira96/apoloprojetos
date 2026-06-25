@@ -36,7 +36,7 @@ function formatBytes(value: number | null | undefined) {
 
 function DriveFileRow({ file, mutating, onDelete }: { file: ProjectDriveFile; mutating: boolean; onDelete: (fileId: string) => Promise<void> }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[var(--line)] bg-white px-4 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3">
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium text-[var(--ink)]">{file.filename}</div>
         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--ink-soft)]">
@@ -171,7 +171,7 @@ export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriv
                     className={`block w-full rounded-[18px] border px-3 py-3 text-left transition ${
                       active
                         ? 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)]'
-                        : 'border-[var(--line)] bg-white hover:bg-[var(--bg-card-80)]'
+                        : 'border-[var(--line)] bg-[var(--bg-card-solid)] hover:bg-[var(--bg-card-80)]'
                     }`}
                   >
                     <div className="truncate text-sm font-medium text-[var(--ink)]">{project.name}</div>
@@ -193,7 +193,7 @@ export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriv
           ) : (
             <>
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
-                <div className="rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.82)] p-4">
+                <div className="rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-92)] p-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Projeto selecionado</div>
@@ -216,7 +216,7 @@ export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriv
                       type="button"
                       disabled={mutating || !selectedProject.drive_enabled}
                       onClick={() => triggerUpload(null)}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] disabled:opacity-60"
                     >
                       <Upload className="h-4 w-4" /> Enviar na pasta geral
                     </button>
@@ -224,7 +224,7 @@ export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriv
                       type="button"
                       disabled={mutating || !selectedProject.drive_enabled}
                       onClick={handleRotateToken}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] disabled:opacity-60"
                     >
                       <RefreshCcw className="h-4 w-4" /> Regenerar token
                     </button>
@@ -232,7 +232,7 @@ export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriv
                       type="button"
                       disabled={!publicUrl}
                       onClick={() => void handleCopyLink()}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] disabled:opacity-60"
                     >
                       <Copy className="h-4 w-4" /> Copiar link
                     </button>
@@ -240,32 +240,32 @@ export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriv
                       href={publicUrl || '#'}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] ${publicUrl ? '' : 'pointer-events-none opacity-60'}`}
+                      className={`inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] ${publicUrl ? '' : 'pointer-events-none opacity-60'}`}
                     >
                       <ExternalLink className="h-4 w-4" /> Página pública
                     </a>
                   </div>
 
-                  <div className="mt-4 rounded-2xl border border-dashed border-[var(--line)] bg-white/70 px-4 py-3 text-xs text-[var(--ink-soft)]">
+                  <div className="mt-4 rounded-2xl border border-dashed border-[var(--line)] bg-[var(--bg-card-70)] px-4 py-3 text-xs text-[var(--ink-soft)]">
                     {publicUrl || 'Ative o drive para gerar o link público do projeto.'}
                   </div>
                 </div>
 
-                <div className="rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.82)] p-4">
+                <div className="rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-92)] p-4">
                   <div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">
                     <QrCode className="h-4 w-4" /> QR do cliente
                   </div>
                   {qrUrl ? (
-                    <img src={qrUrl} alt={`QR do drive de ${selectedProject.name}`} className="mt-3 w-full rounded-[18px] border border-[var(--line)] bg-white p-3" />
+                    <img src={qrUrl} alt={`QR do drive de ${selectedProject.name}`} className="mt-3 w-full rounded-[18px] border border-[var(--line)] bg-[var(--bg-card-solid)] p-3" />
                   ) : (
-                    <div className="mt-3 rounded-[18px] border border-dashed border-[var(--line)] bg-white/70 px-4 py-6 text-sm text-[var(--ink-soft)]">
+                    <div className="mt-3 rounded-[18px] border border-dashed border-[var(--line)] bg-[var(--bg-card-70)] px-4 py-6 text-sm text-[var(--ink-soft)]">
                       Ative o drive para gerar o QR.
                     </div>
                   )}
                 </div>
               </div>
 
-              <section className="space-y-4 rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.82)] p-4">
+              <section className="space-y-4 rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-92)] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Pasta geral</div>
@@ -275,7 +275,7 @@ export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriv
                     type="button"
                     disabled={mutating || !selectedProject.drive_enabled}
                     onClick={() => triggerUpload(null)}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] disabled:opacity-60"
                   >
                     <Upload className="h-4 w-4" /> Upload geral
                   </button>
@@ -291,7 +291,7 @@ export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriv
                 {subprojects.length ? subprojects.map((subproject) => {
                   const files = projectFiles.filter((file) => file.subproject_id === subproject.id)
                   return (
-                    <div key={subproject.id} className="rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.82)] p-4">
+                    <div key={subproject.id} className="rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-92)] p-4">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Subprojeto</div>
@@ -304,7 +304,7 @@ export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriv
                           type="button"
                           disabled={mutating || !selectedProject.drive_enabled}
                           onClick={() => triggerUpload(subproject.id)}
-                          className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] disabled:opacity-60"
+                          className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)] disabled:opacity-60"
                         >
                           <Upload className="h-4 w-4" /> Upload em {showDiscipline(subproject.discipline)}
                         </button>
@@ -314,7 +314,7 @@ export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriv
                         {files.length ? files.map((file) => (
                           <DriveFileRow key={file.id} file={file} mutating={mutating} onDelete={onProjectDriveDelete} />
                         )) : (
-                          <div className="rounded-[20px] border border-dashed border-[var(--line)] bg-white/70 px-4 py-3 text-sm text-[var(--ink-soft)]">
+                          <div className="rounded-[20px] border border-dashed border-[var(--line)] bg-[var(--bg-card-70)] px-4 py-3 text-sm text-[var(--ink-soft)]">
                             Nenhum arquivo enviado para esta disciplina ainda.
                           </div>
                         )}

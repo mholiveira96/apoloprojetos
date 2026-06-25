@@ -6,7 +6,7 @@ import { SquarePen } from 'lucide-react'
 
 export function ProjectDetailCard({ project, draft, onChange, onSave }: { project: Project; draft: ProjectDetailForm; onChange: (field: keyof ProjectDetailForm, value: string) => void; onSave: () => void }) {
   return (
-    <div className=" border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(245,245,242,0.98))] p-5 shadow-[0_24px_60px_rgba(7,19,21,0.05)]">
+    <div className=" border border-[var(--line)] bg-[var(--bg-card-gradient)] p-5 shadow-[0_24px_60px_rgba(7,19,21,0.05)]">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--line)] pb-4">
         <div>
           <div className="text-xs uppercase tracking-[0.2em] text-[var(--teal)]">Projeto em edição</div>

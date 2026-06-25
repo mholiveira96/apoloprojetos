@@ -48,7 +48,7 @@ export function LeadModal({
           <div className="text-xs uppercase tracking-[0.2em] text-[var(--teal)]">Novo lead</div>
           <h3 className="mt-1 text-lg font-semibold text-[var(--ink)]">Capturar oportunidade</h3>
         </div>
-        <button type="button" className="rounded-full border border-[var(--line)] p-2 text-[var(--ink-soft)] transition hover:bg-white" onClick={onClose}>
+        <button type="button" className="rounded-full border border-[var(--line)] p-2 text-[var(--ink-soft)] transition hover:bg-[var(--bg-card-solid)]" onClick={onClose}>
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -155,7 +155,7 @@ export function LeadDetailModal({
           <h3 className="mt-2 truncate text-xl font-semibold text-[var(--ink)]">{lead.title}</h3>
           <div className="mt-1 text-sm text-[var(--ink-soft)]">{lead.client_name || 'Cliente não informado'}</div>
         </div>
-        <button type="button" className="rounded-full border border-[var(--line)] p-2 text-[var(--ink-soft)] transition hover:bg-white" onClick={onClose}>
+        <button type="button" className="rounded-full border border-[var(--line)] p-2 text-[var(--ink-soft)] transition hover:bg-[var(--bg-card-solid)]" onClick={onClose}>
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -227,7 +227,7 @@ export function LeadDetailModal({
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3 border-t border-[var(--line)] pt-4">
-        <button type="button" className="inline-flex items-center gap-2 border border-[var(--line)] px-4 py-2.5 text-sm text-[var(--ink)] transition hover:bg-white" onClick={onTouch}>
+        <button type="button" className="inline-flex items-center gap-2 border border-[var(--line)] px-4 py-2.5 text-sm text-[var(--ink)] transition hover:bg-[var(--bg-card-solid)]" onClick={onTouch}>
           📞 Registrar contato hoje
         </button>
         {lead.stage === 'won' && (
@@ -282,7 +282,7 @@ export function ConvertProjectModal({
           <div className="text-xs uppercase tracking-[0.2em] text-[var(--teal)]">Converter lead em projeto</div>
           <h3 className="mt-1 text-lg font-semibold text-[var(--ink)]">Criar projeto operacional</h3>
         </div>
-        <button type="button" className="rounded-full border border-[var(--line)] p-2 text-[var(--ink-soft)] transition hover:bg-white" onClick={onClose}>
+        <button type="button" className="rounded-full border border-[var(--line)] p-2 text-[var(--ink-soft)] transition hover:bg-[var(--bg-card-solid)]" onClick={onClose}>
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -326,7 +326,7 @@ export function ConvertProjectModal({
         <div className="border-t border-[var(--line)] pt-4">
           <div className="flex items-center justify-between">
             <div className="text-sm font-medium text-[var(--ink)]">Subprojetos</div>
-            <button type="button" className="inline-flex items-center gap-1 rounded-full border border-[var(--line)] px-3 py-1.5 text-xs text-[var(--ink)] transition hover:bg-white" onClick={addSubproject}>
+            <button type="button" className="inline-flex items-center gap-1 rounded-full border border-[var(--line)] px-3 py-1.5 text-xs text-[var(--ink)] transition hover:bg-[var(--bg-card-solid)]" onClick={addSubproject}>
               <Plus className="h-3 w-3" /> Adicionar
             </button>
           </div>

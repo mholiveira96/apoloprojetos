@@ -19,6 +19,7 @@
   --bg-card-82: rgba(255, 255, 255, 0.72);
   --bg-card-85: rgba(255, 255, 255, 0.75);
   --bg-card-solid: #ffffff;
+  --bg-card-gradient: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(245,245,242,0.98));
   --bg-body-workspace: #ffffff;
   --bg-metric: transparent;
   --ink-paragraph: rgba(10, 26, 26, 0.70);
@@ -96,6 +97,7 @@
   --bg-card-82: rgba(28, 28, 32, 0.82);
   --bg-card-85: rgba(28, 28, 32, 0.85);
   --bg-card-solid: #1c1c20;
+  --bg-card-gradient: linear-gradient(180deg, rgba(28,28,32,0.94), rgba(26,26,30,0.98));
   --bg-body-workspace: linear-gradient(180deg, #111113 0%, #1a1a1e 100%);
   --bg-metric: transparent;
   --ink-paragraph: rgba(232, 232, 234, 0.70);

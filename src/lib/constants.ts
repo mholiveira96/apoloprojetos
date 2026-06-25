@@ -2,6 +2,7 @@ import {
   BriefcaseBusiness,
   CircleDollarSign,
   FolderKanban,
+  HardDrive,
   Landmark,
   LayoutDashboard,
   Table2,
@@ -11,6 +12,7 @@ export const NAV_ITEMS = [
   { key: 'dashboard', label: 'Painel', href: '/app/dashboard', icon: LayoutDashboard },
   { key: 'comercial', label: 'Comercial', href: '/app/comercial', icon: BriefcaseBusiness },
   { key: 'operacoes', label: 'Operações', href: '/app/operacoes', icon: FolderKanban },
+  { key: 'drive', label: 'Drive', href: '/app/drive', icon: HardDrive },
   { key: 'financeiro', label: 'Financeiro', href: '/app/financeiro', icon: CircleDollarSign },
   { key: 'fluxo', label: 'Fluxo de caixa', href: '/app/fluxo', icon: Landmark },
 ]
