@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { createId, ensureSchema, getDb, nowIso } from './db.js'
 
 function normalizeText(value) {
@@ -16,6 +17,10 @@ function normalizeDate(value) {
 
 function todayIsoDate() {
   return nowIso().slice(0, 10)
+}
+
+function createDriveToken() {
+  return randomBytes(24).toString('hex')
 }
 
 function buildSubprojectPayloads(payload, contractAmount, fallbackResponsible) {
@@ -270,6 +275,42 @@ export async function runMutation(action, payload, actor) {
       await db.execute({
         sql: 'UPDATE projects SET archived = ?, updated_at = ? WHERE id = ?',
         args: [payload.archived ? 1 : 0, timestamp, normalizeText(payload.id)],
+      })
+      return { ok: true }
+    }
+
+    case 'setProjectDriveEnabled': {
+      const projectId = normalizeText(payload.projectId)
+      const enabled = payload.enabled ? 1 : 0
+      const tokenResult = await db.execute({
+        sql: 'SELECT drive_token FROM projects WHERE id = ? LIMIT 1',
+        args: [projectId],
+      })
+      const existingToken = normalizeText(tokenResult.rows[0]?.drive_token)
+      const nextToken = enabled && !existingToken ? createDriveToken() : (existingToken || null)
+
+      await db.execute({
+        sql: `UPDATE projects
+              SET drive_enabled = ?,
+                  drive_token = ?,
+                  drive_updated_at = ?,
+                  updated_at = ?
+              WHERE id = ?`,
+        args: [enabled, nextToken, timestamp, timestamp, projectId],
+      })
+      return { ok: true }
+    }
+
+    case 'regenerateProjectDriveToken': {
+      const projectId = normalizeText(payload.projectId)
+      await db.execute({
+        sql: `UPDATE projects
+              SET drive_enabled = 1,
+                  drive_token = ?,
+                  drive_updated_at = ?,
+                  updated_at = ?
+              WHERE id = ?`,
+        args: [createDriveToken(), timestamp, timestamp, projectId],
       })
       return { ok: true }
     }

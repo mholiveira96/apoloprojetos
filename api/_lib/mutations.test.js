@@ -15,7 +15,7 @@ const { getBootstrapData } = await import('./app-data.js')
 async function resetData() {
   const db = getDb()
   await ensureSchema()
-  for (const table of ['subproject_comments', 'partner_payouts', 'project_expenses', 'payment_receipts', 'project_logs', 'subprojects', 'projects', 'leads', 'clients']) {
+  for (const table of ['project_drive_files', 'subproject_comments', 'partner_payouts', 'project_expenses', 'payment_receipts', 'project_logs', 'subprojects', 'projects', 'leads', 'clients']) {
     await db.execute(`DELETE FROM ${table}`)
   }
 }
@@ -168,4 +168,100 @@ test('addSubprojectComment stores comment with author and timestamp', async () =
   assert.equal(data.subprojectComments[0].body, 'Primeira revisão enviada para o cliente.')
   assert.equal(data.subprojectComments[0].created_by, 'matheus@apolo.com')
   assert.ok(data.subprojectComments[0].created_at)
+})
+
+test('setProjectDriveEnabled enables drive and creates a token when missing', async () => {
+  const lead = await createWonLead({ clientName: 'Cliente Drive', title: 'Projeto Drive' })
+
+  await runMutation('createProjectFromLead', {
+    leadId: lead.id,
+    name: 'Projeto Drive',
+    area: '110',
+    discipline: 'arquitetura',
+    salesOwner: 'Matheus',
+    contractAmount: '12000',
+  }, 'tester@example.com')
+
+  const created = await getBootstrapData()
+  const project = created.projects[0]
+
+  await runMutation('setProjectDriveEnabled', {
+    projectId: project.id,
+    enabled: true,
+  }, 'tester@example.com')
+
+  const data = await getBootstrapData()
+  assert.equal(data.projects[0].drive_enabled, true)
+  assert.ok(data.projects[0].drive_token)
+  assert.ok(data.projects[0].drive_updated_at)
+})
+
+test('regenerateProjectDriveToken rotates token without disabling drive', async () => {
+  const lead = await createWonLead({ clientName: 'Cliente Token', title: 'Projeto Token' })
+
+  await runMutation('createProjectFromLead', {
+    leadId: lead.id,
+    name: 'Projeto Token',
+    area: '140',
+    discipline: 'estrutural',
+    salesOwner: 'Letícia',
+    contractAmount: '18000',
+  }, 'tester@example.com')
+
+  const created = await getBootstrapData()
+  const project = created.projects[0]
+
+  await runMutation('setProjectDriveEnabled', {
+    projectId: project.id,
+    enabled: true,
+  }, 'tester@example.com')
+
+  const enabledData = await getBootstrapData()
+  const previousToken = enabledData.projects[0].drive_token
+
+  await runMutation('regenerateProjectDriveToken', {
+    projectId: project.id,
+  }, 'tester@example.com')
+
+  const data = await getBootstrapData()
+  assert.equal(data.projects[0].drive_enabled, true)
+  assert.ok(data.projects[0].drive_token)
+  assert.notEqual(data.projects[0].drive_token, previousToken)
+})
+
+test('bootstrap returns project drive files ordered by newest first', async () => {
+  const lead = await createWonLead({ clientName: 'Cliente Files', title: 'Projeto Files' })
+
+  await runMutation('createProjectFromLead', {
+    leadId: lead.id,
+    name: 'Projeto Files',
+    area: '210',
+    discipline: 'hidrossanitario',
+    salesOwner: 'Matheus',
+    contractAmount: '22000',
+  }, 'tester@example.com')
+
+  const created = await getBootstrapData()
+  const project = created.projects[0]
+  const subproject = created.subprojects[0]
+  const db = getDb()
+
+  await db.execute({
+    sql: `INSERT INTO project_drive_files (
+      id, project_id, subproject_id, filename, blob_url, blob_pathname, content_type, size_bytes, uploaded_by, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: ['pdf_older', project.id, subproject.id, 'memorial.pdf', 'https://blob.example/memorial.pdf', 'apolo/projetos/memorial.pdf', 'application/pdf', 1234, 'older@example.com', '2026-06-01T10:00:00.000Z'],
+  })
+  await db.execute({
+    sql: `INSERT INTO project_drive_files (
+      id, project_id, subproject_id, filename, blob_url, blob_pathname, content_type, size_bytes, uploaded_by, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: ['img_newer', project.id, null, 'fachada.png', 'https://blob.example/fachada.png', 'apolo/projetos/fachada.png', 'image/png', 4321, 'newer@example.com', '2026-06-02T10:00:00.000Z'],
+  })
+
+  const data = await getBootstrapData()
+  assert.equal(data.projectDriveFiles.length, 2)
+  assert.equal(data.projectDriveFiles[0].id, 'img_newer')
+  assert.equal(data.projectDriveFiles[0].project_id, project.id)
+  assert.equal(data.projectDriveFiles[1].subproject_id, subproject.id)
 })

@@ -2,6 +2,14 @@ import type { BootstrapData, SessionUser } from '@/types/app'
 
 type JsonResult<T> = Promise<T>
 
+type ProjectDriveUploadInput = {
+  projectId: string
+  subprojectId?: string | null
+  filename: string
+  contentType?: string | null
+  fileData: string
+}
+
 async function request<T>(input: RequestInfo, init?: RequestInit): JsonResult<T> {
   const response = await fetch(input, {
     credentials: 'include',
@@ -43,5 +51,19 @@ export function mutate(action: string, payload: Record<string, unknown>) {
   return request<BootstrapData>('/api/app/mutate', {
     method: 'POST',
     body: JSON.stringify({ action, payload }),
+  })
+}
+
+export function uploadProjectDriveFile(payload: ProjectDriveUploadInput) {
+  return request<BootstrapData>('/api/app/drive-upload', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function deleteProjectDriveFile(fileId: string) {
+  return request<BootstrapData>('/api/app/drive-delete', {
+    method: 'POST',
+    body: JSON.stringify({ fileId }),
   })
 }

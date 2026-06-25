@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   DndContext,
   useDroppable,
@@ -34,6 +34,7 @@ import {
   Search,
   Columns3,
   Trash2,
+  FolderOpen,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { BootstrapData, ClientTimelineItem, Lead, Project, Subproject, SubprojectComment } from '@/types/app'
@@ -207,12 +208,14 @@ function DraggableSubprojectCard({
   project,
   onClick,
   onDelete,
+  onOpenDrive,
   ghost,
 }: {
   subproject: Subproject
   project: Project
   onClick?: () => void
   onDelete?: () => void
+  onOpenDrive?: () => void
   ghost?: boolean
 }) {
   const { Icon, className } = disciplineMeta(subproject.discipline)
@@ -241,6 +244,15 @@ function DraggableSubprojectCard({
           <span>{showDiscipline(subproject.discipline)}</span>
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          {onOpenDrive ? (
+            <button
+              className="shrink-0 cursor-pointer touch-none text-[var(--ink-soft)]/40 transition hover:text-[var(--teal)]"
+              aria-label="Abrir drive"
+              onClick={(e) => { e.stopPropagation(); onOpenDrive() }}
+            >
+              <FolderOpen className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
           {onDelete ? (
             <button
               className="shrink-0 cursor-pointer touch-none text-[var(--ink-soft)]/30 transition hover:text-rose-600"
@@ -634,6 +646,7 @@ interface ProjectModalProps {
   onAutoSave: (form: ProjectModalForm) => void
   onSubprojectStageChange?: (stage: string) => void
   onAddComment: (body: string) => void
+  onOpenDrivePage: () => void
   mutating: boolean
 }
 
@@ -659,7 +672,18 @@ function timelineTone(kind: ClientTimelineItem['kind']) {
   return 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] text-[var(--teal)]'
 }
 
-function ProjectDetailModal({ project, subproject, comments, timelineItems, onClose, onAutoSave, onSubprojectStageChange, onAddComment, mutating }: ProjectModalProps) {
+function ProjectDetailModal({
+  project,
+  subproject,
+  comments,
+  timelineItems,
+  onClose,
+  onAutoSave,
+  onSubprojectStageChange,
+  onAddComment,
+  onOpenDrivePage,
+  mutating,
+}: ProjectModalProps) {
   const [form, setForm] = useState<ProjectModalForm>({
     name: project.name || '',
     code: project.code || '',
@@ -692,6 +716,9 @@ function ProjectDetailModal({ project, subproject, comments, timelineItems, onCl
     return () => window.clearTimeout(t)
   }, [form, formFingerprint])
   const [commentDraft, setCommentDraft] = useState('')
+  const driveUrl = project.drive_token && typeof window !== 'undefined'
+    ? `${window.location.origin}/drive/${project.drive_token}`
+    : ''
 
   const set = (field: keyof ProjectModalForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }))
@@ -862,13 +889,27 @@ function ProjectDetailModal({ project, subproject, comments, timelineItems, onCl
           ) : null}
 
           <div className="md:col-span-2 rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.82)] p-4">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Comentários</div>
-                <div className="mt-1 text-sm font-medium text-[var(--ink)]">Notas com autor e horário</div>
+                <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Drive do projeto</div>
+                <div className="mt-1 text-sm font-medium text-[var(--ink)]">Gerencie uploads, link público e QR numa página própria</div>
               </div>
-              <div className="text-xs text-[var(--ink-soft)]">{comments.length} comentário{comments.length !== 1 ? 's' : ''}</div>
+              <button
+                type="button"
+                onClick={onOpenDrivePage}
+                className="inline-flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
+              >
+                <FolderOpen className="h-4 w-4" /> Abrir drive
+              </button>
             </div>
+            <div className="mt-3 rounded-2xl border border-dashed border-[var(--line)] bg-white/70 px-4 py-3 text-xs text-[var(--ink-soft)]">
+              {project.drive_enabled
+                ? (driveUrl || 'Drive ativo. Abra a página do drive para copiar o link público.')
+                : 'Drive inativo. Abra a página do drive para ativar, subir arquivos e gerar o link público.'}
+            </div>
+          </div>
+
+          <div className="md:col-span-2 rounded-[24px] border border-[var(--line)] bg-[rgba(255,255,255,0.82)] p-4">
             <div className="mt-4 space-y-3">
               {comments.map((comment) => (
                 <div key={comment.id} className="rounded-2xl border border-[var(--line)] bg-white px-4 py-3">
@@ -1216,6 +1257,7 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [selectedSubprojectId, setSelectedSubprojectId] = useState<string | null>(null)
@@ -1478,6 +1520,11 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
     [submitMutation],
   )
 
+  const handleOpenDrivePage = useCallback(() => {
+    if (!selectedProject) return
+    navigate(`/app/drive?project=${encodeURIComponent(selectedProject.id)}`)
+  }, [navigate, selectedProject])
+
   const handleCreateProject = useCallback(
     (form: CreateProjectForm) => {
       void submitMutation(
@@ -1706,6 +1753,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
           onAutoSave={handleProjectAutoSave}
           onSubprojectStageChange={handleSubprojectStageChangeFromModal}
           onAddComment={handleAddSubprojectComment}
+          onOpenDrivePage={handleOpenDrivePage}
           mutating={mutating}
         />
       ) : null}

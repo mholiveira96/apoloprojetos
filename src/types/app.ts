@@ -48,6 +48,10 @@ export type Project = {
   sales_owner: string | null
   sales_bonus_percent: number
   base_partner_split_percent: number
+  deadline: string | null
+  drive_enabled: boolean
+  drive_token: string | null
+  drive_updated_at: string | null
   status_note: string | null
   notes: string | null
   lead_id: string | null
@@ -148,6 +152,21 @@ export type SubprojectComment = {
   created_at: string
 }
 
+export type ProjectDriveFile = {
+  id: string
+  project_id: string
+  subproject_id: string | null
+  filename: string
+  blob_url: string
+  blob_pathname: string
+  content_type: string | null
+  size_bytes: number | null
+  uploaded_by: string | null
+  created_at: string
+  project_name: string
+  subproject_discipline: string | null
+}
+
 export type Revision = {
   id: string
   client_name: string
@@ -186,5 +205,6 @@ export type BootstrapData = {
   cashflow: CashflowEntry[]
   subprojects: Subproject[]
   subprojectComments: SubprojectComment[]
+  projectDriveFiles: ProjectDriveFile[]
   revisions: Revision[]
 }

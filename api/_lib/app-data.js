@@ -23,6 +23,7 @@ export async function getBootstrapData() {
     cashflowResult,
     subprojectsResult,
     subprojectCommentsResult,
+    projectDriveFilesResult,
     revisionsResult,
   ] = await Promise.all([
     db.execute(`SELECT COUNT(*) AS total FROM leads WHERE stage NOT IN ('won', 'lost')`),
@@ -114,6 +115,9 @@ export async function getBootstrapData() {
         projects.sales_bonus_percent,
         projects.base_partner_split_percent,
         projects.deadline,
+        projects.drive_enabled,
+        projects.drive_token,
+        projects.drive_updated_at,
         projects.status_note,
         projects.notes,
         projects.lead_id,
@@ -301,6 +305,25 @@ export async function getBootstrapData() {
     `),
     db.execute(`
       SELECT
+        project_drive_files.id,
+        project_drive_files.project_id,
+        project_drive_files.subproject_id,
+        project_drive_files.filename,
+        project_drive_files.blob_url,
+        project_drive_files.blob_pathname,
+        project_drive_files.content_type,
+        project_drive_files.size_bytes,
+        project_drive_files.uploaded_by,
+        project_drive_files.created_at,
+        projects.name AS project_name,
+        subprojects.discipline AS subproject_discipline
+      FROM project_drive_files
+      INNER JOIN projects ON projects.id = project_drive_files.project_id
+      LEFT JOIN subprojects ON subprojects.id = project_drive_files.subproject_id
+      ORDER BY project_drive_files.created_at DESC
+    `),
+    db.execute(`
+      SELECT
         revisions.id,
         revisions.client_name,
         revisions.description,
@@ -337,6 +360,7 @@ export async function getBootstrapData() {
   const projects = projectsResult.rows.map((project) => ({
     ...project,
     archived: Boolean(asNumber(project.archived)),
+    drive_enabled: Boolean(asNumber(project.drive_enabled)),
   }))
 
   return {
@@ -362,6 +386,7 @@ export async function getBootstrapData() {
     cashflow: cashflowResult.rows,
     subprojects: subprojectsResult.rows,
     subprojectComments: subprojectCommentsResult.rows,
+    projectDriveFiles: projectDriveFilesResult.rows,
     revisions: revisionsResult.rows,
   }
 }

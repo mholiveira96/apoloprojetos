@@ -17,6 +17,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@libsql/client": "^0.17.3",
     "@tailwindcss/vite": "^4.2.2",
+    "@vercel/blob": "^2.5.0",
     "clsx": "^2.1.1",
     "cookie": "^1.1.1",
     "framer-motion": "^12.38.0",

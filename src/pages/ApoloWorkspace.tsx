@@ -23,7 +23,7 @@ import {
   X,
 } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
-import { getBootstrap, getSession, login, logout, mutate } from '@/lib/app-api'
+import { deleteProjectDriveFile, getBootstrap, getSession, login, logout, mutate, uploadProjectDriveFile } from '@/lib/app-api'
 import type { BootstrapData, Lead, SessionUser, Subproject } from '@/types/app'
 import type { ConvertProjectForm, LeadDetailForm, ViewMode } from '@/types/forms'
 import { NAV_ITEMS, BOTTOM_NAV_ITEMS, leadStages } from '@/lib/constants'
@@ -45,6 +45,7 @@ import { DashboardProjectRow, DashboardSubprojectRow } from '@/components/worksp
 import { LoginScreen } from '@/components/workspace/login-screen'
 import { InstallPrompt } from '@/components/workspace/install-prompt'
 import { OperationsKanbanPage } from '@/pages/OperationsKanbanPage'
+import { ProjectDrivePage } from '@/pages/ProjectDrivePage'
 import { FinancialPage } from '@/pages/FinancialPage'
 import { CashflowPage } from '@/pages/CashflowPage'
 import { RevisoesKanbanPage } from '@/pages/RevisoesKanbanPage'
@@ -260,6 +261,56 @@ export function ApoloWorkspace() {
       void submitMutation('uploadLeadProposal', { leadId, filename: file.name, fileData: base64, size: file.size }, undefined, 'Proposta anexada')
     }
     reader.readAsDataURL(file)
+  }
+
+  const handleProjectDriveUpload = async (payload: { projectId: string; subprojectId?: string | null; file: File }) => {
+    if (payload.file.size > 4 * 1024 * 1024) {
+      toast.error('Arquivo muito grande. Máximo: 4 MB')
+      return
+    }
+
+    setMutating(true)
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          const dataUrl = event.target?.result as string
+          resolve(dataUrl.split(',')[1] || '')
+        }
+        reader.onerror = () => reject(new Error('Falha ao ler arquivo'))
+        reader.readAsDataURL(payload.file)
+      })
+
+      const next = await uploadProjectDriveFile({
+        projectId: payload.projectId,
+        subprojectId: payload.subprojectId,
+        filename: payload.file.name,
+        contentType: payload.file.type || null,
+        fileData: base64,
+      })
+
+      setData(next)
+      setUser(next.user)
+      toast.success('Arquivo enviado para o drive')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Falha no upload do arquivo')
+    } finally {
+      setMutating(false)
+    }
+  }
+
+  const handleProjectDriveDelete = async (fileId: string) => {
+    setMutating(true)
+    try {
+      const next = await deleteProjectDriveFile(fileId)
+      setData(next)
+      setUser(next.user)
+      toast.success('Arquivo removido do drive')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Falha ao remover arquivo')
+    } finally {
+      setMutating(false)
+    }
   }
 
   const handleLogin = async (email: string, password: string) => {
@@ -1093,8 +1144,22 @@ export function ApoloWorkspace() {
               opsView === 'revisoes' ? (
                 <RevisoesKanbanPage data={data} submitMutation={submitMutation} mutating={mutating} />
               ) : (
-                <OperationsKanbanPage data={data} submitMutation={submitMutation} mutating={mutating} />
+                <OperationsKanbanPage
+                  data={data}
+                  submitMutation={submitMutation}
+                  mutating={mutating}
+                />
               )
+            ) : null}
+
+            {section === 'drive' ? (
+              <ProjectDrivePage
+                data={data}
+                submitMutation={submitMutation}
+                mutating={mutating}
+                onProjectDriveUpload={handleProjectDriveUpload}
+                onProjectDriveDelete={handleProjectDriveDelete}
+              />
             ) : null}
 
             {section === 'financeiro' ? (

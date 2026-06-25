@@ -57,6 +57,9 @@ const schemaStatements = [
     sales_bonus_percent REAL DEFAULT 10,
     base_partner_split_percent REAL DEFAULT 50,
     deadline TEXT,
+    drive_enabled INTEGER NOT NULL DEFAULT 0,
+    drive_token TEXT,
+    drive_updated_at TEXT,
     status_note TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
@@ -142,12 +145,28 @@ const schemaStatements = [
     created_at TEXT NOT NULL,
     FOREIGN KEY (subproject_id) REFERENCES subprojects(id)
   )`,
+  `CREATE TABLE IF NOT EXISTS project_drive_files (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    subproject_id TEXT,
+    filename TEXT NOT NULL,
+    blob_url TEXT NOT NULL,
+    blob_pathname TEXT NOT NULL,
+    content_type TEXT,
+    size_bytes INTEGER,
+    uploaded_by TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES projects(id),
+    FOREIGN KEY (subproject_id) REFERENCES subprojects(id)
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_leads_stage ON leads(stage)`,
   `CREATE INDEX IF NOT EXISTS idx_projects_stage ON projects(stage)`,
   `CREATE INDEX IF NOT EXISTS idx_project_logs_project ON project_logs(project_id, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_receipts_project ON payment_receipts(project_id, received_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_expenses_project ON project_expenses(project_id, paid_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_payouts_project ON partner_payouts(project_id, paid_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_project_drive_files_project ON project_drive_files(project_id, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_project_drive_files_subproject ON project_drive_files(subproject_id, created_at DESC)`,
   `CREATE TABLE IF NOT EXISTS revisions (
     id TEXT PRIMARY KEY,
     client_name TEXT NOT NULL,
@@ -216,7 +235,11 @@ async function runProjectSchemaMigrations() {
   await ensureColumn('projects', 'notes', 'notes TEXT')
   await ensureColumn('projects', 'archived', 'archived INTEGER NOT NULL DEFAULT 0')
   await ensureColumn('projects', 'area', 'area REAL NOT NULL DEFAULT 0')
+  await ensureColumn('projects', 'drive_enabled', 'drive_enabled INTEGER NOT NULL DEFAULT 0')
+  await ensureColumn('projects', 'drive_token', 'drive_token TEXT')
+  await ensureColumn('projects', 'drive_updated_at', 'drive_updated_at TEXT')
   await db.execute(`UPDATE projects SET area = 0 WHERE area IS NULL`)
+  await db.execute(`UPDATE projects SET drive_enabled = 0 WHERE drive_enabled IS NULL`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_projects_client ON projects(client_id)`)
   await db.execute(`
     UPDATE projects
@@ -343,6 +366,28 @@ async function runProposalSchemaMigrations() {
   await ensureColumn('leads', 'proposal_filename', 'proposal_filename TEXT')
 }
 
+async function runProjectDriveSchemaMigrations() {
+  const db = getDb()
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS project_drive_files (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      subproject_id TEXT,
+      filename TEXT NOT NULL,
+      blob_url TEXT NOT NULL,
+      blob_pathname TEXT NOT NULL,
+      content_type TEXT,
+      size_bytes INTEGER,
+      uploaded_by TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (project_id) REFERENCES projects(id),
+      FOREIGN KEY (subproject_id) REFERENCES subprojects(id)
+    )
+  `)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_project_drive_files_project ON project_drive_files(project_id, created_at DESC)`)
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_project_drive_files_subproject ON project_drive_files(subproject_id, created_at DESC)`)
+}
+
 async function runReceiptSchemaMigrations() {
   const db = getDb()
   await ensureColumn('payment_receipts', 'client_id', 'client_id TEXT REFERENCES clients(id)')
@@ -389,14 +434,16 @@ async function runExpenseSchemaMigrations() {
   }
 }
 
-const SCHEMA_VERSION = '10'
+const SCHEMA_VERSION = '11'
 
 async function hasExpectedSchemaShape(db) {
   try {
     await db.execute(`SELECT lead_id FROM projects LIMIT 0`)
     await db.execute(`SELECT area FROM projects LIMIT 0`)
+    await db.execute(`SELECT drive_enabled, drive_token, drive_updated_at FROM projects LIMIT 0`)
     await db.execute(`SELECT observacao FROM subprojects LIMIT 0`)
     await db.execute(`SELECT 1 FROM subproject_comments LIMIT 0`)
+    await db.execute(`SELECT project_id, subproject_id, blob_url, blob_pathname FROM project_drive_files LIMIT 0`)
     await db.execute(`SELECT stage FROM revisions LIMIT 0`)
     return true
   } catch {
@@ -424,6 +471,7 @@ export async function ensureSchema() {
       await runExpenseSchemaMigrations()
       await runPayoutSchemaMigrations()
       await runProposalSchemaMigrations()
+      await runProjectDriveSchemaMigrations()
       await db.execute({
         sql: `INSERT INTO app_meta (key, value, updated_at)
               VALUES ('schema_version', ?, ?)
