@@ -117,7 +117,7 @@ export function PublicProjectDrivePage() {
                           </div>
                         </div>
                         <a
-                          href={file.blob_url}
+                          href={`/api/public/project-drive-download?fileId=${encodeURIComponent(file.id)}&token=${encodeURIComponent(token)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"

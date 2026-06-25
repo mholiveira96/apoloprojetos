@@ -47,7 +47,7 @@ function DriveFileRow({ file, mutating, onDelete }: { file: ProjectDriveFile; mu
       </div>
       <div className="flex items-center gap-2">
         <a
-          href={file.blob_url}
+          href={`/api/app/drive-download?fileId=${encodeURIComponent(file.id)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 rounded-full border border-[var(--line)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
