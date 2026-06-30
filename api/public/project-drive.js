@@ -17,9 +17,16 @@ export default async function handler(req, res) {
     const db = getDb()
 
     const projectResult = await db.execute({
-      sql: `SELECT id, name, client_name, drive_enabled, drive_token, drive_updated_at
+      sql: `SELECT
+              projects.id,
+              projects.name,
+              clients.name AS client_name,
+              projects.drive_enabled,
+              projects.drive_token,
+              projects.drive_updated_at
             FROM projects
-            WHERE drive_token = ?
+            LEFT JOIN clients ON clients.id = projects.client_id
+            WHERE projects.drive_token = ?
             LIMIT 1`,
       args: [token],
     })
