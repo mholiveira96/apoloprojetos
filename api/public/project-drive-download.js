@@ -1,19 +1,14 @@
-import { head } from '@vercel/blob'
 import { ensureSchema, getDb } from '../_lib/db.js'
 import { json, methodNotAllowed } from '../_lib/http.js'
 
-function getBlobToken() {
-  const token = process.env.BLOB_READ_WRITE_TOKEN
-  if (!token) throw new Error('Missing BLOB_READ_WRITE_TOKEN')
-  return token
-}
-
-function getBlobStoreId() {
-  return process.env.BLOB_STORE_ID || undefined
-}
-
 function normalizeText(value) {
   return String(value ?? '').trim()
+}
+
+function buildAttachmentDisposition(filename) {
+  const safeFilename = normalizeText(filename) || 'arquivo'
+  const asciiFallback = safeFilename.replace(/[^\x20-\x7E]/g, '_').replace(/"/g, '') || 'arquivo'
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(safeFilename)}`
 }
 
 export default async function handler(req, res) {
@@ -28,7 +23,6 @@ export default async function handler(req, res) {
     await ensureSchema()
     const db = getDb()
 
-    // Verify the drive token matches the project and drive is enabled
     const result = await db.execute({
       sql: `SELECT pdf.blob_url, pdf.filename, pdf.content_type
             FROM project_drive_files pdf
@@ -41,29 +35,24 @@ export default async function handler(req, res) {
     if (!fileRow) return json(res, 404, { error: 'Arquivo não encontrado ou drive inativo' })
 
     const blobUrl = String(fileRow.blob_url || '')
+    const filename = normalizeText(fileRow.filename) || 'arquivo'
+    if (!blobUrl) return json(res, 404, { error: 'URL do arquivo não encontrada' })
 
-    try {
-      const headResult = await head(blobUrl, {
-        token: getBlobToken(),
-        storeId: getBlobStoreId(),
-      })
-
-      if (headResult.downloadUrl) {
-        res.writeHead(302, { Location: headResult.downloadUrl })
-        res.end()
-        return
-      }
-    } catch {
-      // Blob might be public
+    const upstream = await fetch(blobUrl)
+    if (!upstream.ok) {
+      return json(res, 502, { error: 'Falha ao buscar arquivo para download' })
     }
 
-    if (blobUrl) {
-      res.writeHead(302, { Location: blobUrl })
-      res.end()
-      return
-    }
+    const buffer = Buffer.from(await upstream.arrayBuffer())
+    const contentType = normalizeText(fileRow.content_type) || upstream.headers.get('content-type') || 'application/octet-stream'
+    const contentLength = upstream.headers.get('content-length')
 
-    return json(res, 404, { error: 'URL do arquivo não encontrada' })
+    res.statusCode = 200
+    res.setHeader('Content-Type', contentType)
+    res.setHeader('Content-Disposition', buildAttachmentDisposition(filename))
+    res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate')
+    if (contentLength) res.setHeader('Content-Length', contentLength)
+    res.end(buffer)
   } catch (error) {
     return json(res, 500, { error: error instanceof Error ? error.message : 'Falha no download' })
   }

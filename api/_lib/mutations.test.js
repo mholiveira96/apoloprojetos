@@ -193,6 +193,7 @@ test('setProjectDriveEnabled enables drive and creates a token when missing', as
   const data = await getBootstrapData()
   assert.equal(data.projects[0].drive_enabled, true)
   assert.ok(data.projects[0].drive_token)
+  assert.match(String(data.projects[0].drive_token), /^[A-Za-z0-9]{10}$/)
   assert.ok(data.projects[0].drive_updated_at)
 })
 
@@ -226,6 +227,7 @@ test('regenerateProjectDriveToken rotates token without disabling drive', async 
   const data = await getBootstrapData()
   assert.equal(data.projects[0].drive_enabled, true)
   assert.ok(data.projects[0].drive_token)
+  assert.match(String(data.projects[0].drive_token), /^[A-Za-z0-9]{10}$/)
   assert.notEqual(data.projects[0].drive_token, previousToken)
 })
 

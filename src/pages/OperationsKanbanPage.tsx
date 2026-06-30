@@ -40,6 +40,7 @@ import type { LucideIcon } from 'lucide-react'
 import type { BootstrapData, ClientTimelineItem, Lead, Project, Subproject, SubprojectComment } from '@/types/app'
 import { Panel, EmptyState } from '@/components/workspace/ui'
 import { formatCurrency, formatDate, numericValue, stageLabel, toDateInputValue } from '@/lib/formatters'
+import { buildProjectDriveUrl } from '@/lib/project-drive'
 import { projectStages, subprojectStages, partners, disciplines, LABELS, DISCIPLINE_ALIAS } from '@/lib/constants'
 import { buildClientTimeline } from '@/lib/client-timeline'
 
@@ -717,7 +718,7 @@ function ProjectDetailModal({
   }, [form, formFingerprint])
   const [commentDraft, setCommentDraft] = useState('')
   const driveUrl = project.drive_token && typeof window !== 'undefined'
-    ? `${window.location.origin}/drive/${project.drive_token}`
+    ? buildProjectDriveUrl(project, window.location.origin)
     : ''
 
   const set = (field: keyof ProjectModalForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>

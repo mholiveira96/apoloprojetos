@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import type { BootstrapData, Project, ProjectDriveFile, Subproject } from '@/types/app'
 import { EmptyState, Panel } from '@/components/workspace/ui'
 import { formatDate } from '@/lib/formatters'
+import { buildProjectDriveUrl } from '@/lib/project-drive'
 import { LABELS, DISCIPLINE_ALIAS } from '@/lib/constants'
 
 type SubmitMutation = (
@@ -288,7 +289,7 @@ export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriv
   )
 
   const publicUrl = selectedProject?.drive_token && typeof window !== 'undefined'
-    ? `${window.location.origin}/drive/${selectedProject.drive_token}`
+    ? buildProjectDriveUrl(selectedProject, window.location.origin)
     : ''
 
   const qrUrl = publicUrl

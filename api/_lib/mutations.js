@@ -20,7 +20,11 @@ function todayIsoDate() {
 }
 
 function createDriveToken() {
-  return randomBytes(24).toString('hex')
+  let token = ''
+  while (token.length < 10) {
+    token += randomBytes(8).toString('base64url').replace(/[^a-zA-Z0-9]/g, '')
+  }
+  return token.slice(0, 10)
 }
 
 function buildSubprojectPayloads(payload, contractAmount, fallbackResponsible) {
