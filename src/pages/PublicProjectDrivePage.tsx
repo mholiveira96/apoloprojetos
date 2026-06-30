@@ -170,139 +170,141 @@ export function PublicProjectDrivePage() {
         ) : !data || groupedFiles.length === 0 ? (
           <EmptyState title="Nenhum arquivo liberado" body="Quando a equipe enviar arquivos para este projeto, eles vão aparecer aqui." />
         ) : (
-          <section className="grid gap-5 xl:grid-cols-[1.05fr_1.35fr]">
-            <div className="space-y-4">
-              {groupedFiles.map((group, groupIndex) => (
-                <section
-                  key={group.key}
-                  className="overflow-hidden rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-92)] shadow-[var(--motion-shadow-hover)]"
-                >
-                  <div className="border-b border-[var(--line)] px-5 py-4">
-                    <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-soft)]/80">
-                      <span
-                        className={`h-2.5 w-2.5 rounded-full ${groupIndex % 3 === 0 ? 'bg-[var(--teal)]' : groupIndex % 3 === 1 ? 'bg-[var(--indigo-text)]' : 'bg-[var(--amber-text)]'}`}
-                      />
-                      {group.label}
-                    </div>
-                  </div>
+          <section className="overflow-hidden rounded-[30px] border border-[var(--line)] bg-[var(--bg-card-92)] shadow-[var(--motion-shadow-hover)]">
+            <div className="grid gap-0 xl:grid-cols-[320px_minmax(0,1fr)]">
+              <aside className="border-b border-[var(--line)] bg-[var(--bg-card-85)] xl:border-b-0 xl:border-r">
+                <div className="border-b border-[var(--line)] px-5 py-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Arquivos do projeto</div>
+                  <div className="mt-1 text-sm text-[var(--ink-soft)]">Selecione um arquivo para visualizar com mais espaço.</div>
+                </div>
 
-                  <div className="space-y-3 p-4">
-                    {group.files.map((file) => {
-                      const isSelected = file.id === selectedFileId
-                      const isPdf = isPdfProjectDriveFile(file)
-                      return (
-                        <article
-                          key={file.id}
-                          className={`rounded-[24px] border px-4 py-4 transition ${isSelected
-                            ? 'border-[var(--teal-active-border)] bg-[var(--teal-wash)]'
-                            : 'border-[var(--line)] bg-[var(--bg-card-solid)] hover:border-[var(--teal-active-border)] hover:bg-[var(--bg-card-85)]'}`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
+                <div className="space-y-4 p-4 xl:max-h-[calc(100vh-16rem)] xl:overflow-y-auto">
+                  {groupedFiles.map((group, groupIndex) => (
+                    <section key={group.key} className="space-y-3">
+                      <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-soft)]/80">
+                        <span
+                          className={`h-2.5 w-2.5 rounded-full ${groupIndex % 3 === 0 ? 'bg-[var(--teal)]' : groupIndex % 3 === 1 ? 'bg-[var(--indigo-text)]' : 'bg-[var(--amber-text)]'}`}
+                        />
+                        {group.label}
+                      </div>
+
+                      <div className="space-y-2">
+                        {group.files.map((file) => {
+                          const isSelected = file.id === selectedFileId
+                          const isPdf = isPdfProjectDriveFile(file)
+                          return (
+                            <article
+                              key={file.id}
+                              className={`rounded-[22px] border px-3.5 py-3 transition ${isSelected
+                                ? 'border-[var(--teal-active-border)] bg-[var(--teal-wash)]'
+                                : 'border-[var(--line)] bg-[var(--bg-card-solid)] hover:border-[var(--teal-active-border)] hover:bg-[var(--bg-card-solid)]'}`}
+                            >
                               <button
                                 type="button"
                                 onClick={() => setSelectedFileId(file.id)}
                                 className="w-full text-left"
                               >
-                                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--ink)]">
-                                  <FileText className="h-4 w-4 shrink-0 text-[var(--teal)]" />
-                                  <span className="truncate">{file.filename}</span>
+                                <div className="flex items-start gap-2">
+                                  <FileText className="mt-0.5 h-4 w-4 shrink-0 text-[var(--teal)]" />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="truncate text-sm font-semibold text-[var(--ink)]">{file.filename}</div>
+                                    <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-[11px] text-[var(--ink-soft)]">
+                                      <span>{formatDate(file.created_at)}</span>
+                                      <span>{formatBytes(file.size_bytes)}</span>
+                                      <span>{isPdf ? 'PDF' : 'Arquivo'}</span>
+                                    </div>
+                                  </div>
                                 </div>
                               </button>
-                              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--ink-soft)]">
-                                <span>{formatDate(file.created_at)}</span>
-                                <span>{formatBytes(file.size_bytes)}</span>
-                                <span>{isPdf ? 'PDF' : 'Arquivo'}</span>
+
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedFileId(file.id)}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--bg-card-solid)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--ink)] transition hover:border-[var(--teal-active-border)] hover:text-[var(--teal)]"
+                                >
+                                  <FolderOpen className="h-3.5 w-3.5" /> {isPdf ? 'Ver' : 'Sel.'}
+                                </button>
+                                <a
+                                  href={file.blob_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--ink)] transition hover:border-[var(--teal-active-border)] hover:text-[var(--teal)]"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" /> Abrir
+                                </a>
+                                <a
+                                  href={`/api/public/project-drive-download?fileId=${encodeURIComponent(file.id)}&token=${encodeURIComponent(token)}`}
+                                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--teal)] px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:opacity-90"
+                                >
+                                  <Download className="h-3.5 w-3.5" /> Baixar
+                                </a>
                               </div>
-                            </div>
-                          </div>
+                            </article>
+                          )
+                        })}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              </aside>
 
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedFileId(file.id)}
-                              className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs font-semibold text-[var(--ink)] transition hover:border-[var(--teal-active-border)] hover:text-[var(--teal)]"
-                            >
-                              <FolderOpen className="h-3.5 w-3.5" /> {isPdf ? 'Visualizar' : 'Selecionar'}
-                            </button>
-                            <a
-                              href={file.blob_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] px-3 py-2 text-xs font-semibold text-[var(--ink)] transition hover:border-[var(--teal-active-border)] hover:text-[var(--teal)]"
-                            >
-                              <ExternalLink className="h-3.5 w-3.5" /> Abrir
-                            </a>
-                            <a
-                              href={`/api/public/project-drive-download?fileId=${encodeURIComponent(file.id)}&token=${encodeURIComponent(token)}`}
-                              className="inline-flex items-center gap-2 rounded-full bg-[var(--teal)] px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90"
-                            >
-                              <Download className="h-3.5 w-3.5" /> Download
-                            </a>
-                          </div>
-                        </article>
-                      )
-                    })}
-                  </div>
-                </section>
-              ))}
-            </div>
-
-            <section className="rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-92)] p-4 shadow-[var(--motion-shadow-hover)] sm:p-5">
-              {selectedFile ? (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3 rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-4">
-                    <div>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Prévia do arquivo</div>
-                      <h2 className="mt-1 text-lg font-semibold text-[var(--ink)]">{selectedFile.filename}</h2>
-                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--ink-soft)]">
-                        <span>{selectedFile.project_name}</span>
-                        <span>{selectedFile.subproject_discipline ? showDiscipline(selectedFile.subproject_discipline) : 'Geral'}</span>
-                        <span>{formatBytes(selectedFile.size_bytes)}</span>
+              <div className="p-4 sm:p-5 lg:p-6">
+                {selectedFile ? (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3 rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-4">
+                      <div>
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Prévia do arquivo</div>
+                        <h2 className="mt-1 text-lg font-semibold text-[var(--ink)]">{selectedFile.filename}</h2>
+                        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--ink-soft)]">
+                          <span>{selectedFile.project_name}</span>
+                          <span>{selectedFile.subproject_discipline ? showDiscipline(selectedFile.subproject_discipline) : 'Geral'}</span>
+                          <span>{formatBytes(selectedFile.size_bytes)}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <a
+                          href={selectedFile.blob_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] px-3 py-2 text-xs font-semibold text-[var(--ink)] transition hover:border-[var(--teal-active-border)] hover:text-[var(--teal)]"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" /> Abrir em nova aba
+                        </a>
+                        <a
+                          href={`/api/public/project-drive-download?fileId=${encodeURIComponent(selectedFile.id)}&token=${encodeURIComponent(token)}`}
+                          className="inline-flex items-center gap-2 rounded-full bg-[var(--teal)] px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+                        >
+                          <Download className="h-3.5 w-3.5" /> Baixar arquivo
+                        </a>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <a
-                        href={selectedFile.blob_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 rounded-full border border-[var(--line)] px-3 py-2 text-xs font-semibold text-[var(--ink)] transition hover:border-[var(--teal-active-border)] hover:text-[var(--teal)]"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" /> Abrir em nova aba
-                      </a>
-                      <a
-                        href={`/api/public/project-drive-download?fileId=${encodeURIComponent(selectedFile.id)}&token=${encodeURIComponent(token)}`}
-                        className="inline-flex items-center gap-2 rounded-full bg-[var(--teal)] px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90"
-                      >
-                        <Download className="h-3.5 w-3.5" /> Baixar arquivo
-                      </a>
-                    </div>
-                  </div>
 
-                  {isPdfProjectDriveFile(selectedFile) ? (
-                    <div className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-solid)]">
-                      <iframe
-                        title={`Prévia de ${selectedFile.filename}`}
-                        src={selectedFile.blob_url}
-                        className="h-[72vh] min-h-[560px] w-full bg-white"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex min-h-[360px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[var(--line)] bg-[var(--bg-card-solid)] px-6 py-10 text-center">
-                      <FileText className="h-10 w-10 text-[var(--teal)]" />
-                      <h3 className="mt-4 text-lg font-semibold text-[var(--ink)]">Prévia indisponível para este formato</h3>
-                      <p className="mt-2 max-w-md text-sm leading-6 text-[var(--ink-soft)]">
-                        Este arquivo não possui visualização incorporada nesta página. Use os botões acima para abrir em nova aba ou baixar o arquivo.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex min-h-[360px] items-center justify-center rounded-[24px] border border-dashed border-[var(--line)] bg-[var(--bg-card-solid)] px-6 py-10 text-center text-sm text-[var(--ink-soft)]">
-                  Selecione um arquivo para visualizar.
-                </div>
-              )}
-            </section>
+                    {isPdfProjectDriveFile(selectedFile) ? (
+                      <div className="overflow-hidden rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-solid)]">
+                        <iframe
+                          title={`Prévia de ${selectedFile.filename}`}
+                          src={selectedFile.blob_url}
+                          className="h-[78vh] min-h-[620px] w-full bg-white"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex min-h-[420px] flex-col items-center justify-center rounded-[24px] border border-dashed border-[var(--line)] bg-[var(--bg-card-solid)] px-6 py-10 text-center">
+                        <FileText className="h-10 w-10 text-[var(--teal)]" />
+                        <h3 className="mt-4 text-lg font-semibold text-[var(--ink)]">Prévia indisponível para este formato</h3>
+                        <p className="mt-2 max-w-md text-sm leading-6 text-[var(--ink-soft)]">
+                          Este arquivo não possui visualização incorporada nesta página. Use os botões acima para abrir em nova aba ou baixar o arquivo.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex min-h-[420px] items-center justify-center rounded-[24px] border border-dashed border-[var(--line)] bg-[var(--bg-card-solid)] px-6 py-10 text-center text-sm text-[var(--ink-soft)]">
+                    Selecione um arquivo para visualizar.
+                  </div>
+                )}
+              </div>
+            </div>
           </section>
         )}
       </div>
