@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ChevronDown, ChevronRight, Pencil, Search, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Pencil, Search, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import type { BootstrapData, Project, Subproject } from '@/types/app'
 import {
@@ -264,6 +264,19 @@ type ConfirmData = {
   newValueRaw: string | number
 }
 
+type DeleteModalData =
+  | {
+    entityType: 'project'
+    project: Project
+    subprojects: Subproject[]
+  }
+  | {
+    entityType: 'subproject'
+    project: Project
+    subproject: Subproject
+    subprojects: Subproject[]
+  }
+
 function ConfirmModal({
   modal,
   onConfirm,
@@ -306,9 +319,108 @@ function ConfirmModal({
   )
 }
 
+function DeleteConfirmModal({
+  modal,
+  onCancel,
+  onDeleteProject,
+  onDeleteSubproject,
+  mutating,
+}: {
+  modal: DeleteModalData
+  onCancel: () => void
+  onDeleteProject: () => void
+  onDeleteSubproject: () => void
+  mutating: boolean
+}) {
+  const project = modal.project
+  const allSubprojects = modal.subprojects
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={onCancel}>
+      <div
+        className="relative z-10 w-full max-w-md border border-[var(--line)] bg-[var(--paper)] p-6 shadow-[var(--motion-shadow-modal)] dark:bg-[#1c1c20]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]/70">Excluir</div>
+            <h2 className="mt-1 text-base font-semibold text-[var(--ink)]">{project.name}</h2>
+            {project.client_name ? <div className="mt-0.5 text-sm text-[var(--ink-soft)]">{project.client_name}</div> : null}
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-full border border-[var(--line)] p-2 text-[var(--ink-soft)] transition hover:bg-[var(--bg)] hover:text-[var(--ink)]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-5 space-y-3">
+          {modal.entityType === 'subproject' ? (
+            <button
+              type="button"
+              disabled={mutating}
+              onClick={onDeleteSubproject}
+              className="w-full border border-[var(--line)] bg-[var(--bg)] p-4 text-left transition hover:border-[var(--teal-active-border)] hover:bg-[var(--teal-active-bg)] disabled:opacity-60"
+            >
+              <div className="text-sm font-semibold text-[var(--ink)]">Excluir apenas esta disciplina</div>
+              <div className="mt-1 text-xs text-[var(--ink-soft)]">
+                Remove {LABELS[modal.subproject.discipline] || modal.subproject.discipline} deste projeto. As demais {allSubprojects.length - 1} disciplina{allSubprojects.length - 1 !== 1 ? 's' : ''} são mantidas.
+              </div>
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            disabled={mutating}
+            onClick={onDeleteProject}
+            className="w-full border border-rose-200 bg-rose-50 p-4 text-left transition hover:border-rose-400 hover:bg-rose-100 disabled:opacity-60"
+          >
+            <div className="text-sm font-semibold text-rose-700">
+              {modal.entityType === 'project' ? 'Excluir projeto' : 'Excluir o projeto inteiro'}
+            </div>
+            <div className="mt-1 text-xs text-rose-600/80">
+              {allSubprojects.length > 0
+                ? `Remove o projeto e todas as ${allSubprojects.length} disciplina${allSubprojects.length !== 1 ? 's' : ''}.`
+                : 'Remove o projeto por completo.'}
+            </div>
+            {allSubprojects.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {allSubprojects.map((subproject) => (
+                  <span
+                    key={subproject.id}
+                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
+                      modal.entityType === 'subproject' && subproject.id === modal.subproject.id
+                        ? 'border-rose-300 bg-rose-100 text-rose-700 line-through'
+                        : 'border-rose-200 bg-[var(--paper)] text-rose-600'
+                    }`}
+                  >
+                    {LABELS[subproject.discipline] || subproject.discipline}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </button>
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="border border-[var(--line)] px-4 py-2 text-sm text-[var(--ink)] transition hover:bg-[var(--bg)]"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ─── Main component ─────────────────────────────────────────── */
 
-export default function DatabasePage({ data, submitMutation }: Props) {
+export default function DatabasePage({ data, submitMutation, mutating }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<{ id: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -318,13 +430,15 @@ export default function DatabasePage({ data, submitMutation }: Props) {
   const [ownerFilter, setOwnerFilter] = useState<string>('all')
   const [deadlineFilter, setDeadlineFilter] = useState<'all' | 'with-deadline' | 'overdue'>('all')
   const [confirmModal, setConfirmModal] = useState<ConfirmData | null>(null)
+  const [deleteModal, setDeleteModal] = useState<DeleteModalData | null>(null)
 
   /* ─── Expand / collapse ─────────────────────────── */
 
   const toggleExpand = useCallback((id: string) => {
     setExpanded(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }, [])
@@ -518,19 +632,33 @@ export default function DatabasePage({ data, submitMutation }: Props) {
     }
   }, [confirmModal, submitMutation])
 
+  const handleDeleteProject = useCallback(async () => {
+    if (!deleteModal) return
+
+    setDeleteModal(null)
+    try {
+      await submitMutation('deleteProject', { projectId: deleteModal.project.id })
+    } catch {
+      toast.error('Erro ao excluir projeto.')
+    }
+  }, [deleteModal, submitMutation])
+
+  const handleDeleteSubproject = useCallback(async () => {
+    if (!deleteModal || deleteModal.entityType !== 'subproject') return
+
+    setDeleteModal(null)
+    try {
+      await submitMutation('deleteSubproject', { id: deleteModal.subproject.id })
+    } catch {
+      toast.error('Erro ao excluir disciplina.')
+    }
+  }, [deleteModal, submitMutation])
+
   const hasActiveFilters = Boolean(search.trim()) || stageFilter !== 'all' || ownerFilter !== 'all' || deadlineFilter !== 'all'
 
   /* ─── Sortable header helper ────────────────────── */
 
-  const SortableHeader = ({
-    field,
-    label,
-    className,
-  }: {
-    field: string
-    label: string
-    className?: string
-  }) => (
+  const renderSortableHeader = (field: string, label: string, className?: string) => (
     <th
       onClick={() => toggleSort(field)}
       className={`sticky top-0 px-3 py-2 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none hover:text-[var(--ink)] ${sort?.field === field ? 'text-[var(--ink)]' : 'text-[var(--ink-soft)]'} ${className || ''}`}
@@ -626,17 +754,20 @@ export default function DatabasePage({ data, submitMutation }: Props) {
       </div>
 
       <div className="overflow-x-auto border border-[var(--line)]">
-        <table className="w-full min-w-[1100px] border-collapse text-sm">
+        <table className="w-full min-w-[1160px] border-collapse text-sm leading-tight">
           <thead>
             <tr className="border-b border-[var(--line)] bg-[var(--paper)]">
-              <th className="sticky top-0 left-0 z-30 w-12 bg-[var(--paper)] px-3 py-3" />
-              <SortableHeader field="name" label="Nome" className="sticky left-12 z-30 bg-[var(--paper)] min-w-[260px]" />
-              <SortableHeader field="code" label="Código" className="sticky left-[272px] z-30 bg-[var(--paper)] min-w-[120px]" />
-              <SortableHeader field="area" label="Área" className="text-right" />
-              <SortableHeader field="stage" label="Estágio" />
-              <SortableHeader field="contract_amount" label="Contrato" className="text-right" />
-              <SortableHeader field="sales_owner" label="Responsável" />
-              <SortableHeader field="client_name" label="Cliente" />
+              <th className="sticky top-0 left-0 z-30 w-12 bg-[var(--paper)] px-3 py-2" />
+              {renderSortableHeader('name', 'Nome', 'sticky left-12 z-30 bg-[var(--paper)] min-w-[260px]')}
+              {renderSortableHeader('code', 'Código', 'sticky left-[272px] z-30 bg-[var(--paper)] min-w-[120px]')}
+              {renderSortableHeader('area', 'Área', 'text-right')}
+              {renderSortableHeader('stage', 'Estágio')}
+              {renderSortableHeader('contract_amount', 'Contrato', 'text-right')}
+              {renderSortableHeader('sales_owner', 'Responsável')}
+              {renderSortableHeader('client_name', 'Cliente')}
+              <th className="sticky top-0 z-20 bg-[var(--paper)] px-3 py-2 text-right text-xs font-medium uppercase tracking-wider text-[var(--ink-soft)]">
+                Ações
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -647,10 +778,10 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                 <Fragment key={project.id}>
                   {/* Project row */}
                   <tr className="border-b border-[var(--line)] bg-[var(--bg-card-60)] hover:bg-[var(--teal-active-bg)] transition-colors">
-                    <td className="sticky left-0 z-20 bg-[var(--bg-card-solid)] px-3 py-3 align-top">
+                    <td className="sticky left-0 z-20 bg-[var(--bg-card-solid)] px-3 py-2 align-top">
                       <button
                         onClick={() => toggleExpand(project.id)}
-                        className="inline-flex items-center gap-2 rounded border border-[var(--line)] px-2 py-1 text-[var(--ink-soft)] hover:text-[var(--ink)] transition"
+                        className="inline-flex items-center gap-1.5 rounded border border-[var(--line)] px-2 py-1 text-[11px] text-[var(--ink-soft)] hover:text-[var(--ink)] transition"
                       >
                         {isExpanded ? (
                           <ChevronDown className="h-4 w-4" />
@@ -660,14 +791,14 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         <span className="text-xs">{isExpanded ? 'Ocultar' : 'Abrir'}</span>
                       </button>
                     </td>
-                    <td className="sticky left-12 z-20 min-w-[260px] bg-[var(--bg-card-solid)] px-3 py-3 align-top">
-                      <div className="space-y-2">
+                    <td className="sticky left-12 z-20 min-w-[260px] bg-[var(--bg-card-solid)] px-3 py-2 align-top">
+                      <div className="space-y-1.5">
                         <div className="flex flex-wrap items-center gap-2 text-xs">
-                          <span className="rounded-full border border-[var(--line)] bg-[var(--paper)] px-2 py-1 font-medium text-[var(--ink-soft)]">
+                          <span className="rounded-full border border-[var(--line)] bg-[var(--paper)] px-2 py-0.5 font-medium text-[var(--ink-soft)]">
                             Projeto
                           </span>
                           <StageBadge stage={project.stage} />
-                          <span className="rounded-full border border-[var(--line)] px-2 py-1 text-[var(--ink-soft)]">
+                          <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[var(--ink-soft)]">
                             {projectMetaById[project.id]?.total ?? 0} disciplina{(projectMetaById[project.id]?.total ?? 0) !== 1 ? 's' : ''}
                           </span>
                         </div>
@@ -694,7 +825,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         </div>
                       </div>
                     </td>
-                    <td className="sticky left-[272px] z-20 bg-[var(--bg-card-solid)] px-3 py-3 align-top text-[var(--ink-soft)]">
+                    <td className="sticky left-[272px] z-20 bg-[var(--bg-card-solid)] px-3 py-2 align-top text-[var(--ink-soft)]">
                       <EditableText
                         value={editing?.id === project.id && editing?.field === 'code' ? editValue : (project.code || '')}
                         isEditing={editing?.id === project.id && editing?.field === 'code'}
@@ -705,7 +836,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         }
                       />
                     </td>
-                    <td className="px-3 py-3 text-right align-top">
+                    <td className="px-3 py-2 text-right align-top">
                       <EditableCurrency
                         value={editing?.id === project.id && editing?.field === 'area' ? Number(editValue) : project.area}
                         isEditing={editing?.id === project.id && editing?.field === 'area'}
@@ -717,7 +848,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         formatValue={formatArea}
                       />
                     </td>
-                    <td className="px-3 py-3 align-top">
+                    <td className="px-3 py-2 align-top">
                       <EditableSelect
                         value={editing?.id === project.id && editing?.field === 'stage' ? editValue : project.stage}
                         options={[...projectStages]}
@@ -729,8 +860,8 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         }
                       />
                     </td>
-                    <td className="px-3 py-3 text-right align-top">
-                      <div className="space-y-2">
+                    <td className="px-3 py-2 text-right align-top">
+                      <div className="space-y-1.5">
                         <EditableCurrency
                           value={editing?.id === project.id && editing?.field === 'contract_amount' ? Number(editValue) : project.contract_amount}
                           isEditing={editing?.id === project.id && editing?.field === 'contract_amount'}
@@ -754,7 +885,7 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-3 align-top">
+                    <td className="px-3 py-2 align-top">
                       <EditableSelect
                         value={editing?.id === project.id && editing?.field === 'sales_owner' ? editValue : (project.sales_owner || '')}
                         options={['', ...partners]}
@@ -774,8 +905,21 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         }
                       />
                     </td>
-                    <td className="px-3 py-3 align-top text-[var(--ink-soft)]">
+                    <td className="px-3 py-2 align-top text-[var(--ink-soft)]">
                       {project.client_name || '—'}
+                    </td>
+                    <td className="px-3 py-2 align-top">
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          aria-label={`Excluir projeto ${project.name}`}
+                          disabled={mutating}
+                          onClick={() => setDeleteModal({ entityType: 'project', project, subprojects: subs })}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded border border-rose-200 text-rose-600 transition hover:bg-rose-50 disabled:opacity-60"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
 
@@ -787,12 +931,12 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         className="border-b border-[var(--line)] bg-[var(--paper)] hover:bg-[var(--teal-active-bg)] transition-colors"
                       >
                         <td className="sticky left-0 z-10 bg-[var(--paper)] px-3 py-2 pl-4 align-top">
-                          <span className="inline-flex rounded-full border border-[var(--line)] px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--ink-soft)]">
+                          <span className="inline-flex rounded-full border border-[var(--line)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--ink-soft)]">
                             Disciplina
                           </span>
                         </td>
                         <td className="sticky left-12 z-10 min-w-[260px] bg-[var(--paper)] px-3 py-2 align-top" colSpan={1}>
-                          <div className="space-y-2">
+                          <div className="space-y-1.5">
                             <div className="flex flex-wrap items-center gap-2 text-xs">
                               <StageBadge stage={sp.stage} />
                               {sp.deadline && <span className="text-[var(--ink-soft)]">Prazo: {formatDate(sp.deadline)}</span>}
@@ -873,6 +1017,19 @@ export default function DatabasePage({ data, submitMutation }: Props) {
                         <td className="px-3 py-2 align-top text-[var(--ink-soft)]">
                           {project.client_name || '—'}
                         </td>
+                        <td className="px-3 py-2 align-top">
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              aria-label={`Excluir disciplina ${LABELS[sp.discipline] || sp.discipline} de ${project.name}`}
+                              disabled={mutating}
+                              onClick={() => setDeleteModal({ entityType: 'subproject', project, subproject: sp, subprojects: subs })}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded border border-rose-200 text-rose-600 transition hover:bg-rose-50 disabled:opacity-60"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                 </Fragment>
@@ -896,6 +1053,16 @@ export default function DatabasePage({ data, submitMutation }: Props) {
           modal={confirmModal}
           onConfirm={() => void handleConfirm()}
           onCancel={() => setConfirmModal(null)}
+        />
+      )}
+
+      {deleteModal && (
+        <DeleteConfirmModal
+          modal={deleteModal}
+          mutating={mutating}
+          onCancel={() => setDeleteModal(null)}
+          onDeleteProject={() => void handleDeleteProject()}
+          onDeleteSubproject={() => void handleDeleteSubproject()}
         />
       )}
     </div>
