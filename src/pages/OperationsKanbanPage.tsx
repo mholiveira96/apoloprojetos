@@ -1271,21 +1271,27 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
   const [completionDraft, setCompletionDraft] = useState<{ subprojectId: string; projectId: string } | null>(null)
   const [completionDate, setCompletionDate] = useState(new Date().toISOString().slice(0, 10))
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedResponsibles, setSelectedResponsibles] = useState<Set<string>>(new Set())
   const [hiddenStages, setHiddenStages] = useState<Set<string>>(new Set())
   const [showColumnPicker, setShowColumnPicker] = useState(false)
+  const [showResponsiblePicker, setShowResponsiblePicker] = useState(false)
   const [deleteDraft, setDeleteDraft] = useState<{ subproject: Subproject; project: Project } | null>(null)
   const columnPickerRef = useRef<HTMLDivElement>(null)
+  const responsiblePickerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!showColumnPicker) return
+    if (!showColumnPicker && !showResponsiblePicker) return
     const handler = (e: MouseEvent) => {
       if (columnPickerRef.current && !columnPickerRef.current.contains(e.target as Node)) {
         setShowColumnPicker(false)
       }
+      if (responsiblePickerRef.current && !responsiblePickerRef.current.contains(e.target as Node)) {
+        setShowResponsiblePicker(false)
+      }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [showColumnPicker])
+  }, [showColumnPicker, showResponsiblePicker])
 
   const toggleStageVisibility = (stage: string) => {
     setHiddenStages((prev) => {
@@ -1309,6 +1315,14 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
     () => data.subprojects.filter((subproject) => OPS_STAGES.includes(subproject.stage as typeof OPS_STAGES[number])),
     [data.subprojects],
   )
+  const responsibleOptions = useMemo(
+    () => Array.from(new Set(
+      opsSubprojects
+        .map((subproject) => subproject.responsible_partner || projectsById.get(subproject.project_id)?.sales_owner || '')
+        .filter(Boolean),
+    )).sort((a, b) => a.localeCompare(b)),
+    [opsSubprojects, projectsById],
+  )
 
   const subprojectsWithOverrides = useMemo(
     () => opsSubprojects.map((subproject) => stageOverrides[subproject.id] ? { ...subproject, stage: stageOverrides[subproject.id] } : subproject),
@@ -1330,17 +1344,28 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
 
   const filteredSubprojects = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
-    if (!q) return sortedSubprojects
     return sortedSubprojects.filter((sp) => {
       const project = projectsById.get(sp.project_id)
-      return (
+      const responsible = sp.responsible_partner || project?.sales_owner || ''
+      const matchesSearch = !q || (
         project?.name?.toLowerCase().includes(q) ||
         project?.client_name?.toLowerCase().includes(q) ||
         sp.discipline?.toLowerCase().includes(q) ||
-        sp.responsible_partner?.toLowerCase().includes(q)
+        responsible.toLowerCase().includes(q)
       )
+      const matchesResponsible = selectedResponsibles.size === 0 || selectedResponsibles.has(responsible)
+      return matchesSearch && matchesResponsible
     })
-  }, [sortedSubprojects, searchQuery, projectsById])
+  }, [sortedSubprojects, searchQuery, projectsById, selectedResponsibles])
+
+  const toggleResponsible = useCallback((responsible: string) => {
+    setSelectedResponsibles((prev) => {
+      const next = new Set(prev)
+      if (next.has(responsible)) next.delete(responsible)
+      else next.add(responsible)
+      return next
+    })
+  }, [])
 
   const kanban = useMemo(
     () => Object.fromEntries(OPS_STAGES.map((stage) => [stage, filteredSubprojects.filter((subproject) => subproject.stage === stage)])),
@@ -1616,6 +1641,56 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
                 {label} {sortKey === key ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
               </button>
             )) : null}
+            {viewMode === 'kanban' ? (
+              <div ref={responsiblePickerRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowResponsiblePicker((v) => !v)}
+                  className={`inline-flex items-center gap-2 border px-3 py-2 text-xs font-medium transition ${
+                    showResponsiblePicker || selectedResponsibles.size > 0
+                      ? 'border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] text-[var(--teal)]'
+                      : 'border-[var(--line)] bg-[var(--bg-card-80)] text-[var(--ink)] hover:bg-[var(--paper)]'
+                  }`}
+                >
+                  Responsável{selectedResponsibles.size > 0 ? ` (${selectedResponsibles.size})` : ''}
+                </button>
+                {showResponsiblePicker ? (
+                  <div className="absolute right-0 top-full z-50 mt-1 w-56 border border-[var(--line)] bg-[var(--bg-card-solid)] shadow-[var(--shadow-panel)] py-1">
+                    {responsibleOptions.length ? (
+                      <>
+                        {responsibleOptions.map((responsible) => {
+                          const selected = selectedResponsibles.has(responsible)
+                          return (
+                            <button
+                              key={responsible}
+                              type="button"
+                              onClick={() => toggleResponsible(responsible)}
+                              className="flex w-full items-center gap-3 px-3 py-2 text-xs text-[var(--ink)] hover:bg-[var(--bg-card-80)] transition"
+                            >
+                              <span className={`flex h-4 w-4 shrink-0 items-center justify-center border ${selected ? 'border-[var(--teal)] bg-[var(--teal)]' : 'border-[var(--line)]'}`}>
+                                {selected ? <X className="h-2.5 w-2.5 text-white" /> : null}
+                              </span>
+                              <span className="truncate">{responsible}</span>
+                            </button>
+                          )
+                        })}
+                        {selectedResponsibles.size > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedResponsibles(new Set())}
+                            className="mt-1 w-full border-t border-[var(--line)] px-3 py-2 text-left text-xs font-medium text-[var(--teal)] hover:bg-[var(--bg-card-80)] transition"
+                          >
+                            Limpar filtro
+                          </button>
+                        ) : null}
+                      </>
+                    ) : (
+                      <div className="px-3 py-2 text-xs text-[var(--ink-soft)]">Nenhum responsável encontrado.</div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             {viewMode === 'kanban' ? (
               <div ref={columnPickerRef} className="relative">
                 <button
