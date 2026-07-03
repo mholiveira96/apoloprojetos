@@ -28,7 +28,7 @@ export const revisionStages = ['pendente', 'em-andamento', 'bloqueado', 'conclu�
 export const logTypes = ['pending', 'received_material', 'note', 'delivery', 'revision'] as const
 export const partners: string[] = ['Matheus', 'Luís', 'Letícia']
 export const leadSources = ['indicacao', 'site', 'instagram', 'linkedin', 'repete', 'parceiro', 'outro'] as const
-export const disciplines = ['estrutural', 'arquitetonico', 'eletrico', 'hidrossanitario', 'hidraulico', 'sanitario', 'pluvial', 'incendio', 'climatizacao', 'legalizacao', 'outro'] as const
+export const disciplines = ['estrutural', 'arquitetonico', 'eletrico', 'hidrossanitario', 'hidraulico', 'sanitario', 'pluvial', 'incendio', 'gas', 'climatizacao', 'legalizacao', 'outro'] as const
 
 export const DISCIPLINE_ALIAS: Record<string, string> = {
   estrutural: 'Estrutural',
@@ -39,6 +39,7 @@ export const DISCIPLINE_ALIAS: Record<string, string> = {
   sanitario: 'Sanitário',
   pluvial: 'Pluvial',
   incendio: 'Incêndio',
+  gas: 'Gás',
   climatizacao: 'Climatização',
   legalizacao: 'Legalização',
   outro: 'Outro',
@@ -97,6 +98,7 @@ export const LABELS: Record<string, string> = {
   sanitario: 'Sanitário',
   pluvial: 'Pluvial',
   incendio: 'Combate a incêndio',
+  gas: 'Gás',
   climatizacao: 'Climatização',
   legalizacao: 'Legalização',
   // Log types
