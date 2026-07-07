@@ -23,7 +23,7 @@ import {
   X,
 } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
-import { deleteProjectDriveFile, getBootstrap, getSession, login, logout, mutate, uploadProjectDriveFile } from '@/lib/app-api'
+import { deleteProjectDriveFile, getBootstrap, getSession, login, logout, mutate, PROJECT_DRIVE_MAX_FILE_BYTES, uploadProjectDriveFile } from '@/lib/app-api'
 import type { BootstrapData, Lead, SessionUser, Subproject } from '@/types/app'
 import type { ConvertProjectForm, LeadDetailForm, ViewMode } from '@/types/forms'
 import { NAV_ITEMS, BOTTOM_NAV_ITEMS, leadStages } from '@/lib/constants'
@@ -264,29 +264,17 @@ export function ApoloWorkspace() {
   }
 
   const handleProjectDriveUpload = async (payload: { projectId: string; subprojectId?: string | null; file: File }) => {
-    if (payload.file.size > 4 * 1024 * 1024) {
-      toast.error('Arquivo muito grande. Máximo: 4 MB')
+    if (payload.file.size > PROJECT_DRIVE_MAX_FILE_BYTES) {
+      toast.error('Arquivo muito grande. Máximo: 50 MB')
       return
     }
 
     setMutating(true)
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = (event) => {
-          const dataUrl = event.target?.result as string
-          resolve(dataUrl.split(',')[1] || '')
-        }
-        reader.onerror = () => reject(new Error('Falha ao ler arquivo'))
-        reader.readAsDataURL(payload.file)
-      })
-
       const next = await uploadProjectDriveFile({
         projectId: payload.projectId,
         subprojectId: payload.subprojectId,
-        filename: payload.file.name,
-        contentType: payload.file.type || null,
-        fileData: base64,
+        file: payload.file,
       })
 
       setData(next)

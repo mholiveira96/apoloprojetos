@@ -175,7 +175,8 @@ function DrivePanel({
           </div>
 
           <div className="mt-4 rounded-2xl border border-dashed border-[var(--line)] bg-[var(--bg-card-70)] px-4 py-3 text-xs text-[var(--ink-soft)]">
-            {publicUrl || 'Ative o drive para gerar o link público do projeto.'}
+            <div>{publicUrl || 'Ative o drive para gerar o link público do projeto.'}</div>
+            {selectedProject.drive_enabled ? <div className="mt-2">Uploads de até 50 MB por arquivo.</div> : null}
           </div>
         </div>
 

@@ -2,7 +2,7 @@ import { requireSession } from '../_lib/auth.js'
 import { ensureSchema, getDb, createId, nowIso } from '../_lib/db.js'
 import { getBootstrapData } from '../_lib/app-data.js'
 import { json, methodNotAllowed, readJsonBody } from '../_lib/http.js'
-import { uploadProjectDriveBlob } from '../_lib/project-drive.js'
+const PROJECT_DRIVE_MAX_FILE_BYTES = 50 * 1024 * 1024
 
 function normalizeText(value) {
   return String(value ?? '').trim()
@@ -20,14 +20,16 @@ export default async function handler(req, res) {
     const subprojectId = normalizeText(body.subprojectId) || null
     const filename = normalizeText(body.filename)
     const contentType = normalizeText(body.contentType) || null
-    const fileData = normalizeText(body.fileData)
+    const blobUrl = normalizeText(body.blobUrl)
+    const blobPathname = normalizeText(body.blobPathname)
+    const sizeBytes = Number(body.sizeBytes)
 
     if (!projectId) return json(res, 400, { error: 'projectId é obrigatório' })
     if (!filename) return json(res, 400, { error: 'filename é obrigatório' })
-    if (!fileData) return json(res, 400, { error: 'fileData é obrigatório' })
-
-    const buffer = Buffer.from(fileData, 'base64')
-    if (!buffer.length) return json(res, 400, { error: 'Arquivo inválido' })
+    if (!blobUrl) return json(res, 400, { error: 'blobUrl é obrigatório' })
+    if (!blobPathname) return json(res, 400, { error: 'blobPathname é obrigatório' })
+    if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) return json(res, 400, { error: 'sizeBytes inválido' })
+    if (sizeBytes > PROJECT_DRIVE_MAX_FILE_BYTES) return json(res, 400, { error: 'Arquivo muito grande. Máximo: 50 MB' })
 
     await ensureSchema()
     const db = getDb()
@@ -47,26 +49,31 @@ export default async function handler(req, res) {
       if (!subprojectResult.rows[0]) return json(res, 404, { error: 'Subprojeto não encontrado' })
     }
 
-    const blob = await uploadProjectDriveBlob({ projectId, subprojectId, filename, contentType, buffer })
-    const createdAt = nowIso()
-
-    await db.execute({
-      sql: `INSERT INTO project_drive_files (
-        id, project_id, subproject_id, filename, blob_url, blob_pathname, content_type, size_bytes, uploaded_by, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      args: [
-        createId('pdf'),
-        projectId,
-        subprojectId,
-        filename,
-        blob.url,
-        blob.pathname,
-        blob.contentType || contentType,
-        buffer.length,
-        user.email,
-        createdAt,
-      ],
+    const existingFileResult = await db.execute({
+      sql: 'SELECT id FROM project_drive_files WHERE blob_pathname = ? LIMIT 1',
+      args: [blobPathname],
     })
+
+    if (!existingFileResult.rows[0]) {
+      const createdAt = nowIso()
+      await db.execute({
+        sql: `INSERT INTO project_drive_files (
+          id, project_id, subproject_id, filename, blob_url, blob_pathname, content_type, size_bytes, uploaded_by, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          createId('pdf'),
+          projectId,
+          subprojectId,
+          filename,
+          blobUrl,
+          blobPathname,
+          contentType,
+          sizeBytes,
+          user.email,
+          createdAt,
+        ],
+      })
+    }
 
     const data = await getBootstrapData()
     return json(res, 200, { user, ...data })
