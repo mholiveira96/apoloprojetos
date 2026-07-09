@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
-import { AlertCircle, Archive, ArchiveRestore, ArrowDownToLine, CircleDollarSign, HandCoins, TrendingUp, Wallet, X } from 'lucide-react'
+import { AlertCircle, Archive, ArchiveRestore, ArrowDownToLine, CircleDollarSign, HandCoins, Pencil, TrendingUp, Wallet, X } from 'lucide-react'
 import type { BootstrapData, Expense, Payout, Project, Receipt } from '@/types/app'
 import { partners } from '@/lib/constants'
 import { formatCurrency, formatDate, numericValue, stageLabel } from '@/lib/formatters'
 import { EmptyState, MetricCard, Panel } from '@/components/workspace/ui'
+import { ProjectEditModal } from '@/components/workspace/project-edit-modal'
 
 type SubmitMutation = (
   action: string,
@@ -202,6 +203,7 @@ function ProjectHistoryModal({
 
 export function FinancialPage({ data, submitMutation, mutating }: Props) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
   const [projectSort, setProjectSort] = useState<{ direction: 'asc' | 'desc'; key: ProjectSortKey }>({
     direction: 'asc',
@@ -278,6 +280,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
   const partnerPending = totalPartnerOwed - totalPartnerPaid
 
   const selectedProject = selectedProjectId ? data.projects.find((project) => project.id === selectedProjectId) ?? null : null
+  const editingProject = editingProjectId ? data.projects.find((project) => project.id === editingProjectId) ?? null : null
   const selectedReceipts = selectedProjectId ? data.receipts.filter((receipt) => receipt.project_id === selectedProjectId) : []
   const selectedExpenses = selectedProjectId ? data.expenses.filter((expense) => expense.project_id === selectedProjectId) : []
   const selectedPayouts = selectedProjectId ? data.payouts.filter((payout) => payout.project_id === selectedProjectId) : []
@@ -366,8 +369,41 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
     return projectSort.direction === 'asc' ? '↑' : '↓'
   }
 
+  const handleEditProject = (project: Project) => {
+    setEditingProjectId(project.id)
+  }
+
+  const handleSaveProject = (project: Project, form: {
+    name: string
+    code: string
+    area: string
+    discipline: string
+    stage: string
+    contractAmount: string
+    salesOwner: string
+    statusNote: string
+    notes: string
+  }) => {
+    void submitMutation(
+      'updateProject',
+      {
+        id: project.id,
+        ...form,
+      },
+      () => setEditingProjectId(null),
+      'Projeto atualizado',
+    )
+  }
+
   return (
     <>
+      <ProjectEditModal
+        project={editingProject}
+        mutating={mutating}
+        onClose={() => setEditingProjectId(null)}
+        onSave={(form) => editingProject ? handleSaveProject(editingProject, form) : undefined}
+      />
+
       <ProjectHistoryModal
         project={selectedProject}
         receipts={selectedReceipts}
@@ -453,7 +489,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
                   return (
                     <tr
                       key={project.id}
-                      className={`workspace-row cursor-pointer hover:bg-[var(--paper)] ${project.archived ? 'opacity-70' : ''}`}
+                      className={`group workspace-row cursor-pointer hover:bg-[var(--paper)] ${project.archived ? 'opacity-70' : ''}`}
                       onClick={() => setSelectedProjectId(project.id)}
                     >
                       <td className="py-3 pr-4">
@@ -465,7 +501,21 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
                             </span>
                           ) : null}
                         </div>
-                        <div className="text-xs text-[var(--ink-soft)]">{project.client_name ?? '—'}</div>
+                        <div className="mt-1 flex items-center gap-2 text-xs text-[var(--ink-soft)]">
+                          <span>{project.client_name ?? '—'}</span>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              handleEditProject(project)
+                            }}
+                            className="inline-flex h-6 w-6 items-center justify-center rounded border border-transparent text-[var(--ink-soft)] opacity-100 transition hover:border-[var(--line)] hover:bg-[var(--paper)] hover:text-[var(--ink)] md:opacity-0 md:group-hover:opacity-100"
+                            aria-label={`Editar ${project.name}`}
+                            title="Editar projeto"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </td>
                       <td className="py-3 pr-4 text-[var(--ink-soft)]">{stage}</td>
                       <td className="py-3 pr-4 text-right text-[var(--ink)]">{formatCurrency(contract)}</td>
