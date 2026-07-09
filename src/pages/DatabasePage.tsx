@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ChevronDown, ChevronRight, Pencil, Search, Trash2, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import type { BootstrapData, Project, Subproject } from '@/types/app'
 import {
@@ -28,6 +28,28 @@ type Props = {
     successMsg?: string,
   ) => Promise<void>
   mutating: boolean
+}
+
+type NewSubprojectForm = {
+  discipline: string
+  amount: string
+  responsiblePartner: string
+  deadline: string
+  observacao: string
+  areaMode: 'inherit' | 'custom' | 'na'
+  area: string
+}
+
+function createNewSubprojectForm(project?: Project): NewSubprojectForm {
+  return {
+    discipline: '',
+    amount: '',
+    responsiblePartner: project?.sales_owner || '',
+    deadline: '',
+    observacao: '',
+    areaMode: 'inherit',
+    area: '',
+  }
 }
 
 function FieldDisplay({
@@ -431,6 +453,8 @@ export default function DatabasePage({ data, submitMutation, mutating }: Props) 
   const [deadlineFilter, setDeadlineFilter] = useState<'all' | 'with-deadline' | 'overdue'>('all')
   const [confirmModal, setConfirmModal] = useState<ConfirmData | null>(null)
   const [deleteModal, setDeleteModal] = useState<DeleteModalData | null>(null)
+  const [creatingSubprojectFor, setCreatingSubprojectFor] = useState<string | null>(null)
+  const [newSubprojectForm, setNewSubprojectForm] = useState<NewSubprojectForm>(createNewSubprojectForm())
 
   /* ─── Expand / collapse ─────────────────────────── */
 
@@ -653,6 +677,45 @@ export default function DatabasePage({ data, submitMutation, mutating }: Props) 
       toast.error('Erro ao excluir disciplina.')
     }
   }, [deleteModal, submitMutation])
+
+  const openCreateSubproject = useCallback((project: Project) => {
+    setCreatingSubprojectFor(project.id)
+    setNewSubprojectForm(createNewSubprojectForm(project))
+  }, [])
+
+  const closeCreateSubproject = useCallback(() => {
+    setCreatingSubprojectFor(null)
+    setNewSubprojectForm(createNewSubprojectForm())
+  }, [])
+
+  const handleCreateSubproject = useCallback(async (project: Project) => {
+    if (!newSubprojectForm.discipline) {
+      toast.error('Selecione a disciplina.')
+      return
+    }
+
+    try {
+      await submitMutation(
+        'createSubproject',
+        {
+          projectId: project.id,
+          discipline: newSubprojectForm.discipline,
+          amount: newSubprojectForm.amount,
+          responsiblePartner: newSubprojectForm.responsiblePartner,
+          deadline: newSubprojectForm.deadline || null,
+          observacao: newSubprojectForm.observacao,
+          area: newSubprojectForm.areaMode === 'na' ? -1 : (newSubprojectForm.areaMode === 'custom' ? (newSubprojectForm.area || null) : null),
+        },
+        () => {
+          setCreatingSubprojectFor(null)
+          setNewSubprojectForm(createNewSubprojectForm(project))
+        },
+        'Disciplina adicionada',
+      )
+    } catch {
+      toast.error('Erro ao adicionar disciplina.')
+    }
+  }, [newSubprojectForm, submitMutation])
 
   const hasActiveFilters = Boolean(search.trim()) || stageFilter !== 'all' || ownerFilter !== 'all' || deadlineFilter !== 'all'
 
@@ -910,18 +973,162 @@ export default function DatabasePage({ data, submitMutation, mutating }: Props) 
                     </td>
                     <td className="px-3 py-2 align-top">
                       <div className="flex justify-end">
-                        <button
-                          type="button"
-                          aria-label={`Excluir projeto ${project.name}`}
-                          disabled={mutating}
-                          onClick={() => setDeleteModal({ entityType: 'project', project, subprojects: subs })}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded border border-rose-200 text-rose-600 transition hover:bg-rose-50 disabled:opacity-60"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            aria-label={`Adicionar disciplina em ${project.name}`}
+                            disabled={mutating}
+                            onClick={() => {
+                              if (!expanded.has(project.id)) toggleExpand(project.id)
+                              openCreateSubproject(project)
+                            }}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded border border-[var(--line)] text-[var(--ink)] transition hover:bg-[var(--paper)] disabled:opacity-60"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Excluir projeto ${project.name}`}
+                            disabled={mutating}
+                            onClick={() => setDeleteModal({ entityType: 'project', project, subprojects: subs })}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded border border-rose-200 text-rose-600 transition hover:bg-rose-50 disabled:opacity-60"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
+
+                  {isExpanded && creatingSubprojectFor === project.id && (
+                    <tr className="border-b border-[var(--line)] bg-[var(--bg)]">
+                      <td className="sticky left-0 z-10 bg-[var(--bg)] px-3 py-3 align-top" />
+                      <td className="sticky left-12 z-10 bg-[var(--bg)] px-3 py-3 align-top" colSpan={8}>
+                        <div className="rounded border border-[var(--line)] bg-[var(--bg-card-solid)] p-3 shadow-sm">
+                          <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Novo subprojeto</div>
+                                <div className="mt-1 text-sm font-medium text-[var(--ink)]">Adicionar disciplina em {project.name}</div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={closeCreateSubproject}
+                                className="inline-flex items-center gap-1 self-start rounded border border-[var(--line)] px-2.5 py-1.5 text-xs text-[var(--ink-soft)] transition hover:text-[var(--ink)]"
+                              >
+                                <X className="h-3.5 w-3.5" /> Cancelar
+                              </button>
+                            </div>
+
+                            <div className="grid gap-2 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                              <select
+                                className="min-w-0 rounded border border-[var(--line)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--teal)]"
+                                value={newSubprojectForm.discipline}
+                                onChange={e => setNewSubprojectForm(current => ({ ...current, discipline: e.target.value }))}
+                              >
+                                <option value="">Disciplina</option>
+                                {disciplines.map(discipline => (
+                                  <option key={discipline} value={discipline}>
+                                    {LABELS[discipline] || discipline}
+                                  </option>
+                                ))}
+                              </select>
+
+                              <select
+                                className="min-w-0 rounded border border-[var(--line)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--teal)]"
+                                value={newSubprojectForm.responsiblePartner}
+                                onChange={e => setNewSubprojectForm(current => ({ ...current, responsiblePartner: e.target.value }))}
+                              >
+                                <option value="">Parceiro responsável</option>
+                                {partners.map(partner => (
+                                  <option key={partner} value={partner}>
+                                    {partner}
+                                  </option>
+                                ))}
+                              </select>
+
+                              <input
+                                className="min-w-0 rounded border border-[var(--line)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--teal)]"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="Valor"
+                                value={newSubprojectForm.amount}
+                                onChange={e => setNewSubprojectForm(current => ({ ...current, amount: e.target.value }))}
+                              />
+
+                              <input
+                                className="min-w-0 rounded border border-[var(--line)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--teal)]"
+                                type="date"
+                                value={newSubprojectForm.deadline}
+                                onChange={e => setNewSubprojectForm(current => ({ ...current, deadline: e.target.value }))}
+                              />
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--ink)]">
+                              <span className="text-[var(--ink-soft)]">Área:</span>
+                              <label className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="radio"
+                                  name="databaseNewSubprojectAreaMode"
+                                  checked={newSubprojectForm.areaMode === 'inherit'}
+                                  onChange={() => setNewSubprojectForm(current => ({ ...current, areaMode: 'inherit', area: '' }))}
+                                />
+                                Herdar do projeto ({formatArea(project.area)})
+                              </label>
+                              <label className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="radio"
+                                  name="databaseNewSubprojectAreaMode"
+                                  checked={newSubprojectForm.areaMode === 'custom'}
+                                  onChange={() => setNewSubprojectForm(current => ({ ...current, areaMode: 'custom' }))}
+                                />
+                                Área própria
+                              </label>
+                              <label className="inline-flex items-center gap-1.5">
+                                <input
+                                  type="radio"
+                                  name="databaseNewSubprojectAreaMode"
+                                  checked={newSubprojectForm.areaMode === 'na'}
+                                  onChange={() => setNewSubprojectForm(current => ({ ...current, areaMode: 'na', area: '' }))}
+                                />
+                                N/A
+                              </label>
+                              {newSubprojectForm.areaMode === 'custom' ? (
+                                <input
+                                  className="min-w-0 rounded border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--teal)]"
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  placeholder="Área em m²"
+                                  value={newSubprojectForm.area}
+                                  onChange={e => setNewSubprojectForm(current => ({ ...current, area: e.target.value }))}
+                                />
+                              ) : null}
+                            </div>
+
+                            <input
+                              className="min-w-0 rounded border border-[var(--line)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--teal)]"
+                              placeholder="Observação do subprojeto"
+                              value={newSubprojectForm.observacao}
+                              onChange={e => setNewSubprojectForm(current => ({ ...current, observacao: e.target.value }))}
+                            />
+
+                            <div className="flex justify-end">
+                              <button
+                                type="button"
+                                disabled={mutating || !newSubprojectForm.discipline}
+                                onClick={() => void handleCreateSubproject(project)}
+                                className="inline-flex items-center gap-2 rounded bg-[var(--ink)] px-4 py-2 text-sm text-white transition hover:opacity-90 disabled:opacity-60"
+                              >
+                                <Plus className="h-3.5 w-3.5" /> Salvar disciplina
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
 
                   {/* Subproject rows */}
                   {isExpanded &&

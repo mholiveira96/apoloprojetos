@@ -1056,17 +1056,17 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
             </div>
             <div className="space-y-2">
               {form.subprojects.map((sp, idx) => (
-                <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 border border-[var(--line)] bg-[var(--paper)] p-3">
-                  <select className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" value={sp.discipline} onChange={setSp(idx, 'discipline')}>
+                <div key={idx} className="grid grid-cols-1 gap-2 border border-[var(--line)] bg-[var(--paper)] p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+                  <select className="min-w-0 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" value={sp.discipline} onChange={setSp(idx, 'discipline')}>
                     <option value="">Disciplina</option>
                     {disciplines.map((d) => <option key={d} value={d}>{LABELS[d]}</option>)}
                   </select>
-                  <select className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" value={sp.responsiblePartner} onChange={setSp(idx, 'responsiblePartner')}>
+                  <select className="min-w-0 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" value={sp.responsiblePartner} onChange={setSp(idx, 'responsiblePartner')}>
                     <option value="">Responsável</option>
                     {partners.map((p) => <option key={p} value={p}>{p}</option>)}
                   </select>
-                  <input className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" type="number" placeholder="Valor" value={sp.amount} onChange={setSp(idx, 'amount')} />
-                  <input className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" type="date" placeholder="Prazo" value={sp.deadline} onChange={setSp(idx, 'deadline')} />
+                  <input className="min-w-0 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" type="number" placeholder="Valor" value={sp.amount} onChange={setSp(idx, 'amount')} />
+                  <input className="min-w-0 w-full rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs" type="date" placeholder="Prazo" value={sp.deadline} onChange={setSp(idx, 'deadline')} />
                   {form.subprojects.length > 1 ? (
                     <button
                       type="button"
