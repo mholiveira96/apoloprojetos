@@ -63,6 +63,7 @@ type PayoutFormState = {
   bankAccount: string
   entryDate: string
   note: string
+  splitEnabled: boolean
   shares: [PayoutShareForm, PayoutShareForm]
 }
 
@@ -74,6 +75,7 @@ const createDefaultPayoutForm = (): PayoutFormState => ({
   bankAccount: '',
   entryDate: today(),
   note: '',
+  splitEnabled: false,
   shares: [
     { partnerName: partners[0], percentage: '' },
     { partnerName: defaultSecondaryPartner(), percentage: '' },
@@ -224,7 +226,7 @@ function TransactionDetailModal({
     { label: 'Conta', value: details.account },
     { label: 'Data', value: details.date },
     { label: 'Contraparte', value: details.counterpart },
-    { label: 'Observacao', value: details.note },
+    { label: 'Observação', value: details.note },
   ].filter((row) => row.value)
 
   return (
@@ -536,6 +538,16 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
     }))
   }
 
+  const togglePayoutSplit = (enabled: boolean) => {
+    setPayoutForm((current) => ({
+      ...current,
+      splitEnabled: enabled,
+      shares: enabled
+        ? current.shares
+        : [current.shares[0], { ...current.shares[1], percentage: '' }],
+    }))
+  }
+
   const toggleCollapsedDay = (day: string) => {
     setCollapsedDays((current) => (
       current.includes(day)
@@ -687,14 +699,14 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
 
       <div className="grid gap-4 md:grid-cols-4">
         <MetricCard label="Entradas" value={formatCurrency(metrics.receipts)} helper={`${startDate} -> ${endDate}`} icon={ArrowDownCircle} />
-        <MetricCard label="Despesas" value={formatCurrency(metrics.expenses)} helper="Saidas operacionais no periodo" icon={ArrowUpCircle} />
-        <MetricCard label="Repasses" value={formatCurrency(metrics.payouts)} helper="Repasses aos socios no periodo" icon={HandCoins} />
-        <MetricCard label="Saldo global" value={formatCurrency(globalBalance)} helper="Acumulado desde o inicio; filtros so afetam a lista" icon={Landmark} />
+        <MetricCard label="Despesas" value={formatCurrency(metrics.expenses)} helper="Saídas operacionais no período" icon={ArrowUpCircle} />
+        <MetricCard label="Repasses" value={formatCurrency(metrics.payouts)} helper="Repasses aos sócios no período" icon={HandCoins} />
+        <MetricCard label="Saldo global" value={formatCurrency(globalBalance)} helper="Acumulado desde o início; filtros só afetam a lista" icon={Landmark} />
       </div>
 
       <Panel
         title="Livro-caixa"
-        subtitle="Entradas, despesas e repasses no periodo selecionado."
+        subtitle="Entradas, despesas e repasses no período selecionado."
         actions={(
           <div className="flex flex-wrap items-center gap-2">
             <input type="date" className="rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-xs text-[var(--ink)]" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
@@ -720,7 +732,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-soft)]" />
           <input
             className="w-full rounded-xl border border-[var(--line)] bg-[var(--bg-card-solid)] py-2.5 pl-10 pr-4 text-sm text-[var(--ink)] outline-none transition-colors placeholder:text-[var(--ink-soft)] focus:border-[var(--teal)]"
-            placeholder="Buscar por projeto, cliente, disciplina, socio, fornecedor, nota ou conta..."
+            placeholder="Buscar por projeto, cliente, disciplina, sócio, fornecedor, nota ou conta..."
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
           />
@@ -743,8 +755,8 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
             onChange={setProjectFilterId}
           />
           <PickerField
-                    options={[{ value: '', label: 'Todos os socios' }, ...partnerOptions]}
-                    placeholder="Filtrar por socio"
+                    options={[{ value: '', label: 'Todos os sócios' }, ...partnerOptions]}
+                    placeholder="Filtrar por sócio"
                     value={partnerFilter}
                     onChange={setPartnerFilter}
                   />
@@ -822,7 +834,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
             })}
           </div>
         ) : (
-          <EmptyState title="Sem movimentacao no periodo" body="Ajuste o intervalo de datas ou registre entradas e saidas." />
+          <EmptyState title="Sem movimentação no período" body="Ajuste o intervalo de datas ou registre entradas e saídas." />
         )}
       </Panel>
 
@@ -846,8 +858,8 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
               />
               <input required type="number" min="0.01" step="0.01" className={inputClass} placeholder="Valor (R$)" value={receiptForm.amount} onChange={(event) => setReceiptForm((current) => ({ ...current, amount: event.target.value }))} />
               <input required type="date" className={inputClass} value={receiptForm.entryDate} onChange={(event) => setReceiptForm((current) => ({ ...current, entryDate: event.target.value }))} />
-              <input className={inputClass} placeholder="Conta bancaria (opcional)" value={receiptForm.bankAccount} onChange={(event) => setReceiptForm((current) => ({ ...current, bankAccount: event.target.value }))} />
-              <textarea className={`${inputClass} min-h-20`} placeholder="Observacao (opcional)" value={receiptForm.note} onChange={(event) => setReceiptForm((current) => ({ ...current, note: event.target.value }))} />
+              <input className={inputClass} placeholder="Conta bancária (opcional)" value={receiptForm.bankAccount} onChange={(event) => setReceiptForm((current) => ({ ...current, bankAccount: event.target.value }))} />
+              <textarea className={`${inputClass} min-h-20`} placeholder="Observação (opcional)" value={receiptForm.note} onChange={(event) => setReceiptForm((current) => ({ ...current, note: event.target.value }))} />
               <button type="submit" disabled={mutating} className="bg-emerald-600 px-4 py-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
                 Salvar entrada
               </button>
@@ -894,7 +906,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                   <PickerField
                     inputClassName={pickerInputClass}
                     options={partnerOptions}
-                    placeholder="Socio"
+                    placeholder="Sócio"
                     value={editForm.vendor}
                     onChange={(vendor) => setEditForm((current) => ({ ...current, vendor }))}
                   />
@@ -903,8 +915,8 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                 )
               ) : null}
               <input required type="date" className={inputClass} value={editForm.entryDate} onChange={(event) => setEditForm((current) => ({ ...current, entryDate: event.target.value }))} />
-              <input className={inputClass} placeholder="Conta bancaria (opcional)" value={editForm.bankAccount} onChange={(event) => setEditForm((current) => ({ ...current, bankAccount: event.target.value }))} />
-              <textarea className={`${inputClass} min-h-20`} placeholder="Observacao (opcional)" value={editForm.note} onChange={(event) => setEditForm((current) => ({ ...current, note: event.target.value }))} />
+              <input className={inputClass} placeholder="Conta bancária (opcional)" value={editForm.bankAccount} onChange={(event) => setEditForm((current) => ({ ...current, bankAccount: event.target.value }))} />
+              <textarea className={`${inputClass} min-h-20`} placeholder="Observação (opcional)" value={editForm.note} onChange={(event) => setEditForm((current) => ({ ...current, note: event.target.value }))} />
               <button type="submit" disabled={mutating} className="bg-[var(--ink)] px-4 py-3 text-sm font-medium text-[var(--bg-card-solid)] hover:opacity-80 disabled:opacity-50">
                 Salvar alteracoes
               </button>
@@ -917,18 +929,18 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
         <div className="workspace-modal-backdrop fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4">
           <div className="workspace-modal-panel mx-auto my-4 w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 max-h-[calc(100vh-2rem)] overflow-y-auto">
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-[var(--ink)]">Registrar saida</h3>
+              <h3 className="text-lg font-semibold text-[var(--ink)]">Registrar saída</h3>
               <button type="button" className="rounded-full p-1 hover:bg-[var(--paper)]" onClick={() => { setShowSaida(false); resetSaida() }}>
                 <X className="h-4 w-4" />
               </button>
             </div>
             <form className="grid gap-4" onSubmit={handleSaidaSubmit}>
               <select required className={inputClass} value={saidaType} onChange={(event) => setSaidaType(event.target.value)}>
-                <option value="">Tipo de saida</option>
+                <option value="">Tipo de saída</option>
                 {expenseCategories.map((category) => (
                   <option key={category} value={category}>{stageLabel(category)}</option>
                 ))}
-                <option value={PAYOUT_KEY}>Repasse para socio</option>
+                <option value={PAYOUT_KEY}>Repasse para sócio</option>
               </select>
 
               {saidaType === PAYOUT_KEY ? (
@@ -979,6 +991,14 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                       Valor do subprojeto: <span className="font-semibold text-[var(--ink)]">{formatCurrency(numericValue(selectedSubproject.amount))}</span>
                     </div>
                   ) : null}
+                  <label className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--ink)]">
+                    <input
+                      type="checkbox"
+                      checked={payoutForm.splitEnabled}
+                      onChange={(event) => togglePayoutSplit(event.target.checked)}
+                    />
+                    Dividir repasse entre dois sócios
+                  </label>
                   <div className="grid gap-3 rounded-xl border border-[var(--line)] bg-[var(--paper)] p-4">
                     <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">Repasse 1</div>
                     <select className={inputClass} value={payoutForm.shares[0].partnerName} onChange={(event) => updatePayoutShare(0, 'partnerName', event.target.value)}>
@@ -989,19 +1009,21 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                       {payoutShareAmounts[0] != null ? <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">= {formatCurrency(payoutShareAmounts[0])}</span> : null}
                     </div>
                   </div>
-                  <div className="grid gap-3 rounded-xl border border-[var(--line)] bg-[var(--paper)] p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">Repasse 2</div>
-                      <div className="text-[11px] text-[var(--ink-soft)]">Opcional</div>
+                  {payoutForm.splitEnabled ? (
+                    <div className="grid gap-3 rounded-xl border border-[var(--line)] bg-[var(--paper)] p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">Repasse 2</div>
+                        <div className="text-[11px] text-[var(--ink-soft)]">Opcional</div>
+                      </div>
+                      <select className={inputClass} value={payoutForm.shares[1].partnerName} onChange={(event) => updatePayoutShare(1, 'partnerName', event.target.value)}>
+                        {partners.map((partner) => <option key={partner} value={partner}>{partner}</option>)}
+                      </select>
+                      <div className="flex items-center gap-3">
+                        <input type="number" min="0" max="100" step="0.01" className={inputClass} placeholder="Percentual (%)" value={payoutForm.shares[1].percentage} onChange={(event) => updatePayoutShare(1, 'percentage', event.target.value)} />
+                        {payoutShareAmounts[1] != null ? <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">= {formatCurrency(payoutShareAmounts[1])}</span> : null}
+                      </div>
                     </div>
-                    <select className={inputClass} value={payoutForm.shares[1].partnerName} onChange={(event) => updatePayoutShare(1, 'partnerName', event.target.value)}>
-                      {partners.map((partner) => <option key={partner} value={partner}>{partner}</option>)}
-                    </select>
-                    <div className="flex items-center gap-3">
-                      <input type="number" min="0" max="100" step="0.01" className={inputClass} placeholder="Percentual (%)" value={payoutForm.shares[1].percentage} onChange={(event) => updatePayoutShare(1, 'percentage', event.target.value)} />
-                      {payoutShareAmounts[1] != null ? <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">= {formatCurrency(payoutShareAmounts[1])}</span> : null}
-                    </div>
-                  </div>
+                  ) : null}
                   {selectedSubproject ? (
                     <div className={`rounded-xl border px-4 py-3 text-sm ${payoutPercentagesExceeded ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-[var(--line)] bg-[var(--paper)] text-[var(--ink-soft)]'}`}>
                       <div>Total do repasse: <span className="font-semibold text-[var(--ink)]">{formatCurrency(payoutAmountTotal)}</span></div>
@@ -1027,7 +1049,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                     <PickerField
                       inputClassName={pickerInputClass}
                       options={partnerOptions}
-                      placeholder="Socio"
+                      placeholder="Sócio"
                       value={expenseForm.vendor}
                       onChange={(vendor) => setExpenseForm((current) => ({ ...current, vendor }))}
                     />
@@ -1051,7 +1073,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                   />
                   <input
                     className={inputClass}
-                    placeholder="Conta bancaria (opcional)"
+                    placeholder="Conta bancária (opcional)"
                     value={saidaType === PAYOUT_KEY ? payoutForm.bankAccount : expenseForm.bankAccount}
                     onChange={(event) => {
                       if (saidaType === PAYOUT_KEY) setPayoutForm((current) => ({ ...current, bankAccount: event.target.value }))
@@ -1060,7 +1082,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                   />
                   <textarea
                     className={`${inputClass} min-h-20`}
-                    placeholder="Observacao (opcional)"
+                    placeholder="Observação (opcional)"
                     value={saidaType === PAYOUT_KEY ? payoutForm.note : expenseForm.note}
                     onChange={(event) => {
                       if (saidaType === PAYOUT_KEY) setPayoutForm((current) => ({ ...current, note: event.target.value }))
@@ -1068,7 +1090,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                     }}
                   />
                   <button type="submit" disabled={mutating} className="bg-rose-600 px-4 py-3 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50">
-                    Salvar saida
+                    Salvar saída
                   </button>
                 </>
               ) : null}
