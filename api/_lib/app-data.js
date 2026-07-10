@@ -6,9 +6,21 @@ function asNumber(value) {
   return 0
 }
 
+async function hasColumn(db, tableName, columnName) {
+  try {
+    await db.execute(`SELECT ${columnName} FROM ${tableName} LIMIT 0`)
+    return true
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (message.includes('no such column') || message.includes('has no column named')) return false
+    throw error
+  }
+}
+
 export async function getBootstrapData() {
   await ensureSchema()
   const db = getDb()
+  const hasSubprojectArea = await hasColumn(db, 'subprojects', 'area')
 
   const [
     leadCountResult,
@@ -285,7 +297,7 @@ export async function getBootstrapData() {
         subprojects.responsible_partner,
         subprojects.deadline,
         subprojects.observacao,
-        subprojects.area,
+        ${hasSubprojectArea ? 'subprojects.area' : 'NULL AS area'},
         subprojects.contracted_at,
         subprojects.created_at,
         subprojects.updated_at,
