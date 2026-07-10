@@ -320,6 +320,12 @@ export async function runMutation(action, payload, actor) {
     }
 
     case 'updateProject': {
+      const clientNameProvided = Object.prototype.hasOwnProperty.call(payload, 'clientName')
+      const normalizedClientName = clientNameProvided ? normalizeText(payload.clientName) : null
+      const clientId = clientNameProvided
+        ? (normalizedClientName ? await upsertClient(normalizedClientName, payload) : null)
+        : undefined
+
       await db.execute({
         sql: `UPDATE projects
               SET name = ?,
@@ -329,6 +335,7 @@ export async function runMutation(action, payload, actor) {
                   stage = ?,
                   contract_amount = ?,
                   sales_owner = ?,
+                  client_id = CASE WHEN ? = 1 THEN ? ELSE client_id END,
                   status_note = ?,
                   notes = ?,
                   updated_at = ?
@@ -341,6 +348,8 @@ export async function runMutation(action, payload, actor) {
           normalizeText(payload.stage) || 'aguardar',
           normalizeAmount(payload.contractAmount),
           normalizeText(payload.salesOwner),
+          clientNameProvided ? 1 : 0,
+          clientNameProvided ? clientId : null,
           normalizeText(payload.statusNote),
           payload.notes != null ? String(payload.notes) : null,
           timestamp,

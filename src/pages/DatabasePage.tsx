@@ -614,6 +614,7 @@ export default function DatabasePage({ data, submitMutation, mutating }: Props) 
         stage: p.stage,
         contractAmount: p.contract_amount,
         salesOwner: p.sales_owner,
+        clientName: p.client_name,
         statusNote: p.status_note,
         notes: p.notes,
       }
@@ -621,6 +622,7 @@ export default function DatabasePage({ data, submitMutation, mutating }: Props) 
       if (field === 'contract_amount') payload.contractAmount = newValueRaw
       else if (field === 'area') payload.area = newValueRaw
       else if (field === 'sales_owner') payload.salesOwner = newValueRaw
+      else if (field === 'client_name') payload.clientName = newValueRaw
       else payload[field] = newValueRaw
     } else {
       const sp = entity as Subproject
@@ -969,7 +971,15 @@ export default function DatabasePage({ data, submitMutation, mutating }: Props) 
                       />
                     </td>
                     <td className="px-3 py-2 align-top text-[var(--ink-soft)]">
-                      {project.client_name || '—'}
+                      <EditableText
+                        value={editing?.id === project.id && editing?.field === 'client_name' ? editValue : (project.client_name || '')}
+                        isEditing={editing?.id === project.id && editing?.field === 'client_name'}
+                        onStart={() => startEdit(project.id, 'client_name', project.client_name || '')}
+                        onChange={setEditValue}
+                        onCommit={() =>
+                          handleCommit(project, 'project', 'client_name', 'Cliente', project.client_name || '', editValue)
+                        }
+                      />
                     </td>
                     <td className="px-3 py-2 align-top">
                       <div className="flex justify-end">
