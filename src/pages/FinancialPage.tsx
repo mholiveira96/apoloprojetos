@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { AlertCircle, Archive, ArchiveRestore, ArrowDownToLine, CircleDollarSign, HandCoins, Pencil, TrendingUp, Wallet, X } from 'lucide-react'
-import type { BootstrapData, Expense, Payout, Project, Receipt } from '@/types/app'
+import type { BootstrapData, Expense, Payout, Project, Receipt, Subproject } from '@/types/app'
 import { partners } from '@/lib/constants'
-import { formatCurrency, formatDate, numericValue, stageLabel } from '@/lib/formatters'
+import { formatArea, formatCurrency, formatDate, numericValue, stageLabel, stageTone } from '@/lib/formatters'
 import { EmptyState, MetricCard, Panel } from '@/components/workspace/ui'
 import { ProjectEditModal } from '@/components/workspace/project-edit-modal'
 
@@ -24,12 +24,14 @@ type ProjectSortKey = 'project' | 'stage' | 'contract' | 'received' | 'outstandi
 
 function ProjectHistoryModal({
   project,
+  subprojects,
   receipts,
   expenses,
   payouts,
   onClose,
 }: {
   project: Project | null
+  subprojects: Subproject[]
   receipts: Receipt[]
   expenses: Expense[]
   payouts: Payout[]
@@ -41,6 +43,11 @@ function ProjectHistoryModal({
   const received = numericValue(project.total_received)
   const expensesTotal = numericValue(project.total_expenses)
   const outstanding = Math.max(0, contract - received)
+  const subprojectsTotal = subprojects.reduce((sum, subproject) => sum + numericValue(subproject.amount), 0)
+  const subprojectAreaTotal = subprojects.reduce((sum, subproject) => sum + numericValue(subproject.area), 0)
+  const lastSubprojectUpdate = subprojects.length
+    ? subprojects.reduce((latest, subproject) => (latest > subproject.updated_at ? latest : subproject.updated_at), subprojects[0].updated_at)
+    : null
 
   return (
     <div
@@ -94,6 +101,116 @@ function ProjectHistoryModal({
             <div className="mt-1 text-base font-semibold text-rose-600">{formatCurrency(expensesTotal)}</div>
           </div>
         </div>
+
+        <div className="mb-6 grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+          <div className="workspace-surface rounded-2xl border border-[var(--line)] bg-[var(--bg-card-80)] p-5">
+            <div className="mb-3 text-sm font-semibold text-[var(--ink)]">Resumo do projeto</div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <div className={labelClass}>Etapa</div>
+                <div className={`mt-1 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${stageTone(project.stage)}`}>
+                  {stageLabel(project.stage)}
+                </div>
+              </div>
+              <div>
+                <div className={labelClass}>Código</div>
+                <div className="mt-1 text-sm font-medium text-[var(--ink)]">{project.code || '—'}</div>
+              </div>
+              <div>
+                <div className={labelClass}>Disciplina principal</div>
+                <div className="mt-1 text-sm font-medium text-[var(--ink)]">{project.discipline ? stageLabel(project.discipline) : '—'}</div>
+              </div>
+              <div>
+                <div className={labelClass}>Área do projeto</div>
+                <div className="mt-1 text-sm font-medium text-[var(--ink)]">{project.area ? formatArea(project.area) : '—'}</div>
+              </div>
+              <div>
+                <div className={labelClass}>Responsável comercial</div>
+                <div className="mt-1 text-sm font-medium text-[var(--ink)]">{project.sales_owner || '—'}</div>
+              </div>
+              <div>
+                <div className={labelClass}>Criado em</div>
+                <div className="mt-1 text-sm font-medium text-[var(--ink)]">{formatDate(project.created_at)}</div>
+              </div>
+            </div>
+            {project.status_note || project.notes ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <div className={labelClass}>Status</div>
+                  <div className="mt-1 whitespace-pre-wrap text-sm text-[var(--ink)]">{project.status_note || '—'}</div>
+                </div>
+                <div>
+                  <div className={labelClass}>Observações</div>
+                  <div className="mt-1 whitespace-pre-wrap text-sm text-[var(--ink)]">{project.notes || '—'}</div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="workspace-surface rounded-2xl border border-[var(--line)] bg-[var(--bg-card-80)] p-5">
+            <div className="mb-3 text-sm font-semibold text-[var(--ink)]">Subprojetos</div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div>
+                <div className={labelClass}>Qtd.</div>
+                <div className="mt-1 text-sm font-semibold text-[var(--ink)]">{subprojects.length}</div>
+              </div>
+              <div>
+                <div className={labelClass}>Valor total</div>
+                <div className="mt-1 text-sm font-semibold text-[var(--ink)]">{formatCurrency(subprojectsTotal)}</div>
+              </div>
+              <div>
+                <div className={labelClass}>Área total</div>
+                <div className="mt-1 text-sm font-semibold text-[var(--ink)]">{subprojectAreaTotal > 0 ? formatArea(subprojectAreaTotal) : '—'}</div>
+              </div>
+              <div>
+                <div className={labelClass}>Atualizado em</div>
+                <div className="mt-1 text-sm font-semibold text-[var(--ink)]">{lastSubprojectUpdate ? formatDate(lastSubprojectUpdate) : '—'}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-3 text-sm font-semibold text-[var(--ink)]">
+            Disciplinas / subprojetos <span className="font-normal text-[var(--ink-soft)]">({subprojects.length})</span>
+          </div>
+          {subprojects.length ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead>
+                  <tr className="text-[var(--ink-soft)]">
+                    <th className="pb-3 pr-4 font-medium">Disciplina</th>
+                    <th className="pb-3 pr-4 font-medium">Etapa</th>
+                    <th className="pb-3 pr-4 font-medium">Sócio</th>
+                    <th className="pb-3 pr-4 font-medium">Prazo</th>
+                    <th className="pb-3 pr-4 text-right font-medium">Área</th>
+                    <th className="pb-3 text-right font-medium">Valor</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--line)]">
+                  {subprojects.map((subproject) => (
+                    <tr key={subproject.id}>
+                      <td className="py-3 pr-4 font-medium text-[var(--ink)]">{stageLabel(subproject.discipline)}</td>
+                      <td className="py-3 pr-4">
+                        <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${stageTone(subproject.stage)}`}>
+                          {stageLabel(subproject.stage)}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4 text-[var(--ink-soft)]">{subproject.responsible_partner || '—'}</td>
+                      <td className="py-3 pr-4 text-[var(--ink-soft)]">{formatDate(subproject.deadline)}</td>
+                      <td className="py-3 pr-4 text-right text-[var(--ink-soft)]">{subproject.area ? formatArea(subproject.area) : '—'}</td>
+                      <td className="py-3 text-right font-semibold text-[var(--ink)]">{formatCurrency(numericValue(subproject.amount))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--ink-soft)]">Nenhum subprojeto registrado.</p>
+          )}
+        </div>
+
+        <div className="my-5 border-t border-[var(--line)]" />
 
         <div>
           <div className="mb-3 text-sm font-semibold text-[var(--ink)]">
@@ -281,6 +398,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
 
   const selectedProject = selectedProjectId ? data.projects.find((project) => project.id === selectedProjectId) ?? null : null
   const editingProject = editingProjectId ? data.projects.find((project) => project.id === editingProjectId) ?? null : null
+  const selectedSubprojects = selectedProjectId ? subprojectsByProjectId.get(selectedProjectId) ?? [] : []
   const selectedReceipts = selectedProjectId ? data.receipts.filter((receipt) => receipt.project_id === selectedProjectId) : []
   const selectedExpenses = selectedProjectId ? data.expenses.filter((expense) => expense.project_id === selectedProjectId) : []
   const selectedPayouts = selectedProjectId ? data.payouts.filter((payout) => payout.project_id === selectedProjectId) : []
@@ -406,6 +524,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
 
       <ProjectHistoryModal
         project={selectedProject}
+        subprojects={selectedSubprojects}
         receipts={selectedReceipts}
         expenses={selectedExpenses}
         payouts={selectedPayouts}
