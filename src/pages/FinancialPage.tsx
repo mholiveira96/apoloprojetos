@@ -535,6 +535,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
   const archivedProjectRows = useMemo(() => (
     archivedProjects
       .map((project) => {
+        const contract = numericValue(project.contract_amount)
         const expenses = numericValue(project.total_expenses)
         const payouts = numericValue(project.total_payouts)
         const profit = numericValue(project.total_received) - expenses - payouts
@@ -542,6 +543,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
         return {
           project,
           archivedAt: project.latest_subproject_completed_at || project.updated_at,
+          contract,
           expenses,
           payouts,
           profit,
@@ -549,6 +551,27 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
       })
       .sort((a, b) => new Date(b.archivedAt).getTime() - new Date(a.archivedAt).getTime())
   ), [archivedProjects])
+
+  const partnerMonthlyPayouts = useMemo(() => {
+    const now = new Date()
+    const monthStarts = Array.from({ length: 6 }, (_, index) => new Date(now.getFullYear(), now.getMonth() - (5 - index), 1))
+    const monthKeys = monthStarts.map((d) => ({ key: d.toISOString().slice(0, 7), label: new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric' }).format(d) }))
+
+    const totals = new Map<string, Record<string, number>>()
+    for (const partner of partners) totals.set(partner, Object.fromEntries(monthKeys.map((m) => [m.key, 0])))
+
+    for (const payout of data.payouts) {
+      if (!trackedProjectIds.has(payout.project_id)) continue
+      const paidAt = new Date(payout.paid_at)
+      if (Number.isNaN(paidAt.getTime())) continue
+      const key = `${paidAt.getFullYear()}-${String(paidAt.getMonth() + 1).padStart(2, '0')}`
+      const partnerRow = totals.get(payout.partner_name)
+      if (!partnerRow || !(key in partnerRow)) continue
+      partnerRow[key] += numericValue(payout.amount)
+    }
+
+    return { monthKeys, rows: partners.map((partner) => ({ partner, months: totals.get(partner) ?? {} })) }
+  }, [data.payouts, trackedProjectIds])
 
   const toggleArchive = (project: Project) => {
     void submitMutation(
@@ -781,19 +804,21 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
                 <tr className="text-[var(--ink-soft)]">
                   <th className="pb-3 pr-4 font-medium">Projeto</th>
                   <th className="pb-3 pr-4 font-medium">Arquivado em</th>
+                  <th className="pb-3 pr-4 text-right font-medium">Receita total</th>
                   <th className="pb-3 pr-4 text-right font-medium">Repasses</th>
                   <th className="pb-3 pr-4 text-right font-medium">Despesas</th>
                   <th className="pb-3 text-right font-medium">Lucro</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--line)]">
-                {archivedProjectRows.map(({ archivedAt, expenses, payouts, profit, project }) => (
+                {archivedProjectRows.map(({ archivedAt, contract, expenses, payouts, profit, project }) => (
                   <tr key={project.id} className="workspace-row cursor-pointer hover:bg-[var(--paper)]" onClick={() => setSelectedProjectId(project.id)}>
                     <td className="py-3 pr-4">
                       <div className="font-medium text-[var(--ink)]">{project.name}</div>
                       <div className="mt-1 text-xs text-[var(--ink-soft)]">{project.client_name ?? '—'}</div>
                     </td>
                     <td className="py-3 pr-4 text-[var(--ink-soft)]">{formatDate(archivedAt)}</td>
+                    <td className="py-3 pr-4 text-right text-[var(--ink)]">{formatCurrency(contract)}</td>
                     <td className="py-3 pr-4 text-right text-[var(--ink)]">{formatCurrency(payouts)}</td>
                     <td className="py-3 pr-4 text-right text-rose-600">{formatCurrency(expenses)}</td>
                     <td className={`py-3 text-right font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{formatCurrency(profit)}</td>
@@ -807,34 +832,33 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
         )}
       </CollapsiblePanel>
 
-      <CollapsiblePanel title="Repasses por sócio" subtitle="Estimativa do que foi gerado vs o que foi pago por sócio." defaultCollapsed={true}>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {partners.map((partner) => {
-            const owed = partnerOwed[partner] ?? 0
-            const paid = partnerPaid[partner] ?? 0
-            const balance = Math.max(0, owed - paid)
-            return (
-              <div key={partner} className="workspace-surface workspace-card-pop rounded-[24px] [] border border-[var(--line)] bg-[var(--bg-card-80)] p-5 space-y-4">
-                <div className="font-semibold text-[var(--ink)]">{partner}</div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <div className={labelClass}>Gerado</div>
-                    <div className="mt-1 text-sm font-semibold text-[var(--ink)]">{formatCurrency(owed)}</div>
-                  </div>
-                  <div>
-                    <div className={labelClass}>Pago</div>
-                    <div className="mt-1 text-sm font-semibold text-emerald-600">{formatCurrency(paid)}</div>
-                  </div>
-                  <div>
-                    <div className={labelClass}>Pendente</div>
-                    <div className={`mt-1 text-sm font-semibold ${balance > 0.01 ? 'text-amber-600' : 'text-[var(--ink-soft)]'}`}>
-                      {formatCurrency(balance)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+      <CollapsiblePanel title="Repasses por sócio" subtitle="Valor pago por sócio nos últimos 6 meses." defaultCollapsed={true}>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead>
+              <tr className="text-[var(--ink-soft)]">
+                <th className="pb-3 pr-4 font-medium">Sócio</th>
+                {partnerMonthlyPayouts.monthKeys.map((month) => (
+                  <th key={month.key} className="pb-3 pr-4 text-right font-medium">{month.label}</th>
+                ))}
+                <th className="pb-3 text-right font-medium">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--line)]">
+              {partnerMonthlyPayouts.rows.map(({ partner, months }) => {
+                const total = Object.values(months).reduce((sum, value) => sum + value, 0)
+                return (
+                  <tr key={partner}>
+                    <td className="py-3 pr-4 font-medium text-[var(--ink)]">{partner}</td>
+                    {partnerMonthlyPayouts.monthKeys.map((month) => (
+                      <td key={month.key} className="py-3 pr-4 text-right text-rose-600">{formatCurrency(months[month.key] ?? 0)}</td>
+                    ))}
+                    <td className="py-3 text-right font-semibold text-rose-600">{formatCurrency(total)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       </CollapsiblePanel>
 
