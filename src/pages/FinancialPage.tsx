@@ -22,16 +22,8 @@ type Props = {
 const labelClass = 'text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70'
 type ProjectSortKey = 'project' | 'stage' | 'contract' | 'received' | 'outstanding' | 'expenses' | 'payouts' | 'pending'
 
-function normalizeLooseText(value: string | null | undefined) {
-  return String(value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-}
-
 function isFixedCostExpense(expense: Expense) {
-  return normalizeLooseText(expense.project_name).includes('obra escritorio')
+  return !expense.project_id
 }
 
 function CollapsiblePanel({
@@ -767,7 +759,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
 
       <CollapsiblePanel
         title="Custo fixo mensal"
-        subtitle={`Despesas da obra escritório nos últimos 6 meses. Total do período: ${formatCurrency(fixedCostTotal6Months)}.`}
+        subtitle={`Despesas sem projeto vinculado nos últimos 6 meses. Total do período: ${formatCurrency(fixedCostTotal6Months)}.`}
         defaultCollapsed={true}
       >
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -775,7 +767,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
             <div key={month.key} className="workspace-surface workspace-card-pop rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-80)] p-5">
               <div className={labelClass}>{month.label}</div>
               <div className="mt-2 text-2xl font-bold tracking-tight text-[var(--ink)]">{formatCurrency(month.total)}</div>
-              <div className="mt-2 text-sm text-[var(--ink-soft)]">Somando despesas vinculadas à obra escritório.</div>
+              <div className="mt-2 text-sm text-[var(--ink-soft)]">Despesas sem projeto vinculado.</div>
             </div>
           ))}
         </div>
