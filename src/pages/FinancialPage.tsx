@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
-import { AlertCircle, Archive, ArchiveRestore, ArrowDownToLine, CircleDollarSign, HandCoins, Pencil, TrendingUp, Wallet, X } from 'lucide-react'
+import { type ReactNode, useMemo, useState } from 'react'
+import { AlertCircle, Archive, ArchiveRestore, ArrowDownToLine, ChevronDown, ChevronUp, CircleDollarSign, HandCoins, Pencil, TrendingUp, Wallet, X } from 'lucide-react'
 import type { BootstrapData, Expense, Payout, Project, Receipt, Subproject } from '@/types/app'
 import { partners } from '@/lib/constants'
 import { formatArea, formatCurrency, formatDate, numericValue, stageLabel, stageTone } from '@/lib/formatters'
-import { EmptyState, MetricCard, Panel } from '@/components/workspace/ui'
+import { EmptyState, MetricCard } from '@/components/workspace/ui'
 import { ProjectEditModal } from '@/components/workspace/project-edit-modal'
 
 type SubmitMutation = (
@@ -21,6 +21,58 @@ type Props = {
 
 const labelClass = 'text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70'
 type ProjectSortKey = 'project' | 'stage' | 'contract' | 'received' | 'outstanding' | 'expenses' | 'payouts' | 'pending'
+
+function normalizeLooseText(value: string | null | undefined) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+function isFixedCostExpense(expense: Expense) {
+  return normalizeLooseText(expense.project_name).includes('obra escritorio')
+}
+
+function CollapsiblePanel({
+  title,
+  subtitle,
+  actions,
+  children,
+  defaultCollapsed = false,
+}: {
+  title: string
+  subtitle?: string
+  actions?: ReactNode
+  children: ReactNode
+  defaultCollapsed?: boolean
+}) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed)
+
+  return (
+    <section className="workspace-appear workspace-appear-delayed workspace-surface rounded-[28px] border border-[var(--line)] bg-[var(--bg-card-80)] p-5 sm:p-6">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-[var(--line)] pb-4">
+        <div className="flex items-start gap-3">
+          <button
+            type="button"
+            onClick={() => setCollapsed((current) => !current)}
+            className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--line)] text-[var(--ink-soft)] transition hover:bg-[var(--paper)] hover:text-[var(--ink)]"
+            aria-label={collapsed ? `Expandir ${title}` : `Recolher ${title}`}
+            title={collapsed ? 'Expandir seção' : 'Recolher seção'}
+          >
+            {collapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </button>
+          <div>
+            <h2 className="text-base font-semibold tracking-tight text-[var(--ink)]">{title}</h2>
+            {subtitle ? <p className="mt-0.5 text-sm text-[var(--ink-soft)]">{subtitle}</p> : null}
+          </div>
+        </div>
+        {actions}
+      </div>
+      {!collapsed ? children : null}
+    </section>
+  )
+}
 
 function ProjectHistoryModal({
   project,
@@ -370,18 +422,30 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
     .reduce((sum, project) => sum + Math.max(0, numericValue(project.contract_amount) - numericValue(project.total_received)), 0)
 
   const netCash = totalReceived - totalExpenses - totalPayouts
-  const officeCostsLast6Months = useMemo(() => {
-    const cutoff = new Date()
-    cutoff.setMonth(cutoff.getMonth() - 6)
-    cutoff.setHours(0, 0, 0, 0)
+  const fixedCostMonthlyRows = useMemo(() => {
+    const now = new Date()
+    const monthStarts = Array.from({ length: 6 }, (_, index) => new Date(now.getFullYear(), now.getMonth() - (5 - index), 1))
+    const totals = new Map(monthStarts.map((date) => [date.toISOString().slice(0, 7), 0]))
 
-    return data.expenses.reduce((sum, expense) => {
-      if (expense.project_id) return sum
+    for (const expense of data.expenses) {
+      if (!isFixedCostExpense(expense)) continue
       const paidAt = new Date(expense.paid_at)
-      if (Number.isNaN(paidAt.getTime()) || paidAt < cutoff) return sum
-      return sum + numericValue(expense.amount)
-    }, 0)
+      if (Number.isNaN(paidAt.getTime())) continue
+      const key = `${paidAt.getFullYear()}-${String(paidAt.getMonth() + 1).padStart(2, '0')}`
+      if (!totals.has(key)) continue
+      totals.set(key, (totals.get(key) ?? 0) + numericValue(expense.amount))
+    }
+
+    return monthStarts.map((date) => {
+      const key = date.toISOString().slice(0, 7)
+      return {
+        key,
+        label: new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric' }).format(date),
+        total: totals.get(key) ?? 0,
+      }
+    })
   }, [data.expenses])
+  const fixedCostTotal6Months = fixedCostMonthlyRows.reduce((sum, month) => sum + month.total, 0)
 
   const partnerOwed = useMemo(() => {
     const owed: Record<string, number> = {}
@@ -567,10 +631,9 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
         <MetricCard label="Net caixa" value={formatCurrency(netCash)} helper="Recebido - despesas - repasses dos projetos acompanhados" icon={Wallet} />
         <MetricCard label="Repasses pendentes" value={formatCurrency(Math.max(0, partnerPending))} helper="Estimativa baseada no split dos projetos acompanhados" icon={HandCoins} />
         <MetricCard label="Inadimplência" value={formatCurrency(deliveredUnpaid)} helper="Projetos entregues acompanhados aguardando pagamento final" icon={AlertCircle} />
-        <MetricCard label="Custos escritório (6m)" value={formatCurrency(officeCostsLast6Months)} helper="Despesas sem projeto nos últimos 6 meses" icon={Wallet} />
       </div>
 
-      <Panel
+      <CollapsiblePanel
         title="Projetos ativos"
         subtitle="Clique em um projeto para ver o histórico detalhado."
         actions={(
@@ -700,9 +763,25 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
             body={archivedProjects.length ? 'Todos os projetos desta visão estão arquivados. Ative "Mostrar arquivados" para consultá-los.' : 'Crie projetos para ver o resumo financeiro aqui.'}
           />
         )}
-      </Panel>
+      </CollapsiblePanel>
 
-      <Panel title="Projetos arquivados" subtitle="Lista ordenada pelos arquivados mais recentes (usando a última atualização do projeto).">
+      <CollapsiblePanel
+        title="Custo fixo mensal"
+        subtitle={`Despesas da obra escritório nos últimos 6 meses. Total do período: ${formatCurrency(fixedCostTotal6Months)}.`}
+        defaultCollapsed={true}
+      >
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {fixedCostMonthlyRows.map((month) => (
+            <div key={month.key} className="workspace-surface workspace-card-pop rounded-[24px] border border-[var(--line)] bg-[var(--bg-card-80)] p-5">
+              <div className={labelClass}>{month.label}</div>
+              <div className="mt-2 text-2xl font-bold tracking-tight text-[var(--ink)]">{formatCurrency(month.total)}</div>
+              <div className="mt-2 text-sm text-[var(--ink-soft)]">Somando despesas vinculadas à obra escritório.</div>
+            </div>
+          ))}
+        </div>
+      </CollapsiblePanel>
+
+      <CollapsiblePanel title="Projetos arquivados" subtitle="Lista ordenada pela data mais recente de conclusão dos subprojetos.">
         {archivedProjectRows.length ? (
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
@@ -734,9 +813,9 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
         ) : (
           <EmptyState title="Sem projetos arquivados" body="Arquive projetos concluídos para acompanhar margem e histórico aqui." />
         )}
-      </Panel>
+      </CollapsiblePanel>
 
-      <Panel title="Repasses por sócio" subtitle="Estimativa do que foi gerado vs o que foi pago por sócio.">
+      <CollapsiblePanel title="Repasses por sócio" subtitle="Estimativa do que foi gerado vs o que foi pago por sócio." defaultCollapsed={true}>
         <div className="grid gap-4 sm:grid-cols-3">
           {partners.map((partner) => {
             const owed = partnerOwed[partner] ?? 0
@@ -765,9 +844,9 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
             )
           })}
         </div>
-      </Panel>
+      </CollapsiblePanel>
 
-      <Panel title="Repasses registrados" subtitle="Histórico completo de repasses aos sócios.">
+      <CollapsiblePanel title="Repasses registrados" subtitle="Histórico completo de repasses aos sócios." defaultCollapsed={true}>
         {data.payouts.filter((payout) => visibleProjectIds.has(payout.project_id)).length ? (
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
@@ -800,7 +879,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
         ) : (
           <EmptyState title="Sem repasses registrados" body="Registre repasses na página de Fluxo de Caixa." />
         )}
-      </Panel>
+      </CollapsiblePanel>
     </>
   )
 }
