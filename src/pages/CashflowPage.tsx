@@ -63,7 +63,6 @@ type PayoutFormState = {
   bankAccount: string
   entryDate: string
   note: string
-  splitEnabled: boolean
   shares: [PayoutShareForm, PayoutShareForm]
 }
 
@@ -75,7 +74,6 @@ const createDefaultPayoutForm = (): PayoutFormState => ({
   bankAccount: '',
   entryDate: today(),
   note: '',
-  splitEnabled: false,
   shares: [
     { partnerName: partners[0], percentage: '' },
     { partnerName: defaultSecondaryPartner(), percentage: '' },
@@ -401,8 +399,8 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
     () => (payoutForm.subprojectId ? subprojectsById.get(payoutForm.subprojectId) ?? null : null),
     [payoutForm.subprojectId, subprojectsById],
   )
-  const activePayoutShares = payoutForm.splitEnabled ? payoutForm.shares : payoutForm.shares.slice(0, 1)
-  const payoutShareAmounts: Array<number | null> = activePayoutShares.map((share) => (
+  const activePayoutShares = payoutForm.shares.filter((share) => share.partnerName && (Number(share.percentage) || 0) > 0)
+  const payoutShareAmounts: Array<number | null> = payoutForm.shares.map((share) => (
     selectedSubproject && share.percentage
       ? numericValue(selectedSubproject.amount) * Number(share.percentage) / 100
       : null
@@ -535,16 +533,6 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
       shares: current.shares.map((share, shareIndex) => (
         shareIndex === index ? { ...share, [field]: value } : share
       )) as [PayoutShareForm, PayoutShareForm],
-    }))
-  }
-
-  const togglePayoutSplit = (enabled: boolean) => {
-    setPayoutForm((current) => ({
-      ...current,
-      splitEnabled: enabled,
-      shares: enabled
-        ? current.shares
-        : [current.shares[0], { ...current.shares[1], percentage: '' }],
     }))
   }
 
@@ -991,14 +979,6 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                       Valor do subprojeto: <span className="font-semibold text-[var(--ink)]">{formatCurrency(numericValue(selectedSubproject.amount))}</span>
                     </div>
                   ) : null}
-                  <label className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--ink)]">
-                    <input
-                      type="checkbox"
-                      checked={payoutForm.splitEnabled}
-                      onChange={(event) => togglePayoutSplit(event.target.checked)}
-                    />
-                    Dividir repasse entre dois sócios
-                  </label>
                   <div className="grid gap-3 rounded-xl border border-[var(--line)] bg-[var(--paper)] p-4">
                     <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">Repasse 1</div>
                     <select className={inputClass} value={payoutForm.shares[0].partnerName} onChange={(event) => updatePayoutShare(0, 'partnerName', event.target.value)}>
@@ -1009,18 +989,19 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                       {payoutShareAmounts[0] != null ? <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">= {formatCurrency(payoutShareAmounts[0])}</span> : null}
                     </div>
                   </div>
-                  {payoutForm.splitEnabled ? (
-                    <div className="grid gap-3 rounded-xl border border-[var(--line)] bg-[var(--paper)] p-4">
+                  <div className="grid gap-3 rounded-xl border border-[var(--line)] bg-[var(--paper)] p-4">
+                    <div className="flex items-center justify-between gap-3">
                       <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">Repasse 2</div>
-                      <select className={inputClass} value={payoutForm.shares[1].partnerName} onChange={(event) => updatePayoutShare(1, 'partnerName', event.target.value)}>
-                        {partners.map((partner) => <option key={partner} value={partner}>{partner}</option>)}
-                      </select>
-                      <div className="flex items-center gap-3">
-                        <input required type="number" min="0" max="100" step="0.01" className={inputClass} placeholder="Percentual (%)" value={payoutForm.shares[1].percentage} onChange={(event) => updatePayoutShare(1, 'percentage', event.target.value)} />
-                        {payoutShareAmounts[1] != null ? <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">= {formatCurrency(payoutShareAmounts[1])}</span> : null}
-                      </div>
+                      <div className="text-[11px] text-[var(--ink-soft)]">Opcional</div>
                     </div>
-                  ) : null}
+                    <select className={inputClass} value={payoutForm.shares[1].partnerName} onChange={(event) => updatePayoutShare(1, 'partnerName', event.target.value)}>
+                      {partners.map((partner) => <option key={partner} value={partner}>{partner}</option>)}
+                    </select>
+                    <div className="flex items-center gap-3">
+                      <input type="number" min="0" max="100" step="0.01" className={inputClass} placeholder="Percentual (%)" value={payoutForm.shares[1].percentage} onChange={(event) => updatePayoutShare(1, 'percentage', event.target.value)} />
+                      {payoutShareAmounts[1] != null ? <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">= {formatCurrency(payoutShareAmounts[1])}</span> : null}
+                    </div>
+                  </div>
                   {selectedSubproject ? (
                     <div className={`rounded-xl border px-4 py-3 text-sm ${payoutPercentagesExceeded ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-[var(--line)] bg-[var(--paper)] text-[var(--ink-soft)]'}`}>
                       <div>Total do repasse: <span className="font-semibold text-[var(--ink)]">{formatCurrency(payoutAmountTotal)}</span></div>
