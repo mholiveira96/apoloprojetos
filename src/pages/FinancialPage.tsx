@@ -370,6 +370,18 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
     .reduce((sum, project) => sum + Math.max(0, numericValue(project.contract_amount) - numericValue(project.total_received)), 0)
 
   const netCash = totalReceived - totalExpenses - totalPayouts
+  const officeCostsLast6Months = useMemo(() => {
+    const cutoff = new Date()
+    cutoff.setMonth(cutoff.getMonth() - 6)
+    cutoff.setHours(0, 0, 0, 0)
+
+    return data.expenses.reduce((sum, expense) => {
+      if (expense.project_id) return sum
+      const paidAt = new Date(expense.paid_at)
+      if (Number.isNaN(paidAt.getTime()) || paidAt < cutoff) return sum
+      return sum + numericValue(expense.amount)
+    }, 0)
+  }, [data.expenses])
 
   const partnerOwed = useMemo(() => {
     const owed: Record<string, number> = {}
@@ -464,6 +476,23 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
 
     return rows
   }, [projectSort, subprojectsByProjectId, visibleProjects])
+  const archivedProjectRows = useMemo(() => (
+    archivedProjects
+      .map((project) => {
+        const expenses = numericValue(project.total_expenses)
+        const payouts = numericValue(project.total_payouts)
+        const profit = numericValue(project.total_received) - expenses - payouts
+
+        return {
+          project,
+          archivedAt: project.updated_at,
+          expenses,
+          payouts,
+          profit,
+        }
+      })
+      .sort((a, b) => new Date(b.archivedAt).getTime() - new Date(a.archivedAt).getTime())
+  ), [archivedProjects])
 
   const toggleArchive = (project: Project) => {
     void submitMutation(
@@ -538,10 +567,11 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
         <MetricCard label="Net caixa" value={formatCurrency(netCash)} helper="Recebido - despesas - repasses dos projetos acompanhados" icon={Wallet} />
         <MetricCard label="Repasses pendentes" value={formatCurrency(Math.max(0, partnerPending))} helper="Estimativa baseada no split dos projetos acompanhados" icon={HandCoins} />
         <MetricCard label="Inadimplência" value={formatCurrency(deliveredUnpaid)} helper="Projetos entregues acompanhados aguardando pagamento final" icon={AlertCircle} />
+        <MetricCard label="Custos escritório (6m)" value={formatCurrency(officeCostsLast6Months)} helper="Despesas sem projeto nos últimos 6 meses" icon={Wallet} />
       </div>
 
       <Panel
-        title="Resumo por projeto"
+        title="Projetos ativos"
         subtitle="Clique em um projeto para ver o histórico detalhado."
         actions={(
           <label className="inline-flex items-center gap-2 text-sm text-[var(--ink-soft)]">
@@ -669,6 +699,40 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
             title="Sem projetos visíveis"
             body={archivedProjects.length ? 'Todos os projetos desta visão estão arquivados. Ative "Mostrar arquivados" para consultá-los.' : 'Crie projetos para ver o resumo financeiro aqui.'}
           />
+        )}
+      </Panel>
+
+      <Panel title="Projetos arquivados" subtitle="Lista ordenada pelos arquivados mais recentes (usando a última atualização do projeto).">
+        {archivedProjectRows.length ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead>
+                <tr className="text-[var(--ink-soft)]">
+                  <th className="pb-3 pr-4 font-medium">Projeto</th>
+                  <th className="pb-3 pr-4 font-medium">Arquivado em</th>
+                  <th className="pb-3 pr-4 text-right font-medium">Repasses</th>
+                  <th className="pb-3 pr-4 text-right font-medium">Despesas</th>
+                  <th className="pb-3 text-right font-medium">Lucro</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--line)]">
+                {archivedProjectRows.map(({ archivedAt, expenses, payouts, profit, project }) => (
+                  <tr key={project.id} className="workspace-row cursor-pointer hover:bg-[var(--paper)]" onClick={() => setSelectedProjectId(project.id)}>
+                    <td className="py-3 pr-4">
+                      <div className="font-medium text-[var(--ink)]">{project.name}</div>
+                      <div className="mt-1 text-xs text-[var(--ink-soft)]">{project.client_name ?? '—'}</div>
+                    </td>
+                    <td className="py-3 pr-4 text-[var(--ink-soft)]">{formatDate(archivedAt)}</td>
+                    <td className="py-3 pr-4 text-right text-[var(--ink)]">{formatCurrency(payouts)}</td>
+                    <td className="py-3 pr-4 text-right text-rose-600">{formatCurrency(expenses)}</td>
+                    <td className={`py-3 text-right font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{formatCurrency(profit)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState title="Sem projetos arquivados" body="Arquive projetos concluídos para acompanhar margem e histórico aqui." />
         )}
       </Panel>
 
