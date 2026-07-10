@@ -258,9 +258,9 @@ export async function runMutation(action, payload, actor) {
       if (Array.isArray(payload.subprojects) && payload.subprojects.length > 0) {
         for (const sp of payload.subprojects) {
           await db.execute({
-            sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, deadline, created_at, updated_at)
-                  VALUES (?, ?, ?, ?, 'a-fazer', ?, ?, ?, ?)`,
-            args: [createId('sp'), projectId, normalizeText(sp.discipline), normalizeAmount(sp.amount), normalizeText(sp.responsiblePartner), normalizeDate(sp.deadline), timestamp, timestamp],
+            sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, deadline, area, created_at, updated_at)
+                  VALUES (?, ?, ?, ?, 'a-fazer', ?, ?, ?, ?, ?)`,
+            args: [createId('sp'), projectId, normalizeText(sp.discipline), normalizeAmount(sp.amount), normalizeText(sp.responsiblePartner), normalizeDate(sp.deadline), sp.area === null || sp.area === undefined ? null : normalizeAmount(sp.area), timestamp, timestamp],
           })
         }
       }
@@ -460,8 +460,8 @@ export async function runMutation(action, payload, actor) {
       const spProjectId = normalizeText(payload.projectId)
       if (!spProjectId) throw new Error('projectId Ã© obrigatÃ³rio')
       await db.execute({
-        sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, deadline, observacao, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, deadline, observacao, area, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           createId('sp'),
           spProjectId,
@@ -471,6 +471,7 @@ export async function runMutation(action, payload, actor) {
           normalizeText(payload.responsiblePartner),
           normalizeDate(payload.deadline),
           normalizeText(payload.observacao),
+          payload.area === null || payload.area === undefined ? null : normalizeAmount(payload.area),
           timestamp,
           timestamp,
         ],
@@ -487,6 +488,7 @@ export async function runMutation(action, payload, actor) {
                   responsible_partner = ?,
                   deadline = ?,
                   observacao = ?,
+                  area = ?,
                   updated_at = ?
               WHERE id = ?`,
         args: [
@@ -495,6 +497,7 @@ export async function runMutation(action, payload, actor) {
           normalizeText(payload.responsiblePartner),
           normalizeDate(payload.deadline),
           normalizeText(payload.observacao),
+          payload.area === null || payload.area === undefined ? null : normalizeAmount(payload.area),
           timestamp,
           spId,
         ],
@@ -735,41 +738,71 @@ export async function runMutation(action, payload, actor) {
     case 'addPayout': {
       const subprojectId = normalizeText(payload.subprojectId) || null
       let projectId = normalizeText(payload.projectId) || null
-      let partnerName = normalizeText(payload.partnerName)
-      const percentage = normalizeAmount(payload.percentage) || null
-      let amount = normalizeAmount(payload.amount)
+      const rawShares = Array.isArray(payload.shares)
+        ? payload.shares
+        : [{ partnerName: payload.partnerName, percentage: payload.percentage, amount: payload.amount }]
 
+      const shares = rawShares
+        .map((share) => ({
+          partnerName: normalizeText(share?.partnerName),
+          percentage: normalizeAmount(share?.percentage),
+          amount: normalizeAmount(share?.amount),
+        }))
+        .filter((share) => share.partnerName || share.percentage || share.amount)
+
+      if (!shares.length) throw new Error('Informe pelo menos um sócio para o repasse')
+
+      const normalizedPartnerNames = new Set()
+      for (const share of shares) {
+        if (!share.partnerName) throw new Error('Cada repasse precisa ter um sócio definido')
+        if (share.percentage <= 0 && share.amount <= 0) throw new Error('Cada repasse precisa ter percentual ou valor maior que zero')
+        const normalizedName = share.partnerName.toLowerCase()
+        if (normalizedPartnerNames.has(normalizedName)) throw new Error('Não repita o mesmo sócio no mesmo repasse dividido')
+        normalizedPartnerNames.add(normalizedName)
+      }
+
+      let subprojectAmount = 0
       if (subprojectId) {
         const spResult = await db.execute({
-          sql: 'SELECT project_id, responsible_partner, amount FROM subprojects WHERE id = ?',
+          sql: 'SELECT project_id, amount FROM subprojects WHERE id = ?',
           args: [subprojectId],
         })
         const sp = spResult.rows[0]
-        if (!sp) throw new Error('Subprojeto nÃ£o encontrado')
+        if (!sp) throw new Error('Subprojeto não encontrado')
         projectId = String(sp.project_id)
-        if (!partnerName) partnerName = String(sp.responsible_partner)
-        if (percentage) amount = Number(sp.amount) * percentage / 100
+        subprojectAmount = Number(sp.amount) || 0
       }
 
-      if (!projectId) throw new Error('projectId ou subprojectId Ã© obrigatÃ³rio')
+      if (!projectId) throw new Error('projectId ou subprojectId é obrigatório')
 
-      await db.execute({
-        sql: `INSERT INTO partner_payouts (id, project_id, subproject_id, partner_name, percentage, amount, bank_account, paid_at, note, created_by, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          createId('payout'),
-          projectId,
-          subprojectId,
-          partnerName,
-          percentage,
-          amount,
-          normalizeText(payload.bankAccount),
-          normalizeText(payload.entryDate) || timestamp,
-          normalizeText(payload.note),
-          actor,
-          timestamp,
-        ],
-      })
+      const percentageTotal = shares.reduce((sum, share) => sum + (share.percentage || 0), 0)
+      if (percentageTotal > 100) throw new Error('A soma dos percentuais do repasse não pode passar de 100%')
+
+      for (const share of shares) {
+        const amount = subprojectId && share.percentage
+          ? subprojectAmount * share.percentage / 100
+          : share.amount
+
+        if (amount <= 0) throw new Error('O valor calculado do repasse precisa ser maior que zero')
+
+        await db.execute({
+          sql: `INSERT INTO partner_payouts (id, project_id, subproject_id, partner_name, percentage, amount, bank_account, paid_at, note, created_by, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [
+            createId('payout'),
+            projectId,
+            subprojectId,
+            share.partnerName,
+            share.percentage || null,
+            amount,
+            normalizeText(payload.bankAccount),
+            normalizeText(payload.entryDate) || timestamp,
+            normalizeText(payload.note),
+            actor,
+            timestamp,
+          ],
+        })
+      }
       await db.execute({
         sql: 'UPDATE projects SET updated_at = ? WHERE id = ?',
         args: [timestamp, projectId],

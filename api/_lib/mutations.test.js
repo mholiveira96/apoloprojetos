@@ -142,6 +142,74 @@ test('updateSubproject updates deadline and observacao without SQL placeholder m
   assert.equal(data.subprojects[0].responsible_partner, 'Letícia')
 })
 
+test('addPayout splits one payout across two partners by percentage', async () => {
+  const lead = await createWonLead({ clientName: 'Cliente Repasse', title: 'Projeto Dividido', estimatedAmount: '1000' })
+
+  await runMutation('createProjectFromLead', {
+    leadId: lead.id,
+    name: 'Projeto Dividido',
+    area: '75',
+    discipline: 'eletrico',
+    salesOwner: 'Matheus',
+    contractAmount: '1000',
+  }, 'tester@example.com')
+
+  const created = await getBootstrapData()
+  const subproject = created.subprojects[0]
+
+  await runMutation('addPayout', {
+    projectId: created.projects[0].id,
+    subprojectId: subproject.id,
+    bankAccount: 'Inter',
+    entryDate: '2026-06-20',
+    note: 'Repasse dividido',
+    shares: [
+      { partnerName: 'Letícia', percentage: '50' },
+      { partnerName: 'Luís', percentage: '50' },
+    ],
+  }, 'tester@example.com')
+
+  const data = await getBootstrapData()
+  assert.equal(data.payouts.length, 2)
+  assert.deepEqual(
+    data.payouts
+      .map((payout) => ({ partner: payout.partner_name, amount: payout.amount, percentage: payout.percentage, note: payout.note, bank: payout.bank_account }))
+      .sort((a, b) => a.partner.localeCompare(b.partner, 'pt-BR', { sensitivity: 'base' })),
+    [
+      { partner: 'Letícia', amount: 500, percentage: 50, note: 'Repasse dividido', bank: 'Inter' },
+      { partner: 'Luís', amount: 500, percentage: 50, note: 'Repasse dividido', bank: 'Inter' },
+    ],
+  )
+})
+
+test('addPayout rejects split payouts whose percentages exceed 100%', async () => {
+  const lead = await createWonLead({ clientName: 'Cliente Limite', title: 'Projeto Percentual', estimatedAmount: '1000' })
+
+  await runMutation('createProjectFromLead', {
+    leadId: lead.id,
+    name: 'Projeto Percentual',
+    area: '55',
+    discipline: 'sanitario',
+    salesOwner: 'Matheus',
+    contractAmount: '1000',
+  }, 'tester@example.com')
+
+  const created = await getBootstrapData()
+  const subproject = created.subprojects[0]
+
+  await assert.rejects(
+    runMutation('addPayout', {
+      projectId: created.projects[0].id,
+      subprojectId: subproject.id,
+      shares: [
+        { partnerName: 'Letícia', percentage: '60' },
+        { partnerName: 'Luís', percentage: '50' },
+      ],
+    }, 'tester@example.com'),
+    /não pode passar de 100%/i,
+  )
+})
+
 test('addSubprojectComment stores comment with author and timestamp', async () => {
   const lead = await createWonLead({ clientName: 'Cliente Comments', title: 'Projeto Estrutural', estimatedAmount: '9000' })
 
@@ -266,4 +334,72 @@ test('bootstrap returns project drive files ordered by newest first', async () =
   assert.equal(data.projectDriveFiles[0].id, 'img_newer')
   assert.equal(data.projectDriveFiles[0].project_id, project.id)
   assert.equal(data.projectDriveFiles[1].subproject_id, subproject.id)
+})
+
+test('subproject area supports inherit, custom, and N/A', async () => {
+  const lead = await createWonLead({ clientName: 'Cliente Area', title: 'Projeto Area' })
+  await runMutation('createProjectFromLead', {
+    leadId: lead.id,
+    name: 'Projeto Area',
+    area: '200',
+    discipline: 'arquitetura',
+    salesOwner: 'Matheus',
+    contractAmount: '50000',
+  }, 'tester@example.com')
+
+  let data = await getBootstrapData()
+  const project = data.projects[0]
+
+  // Create subproject with inherit (area = null)
+  await runMutation('createSubproject', {
+    projectId: project.id,
+    discipline: 'eletrico',
+    amount: '5000',
+    responsiblePartner: 'Matheus',
+    area: null,
+  }, 'tester@example.com')
+
+  // Create subproject with custom area
+  await runMutation('createSubproject', {
+    projectId: project.id,
+    discipline: 'hidrossanitario',
+    amount: '3000',
+    responsiblePartner: 'Matheus',
+    area: '50',
+  }, 'tester@example.com')
+
+  // Create subproject with N/A (area = -1)
+  await runMutation('createSubproject', {
+    projectId: project.id,
+    discipline: 'incendio',
+    amount: '2000',
+    responsiblePartner: 'Matheus',
+    area: -1,
+  }, 'tester@example.com')
+
+  data = await getBootstrapData()
+  const subs = data.subprojects.filter((sp) => sp.project_id === project.id)
+  assert.equal(subs.length, 4)
+
+  const inherit = subs.find((sp) => sp.discipline === 'eletrico')
+  assert.equal(inherit.area, null)
+
+  const custom = subs.find((sp) => sp.discipline === 'hidrossanitario')
+  assert.equal(custom.area, 50)
+
+  const na = subs.find((sp) => sp.discipline === 'incendio')
+  assert.equal(na.area, -1)
+
+  // Update subproject to change area mode
+  await runMutation('updateSubproject', {
+    id: inherit.id,
+    discipline: 'eletrico',
+    amount: '5000',
+    responsiblePartner: 'Matheus',
+    area: '75',
+  }, 'tester@example.com')
+
+  data = await getBootstrapData()
+  const updated = data.subprojects.find((sp) => sp.id === inherit.id)
+  assert.equal(updated.area, 75)
 })

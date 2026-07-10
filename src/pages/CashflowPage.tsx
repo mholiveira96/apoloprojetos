@@ -52,6 +52,36 @@ const shiftDays = (date: string, days: number) => {
 
 const PAYOUT_KEY = 'repasse'
 
+type PayoutShareForm = {
+  partnerName: string
+  percentage: string
+}
+
+type PayoutFormState = {
+  projectId: string
+  subprojectId: string
+  bankAccount: string
+  entryDate: string
+  note: string
+  splitEnabled: boolean
+  shares: [PayoutShareForm, PayoutShareForm]
+}
+
+const defaultSecondaryPartner = () => partners[1] ?? partners[0]
+
+const createDefaultPayoutForm = (): PayoutFormState => ({
+  projectId: '',
+  subprojectId: '',
+  bankAccount: '',
+  entryDate: today(),
+  note: '',
+  splitEnabled: false,
+  shares: [
+    { partnerName: partners[0], percentage: '' },
+    { partnerName: defaultSecondaryPartner(), percentage: '' },
+  ],
+})
+
 function PickerField({
   disabled = false,
   inputClassName = pickerInputClass,
@@ -306,7 +336,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
 
   const [receiptForm, setReceiptForm] = useState({ projectId: '', amount: '', bankAccount: '', entryDate: today(), note: '' })
   const [expenseForm, setExpenseForm] = useState({ category: '', projectId: '', amount: '', vendor: '', bankAccount: '', entryDate: today(), note: '' })
-  const [payoutForm, setPayoutForm] = useState({ projectId: '', subprojectId: '', partnerName: partners[0], percentage: '', bankAccount: '', entryDate: today(), note: '' })
+  const [payoutForm, setPayoutForm] = useState<PayoutFormState>(createDefaultPayoutForm)
   const [saidaType, setSaidaType] = useState<string>('')
 
   const receiptsById = useMemo(
@@ -371,9 +401,19 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
     () => (payoutForm.subprojectId ? subprojectsById.get(payoutForm.subprojectId) ?? null : null),
     [payoutForm.subprojectId, subprojectsById],
   )
-  const payoutAmount = selectedSubproject && payoutForm.percentage
-    ? numericValue(selectedSubproject.amount) * Number(payoutForm.percentage) / 100
-    : null
+  const activePayoutShares = payoutForm.splitEnabled ? payoutForm.shares : payoutForm.shares.slice(0, 1)
+  const payoutShareAmounts: Array<number | null> = activePayoutShares.map((share) => (
+    selectedSubproject && share.percentage
+      ? numericValue(selectedSubproject.amount) * Number(share.percentage) / 100
+      : null
+  ))
+  const payoutPercentageTotal = activePayoutShares.reduce((sum, share) => sum + (Number(share.percentage) || 0), 0)
+  const payoutAmountTotal = (() => {
+    let total = 0
+    for (const amount of payoutShareAmounts) total += amount ?? 0
+    return total
+  })()
+  const payoutPercentagesExceeded = payoutPercentageTotal > 100
 
   const normalizedSearchQuery = normalizeSearchText(searchQuery)
   const cashflowSearchIndex = useMemo(
@@ -485,8 +525,27 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
   const resetEntrada = () => setReceiptForm({ projectId: '', amount: '', bankAccount: '', entryDate: today(), note: '' })
   const resetSaida = () => {
     setExpenseForm({ category: '', projectId: '', amount: '', vendor: '', bankAccount: '', entryDate: today(), note: '' })
-    setPayoutForm({ projectId: '', subprojectId: '', partnerName: partners[0], percentage: '', bankAccount: '', entryDate: today(), note: '' })
+    setPayoutForm(createDefaultPayoutForm())
     setSaidaType('')
+  }
+
+  const updatePayoutShare = (index: 0 | 1, field: keyof PayoutShareForm, value: string) => {
+    setPayoutForm((current) => ({
+      ...current,
+      shares: current.shares.map((share, shareIndex) => (
+        shareIndex === index ? { ...share, [field]: value } : share
+      )) as [PayoutShareForm, PayoutShareForm],
+    }))
+  }
+
+  const togglePayoutSplit = (enabled: boolean) => {
+    setPayoutForm((current) => ({
+      ...current,
+      splitEnabled: enabled,
+      shares: enabled
+        ? current.shares
+        : [current.shares[0], { ...current.shares[1], percentage: '' }],
+    }))
   }
 
   const toggleCollapsedDay = (day: string) => {
@@ -603,7 +662,14 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
   const handleSaidaSubmit = (event: React.FormEvent) => {
     event.preventDefault()
     if (saidaType === PAYOUT_KEY) {
-      void submitMutation('addPayout', payoutForm, () => {
+      void submitMutation('addPayout', {
+        projectId: payoutForm.projectId,
+        subprojectId: payoutForm.subprojectId,
+        bankAccount: payoutForm.bankAccount,
+        entryDate: payoutForm.entryDate,
+        note: payoutForm.note,
+        shares: activePayoutShares,
+      }, () => {
         resetSaida()
         setShowSaida(false)
       }, 'Repasse registrado')
@@ -901,7 +967,16 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                         setPayoutForm((current) => ({
                           ...current,
                           subprojectId,
-                          partnerName: subproject?.responsible_partner ?? partners[0],
+                          shares: [
+                            { ...current.shares[0], partnerName: subproject?.responsible_partner ?? partners[0] },
+                            {
+                              ...current.shares[1],
+                              partnerName:
+                                current.shares[1].partnerName === current.shares[0].partnerName
+                                  ? defaultSecondaryPartner()
+                                  : current.shares[1].partnerName,
+                            },
+                          ],
                         }))
                       }}
                     >
@@ -916,13 +991,43 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                       Valor do subprojeto: <span className="font-semibold text-[var(--ink)]">{formatCurrency(numericValue(selectedSubproject.amount))}</span>
                     </div>
                   ) : null}
-                  <select className={inputClass} value={payoutForm.partnerName} onChange={(event) => setPayoutForm((current) => ({ ...current, partnerName: event.target.value }))}>
-                    {partners.map((partner) => <option key={partner} value={partner}>{partner}</option>)}
-                  </select>
-                  <div className="flex items-center gap-3">
-                    <input required type="number" min="0" max="100" step="0.01" className={inputClass} placeholder="Percentual (%)" value={payoutForm.percentage} onChange={(event) => setPayoutForm((current) => ({ ...current, percentage: event.target.value }))} />
-                    {payoutAmount != null ? <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">= {formatCurrency(payoutAmount)}</span> : null}
+                  <label className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--ink)]">
+                    <input
+                      type="checkbox"
+                      checked={payoutForm.splitEnabled}
+                      onChange={(event) => togglePayoutSplit(event.target.checked)}
+                    />
+                    Dividir repasse entre dois sócios
+                  </label>
+                  <div className="grid gap-3 rounded-xl border border-[var(--line)] bg-[var(--paper)] p-4">
+                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">Repasse 1</div>
+                    <select className={inputClass} value={payoutForm.shares[0].partnerName} onChange={(event) => updatePayoutShare(0, 'partnerName', event.target.value)}>
+                      {partners.map((partner) => <option key={partner} value={partner}>{partner}</option>)}
+                    </select>
+                    <div className="flex items-center gap-3">
+                      <input required type="number" min="0" max="100" step="0.01" className={inputClass} placeholder="Percentual (%)" value={payoutForm.shares[0].percentage} onChange={(event) => updatePayoutShare(0, 'percentage', event.target.value)} />
+                      {payoutShareAmounts[0] != null ? <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">= {formatCurrency(payoutShareAmounts[0])}</span> : null}
+                    </div>
                   </div>
+                  {payoutForm.splitEnabled ? (
+                    <div className="grid gap-3 rounded-xl border border-[var(--line)] bg-[var(--paper)] p-4">
+                      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">Repasse 2</div>
+                      <select className={inputClass} value={payoutForm.shares[1].partnerName} onChange={(event) => updatePayoutShare(1, 'partnerName', event.target.value)}>
+                        {partners.map((partner) => <option key={partner} value={partner}>{partner}</option>)}
+                      </select>
+                      <div className="flex items-center gap-3">
+                        <input required type="number" min="0" max="100" step="0.01" className={inputClass} placeholder="Percentual (%)" value={payoutForm.shares[1].percentage} onChange={(event) => updatePayoutShare(1, 'percentage', event.target.value)} />
+                        {payoutShareAmounts[1] != null ? <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">= {formatCurrency(payoutShareAmounts[1])}</span> : null}
+                      </div>
+                    </div>
+                  ) : null}
+                  {selectedSubproject ? (
+                    <div className={`rounded-xl border px-4 py-3 text-sm ${payoutPercentagesExceeded ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-[var(--line)] bg-[var(--paper)] text-[var(--ink-soft)]'}`}>
+                      <div>Total do repasse: <span className="font-semibold text-[var(--ink)]">{formatCurrency(payoutAmountTotal)}</span></div>
+                      <div>Total percentual: <span className="font-semibold">{payoutPercentageTotal.toFixed(2)}%</span></div>
+                      {payoutPercentagesExceeded ? <div className="mt-1 text-xs">A soma dos percentuais não pode passar de 100%.</div> : null}
+                    </div>
+                  ) : null}
                 </>
               ) : saidaType ? (
                 <>
