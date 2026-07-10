@@ -144,6 +144,11 @@ export async function getBootstrapData() {
           FROM project_logs
           WHERE project_logs.project_id = projects.id
             AND project_logs.title IN ('Contratação registrada', 'ContrataÃ§Ã£o registrada', 'ContrataÃƒÂ§ÃƒÂ£o registrada')) AS sale_recorded_at,
+        (SELECT MAX(project_logs.due_date)
+          FROM project_logs
+          WHERE project_logs.project_id = projects.id
+            AND project_logs.log_type = 'delivery'
+            AND project_logs.status = 'done') AS latest_subproject_completed_at,
         COALESCE((SELECT SUM(amount) FROM payment_receipts WHERE project_id = projects.id), 0) AS total_received,
         COALESCE((SELECT SUM(amount) FROM project_expenses WHERE project_id = projects.id), 0) AS total_expenses,
         COALESCE((SELECT SUM(amount) FROM partner_payouts WHERE project_id = projects.id), 0) AS total_payouts,

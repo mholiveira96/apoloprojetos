@@ -485,7 +485,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
 
         return {
           project,
-          archivedAt: project.updated_at,
+          archivedAt: project.latest_subproject_completed_at || project.updated_at,
           expenses,
           payouts,
           profit,

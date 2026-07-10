@@ -60,6 +60,7 @@ export type Project = {
   client_name: string | null
   sale_log_count: number
   sale_recorded_at: string | null
+  latest_subproject_completed_at: string | null
   total_received: number
   total_expenses: number
   total_payouts: number
