@@ -124,6 +124,7 @@ const schemaStatements = [
     responsible_partner TEXT NOT NULL,
     deadline TEXT,
     observacao TEXT,
+    area REAL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     FOREIGN KEY (project_id) REFERENCES projects(id)
@@ -306,6 +307,7 @@ async function runSubprojectSchemaMigrations() {
       AND EXISTS (SELECT 1 FROM projects WHERE projects.id = subprojects.project_id AND deadline IS NOT NULL)
   `)
   await ensureColumn('subprojects', 'observacao', 'observacao TEXT')
+  await ensureColumn('subprojects', 'area', 'area REAL')
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_subprojects_project ON subprojects(project_id)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_subprojects_stage ON subprojects(stage)`)
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_subprojects_contracted_at ON subprojects(contracted_at)`)

@@ -336,6 +336,32 @@ test('bootstrap returns project drive files ordered by newest first', async () =
   assert.equal(data.projectDriveFiles[1].subproject_id, subproject.id)
 })
 
+test('createProject persists subproject area modes from the zero-state operations form', async () => {
+  await runMutation('createProject', {
+    clientName: 'Cliente Projeto Zero',
+    name: 'Projeto Zero',
+    area: '200',
+    discipline: 'arquitetura',
+    stage: 'aguardar',
+    salesOwner: 'Matheus',
+    contractAmount: '50000',
+    subprojects: [
+      { discipline: 'eletrico', amount: '5000', responsiblePartner: 'Matheus', deadline: '', observacao: '', area: null },
+      { discipline: 'hidrossanitario', amount: '3000', responsiblePartner: 'Matheus', deadline: '', observacao: '', area: '50' },
+      { discipline: 'incendio', amount: '2000', responsiblePartner: 'Matheus', deadline: '', observacao: '', area: -1 },
+    ],
+  }, 'tester@example.com')
+
+  const data = await getBootstrapData()
+  assert.equal(data.projects.length, 1)
+
+  const subs = data.subprojects.filter((sp) => sp.project_id === data.projects[0].id)
+  assert.equal(subs.length, 3)
+  assert.equal(subs.find((sp) => sp.discipline === 'eletrico')?.area, null)
+  assert.equal(subs.find((sp) => sp.discipline === 'hidrossanitario')?.area, 50)
+  assert.equal(subs.find((sp) => sp.discipline === 'incendio')?.area, -1)
+})
+
 test('subproject area supports inherit, custom, and N/A', async () => {
   const lead = await createWonLead({ clientName: 'Cliente Area', title: 'Projeto Area' })
   await runMutation('createProjectFromLead', {

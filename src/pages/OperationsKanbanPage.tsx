@@ -663,6 +663,8 @@ interface ProjectModalForm {
   statusNote: string
   subprojectDeadline: string
   observacao: string
+  subprojectAreaMode: 'inherit' | 'custom' | 'na'
+  subprojectArea: string
 }
 
 function timelineTone(kind: ClientTimelineItem['kind']) {
@@ -697,6 +699,8 @@ function ProjectDetailModal({
     statusNote: project.status_note || '',
     subprojectDeadline: toDateInputValue(subproject?.deadline),
     observacao: subproject?.observacao || '',
+    subprojectAreaMode: subproject?.area === -1 ? 'na' : (subproject?.area != null && subproject?.area !== project.area ? 'custom' : 'inherit'),
+    subprojectArea: subproject?.area != null && subproject?.area !== -1 && subproject?.area !== project.area ? String(subproject.area) : '',
   })
   const [localSubprojectStage, setLocalSubprojectStage] = useState(subproject?.stage ?? '')
   const [isEditingContractAmount, setIsEditingContractAmount] = useState(false)
@@ -846,6 +850,49 @@ function ProjectDetailModal({
                   onChange={set('subprojectDeadline')}
                 />
               </div>
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Área do subprojeto</label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="inline-flex items-center gap-1.5 text-xs text-[var(--ink)]">
+                    <input
+                      type="radio"
+                      name="subprojectAreaMode"
+                      checked={form.subprojectAreaMode === 'inherit'}
+                      onChange={() => setForm((f) => ({ ...f, subprojectAreaMode: 'inherit', subprojectArea: '' }))}
+                    />
+                    Herdar do projeto ({project.area ? `${project.area} m²` : 'não definida'})
+                  </label>
+                  <label className="inline-flex items-center gap-1.5 text-xs text-[var(--ink)]">
+                    <input
+                      type="radio"
+                      name="subprojectAreaMode"
+                      checked={form.subprojectAreaMode === 'custom'}
+                      onChange={() => setForm((f) => ({ ...f, subprojectAreaMode: 'custom' }))}
+                    />
+                    Área própria
+                  </label>
+                  <label className="inline-flex items-center gap-1.5 text-xs text-[var(--ink)]">
+                    <input
+                      type="radio"
+                      name="subprojectAreaMode"
+                      checked={form.subprojectAreaMode === 'na'}
+                      onChange={() => setForm((f) => ({ ...f, subprojectAreaMode: 'na', subprojectArea: '' }))}
+                    />
+                    N/A
+                  </label>
+                </div>
+                {form.subprojectAreaMode === 'custom' ? (
+                  <input
+                    className="mt-2 w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Área em m²"
+                    value={form.subprojectArea}
+                    onChange={set('subprojectArea')}
+                  />
+                ) : null}
+              </div>
             </>
           ) : null}
           <div className="md:col-span-2 [] border border-[var(--line)] bg-[var(--bg-card-82)] p-4">
@@ -965,7 +1012,7 @@ type CreateProjectForm = {
   area: string
   salesOwner: string
   contractAmount: string
-  subprojects: Array<{ discipline: string; amount: string; responsiblePartner: string; deadline: string; observacao: string }>
+  subprojects: Array<{ discipline: string; amount: string; responsiblePartner: string; deadline: string; observacao: string; areaMode: 'inherit' | 'custom' | 'na'; area: string }>
 }
 
 function CreateProjectModal({ onClose, onCreate, mutating }: {
@@ -980,14 +1027,14 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
     area: '',
     salesOwner: '',
     contractAmount: '',
-    subprojects: [{ discipline: '', amount: '', responsiblePartner: '', deadline: '', observacao: '' }],
+    subprojects: [{ discipline: '', amount: '', responsiblePartner: '', deadline: '', observacao: '', areaMode: 'inherit' as const, area: '' }],
   })
 
   const set = (field: keyof Omit<CreateProjectForm, 'subprojects'>) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [field]: e.target.value }))
 
-  const setSp = (idx: number, field: 'discipline' | 'amount' | 'responsiblePartner' | 'deadline' | 'observacao') =>
+  const setSp = (idx: number, field: 'discipline' | 'amount' | 'responsiblePartner' | 'deadline' | 'observacao' | 'area') =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((f) => {
         const subprojects = [...f.subprojects]
@@ -1048,7 +1095,7 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
               <span className="text-xs font-semibold text-[var(--ink-soft)]">Disciplinas</span>
               <button
                 type="button"
-                onClick={() => setForm((f) => ({ ...f, subprojects: [...f.subprojects, { discipline: '', amount: '', responsiblePartner: '', deadline: '', observacao: '' }] }))}
+                onClick={() => setForm((f) => ({ ...f, subprojects: [...f.subprojects, { discipline: '', amount: '', responsiblePartner: '', deadline: '', observacao: '', areaMode: 'inherit' as const, area: '' }] }))}
                 className="inline-flex items-center gap-1 rounded-xl border border-[var(--line)] px-3 py-1 text-xs text-[var(--ink)] transition hover:bg-[var(--paper)]"
               >
                 <Plus className="h-3 w-3" /> Adicionar
@@ -1076,6 +1123,24 @@ function CreateProjectModal({ onClose, onCreate, mutating }: {
                       <X className="h-3.5 w-3.5" />
                     </button>
                   ) : <div />}
+                  <div className="col-span-5 flex flex-wrap items-center gap-3 text-xs">
+                    <span className="text-[var(--ink-soft)]">Área:</span>
+                    <label className="inline-flex items-center gap-1 text-[var(--ink)]">
+                      <input type="radio" name={`spAreaMode${idx}`} checked={sp.areaMode === 'inherit'} onChange={() => setForm((f) => { const s = [...f.subprojects]; s[idx] = { ...s[idx], areaMode: 'inherit', area: '' }; return { ...f, subprojects: s } })} />
+                      Herdar
+                    </label>
+                    <label className="inline-flex items-center gap-1 text-[var(--ink)]">
+                      <input type="radio" name={`spAreaMode${idx}`} checked={sp.areaMode === 'custom'} onChange={() => setForm((f) => { const s = [...f.subprojects]; s[idx] = { ...s[idx], areaMode: 'custom' }; return { ...f, subprojects: s } })} />
+                      Própria
+                    </label>
+                    <label className="inline-flex items-center gap-1 text-[var(--ink)]">
+                      <input type="radio" name={`spAreaMode${idx}`} checked={sp.areaMode === 'na'} onChange={() => setForm((f) => { const s = [...f.subprojects]; s[idx] = { ...s[idx], areaMode: 'na', area: '' }; return { ...f, subprojects: s } })} />
+                      N/A
+                    </label>
+                    {sp.areaMode === 'custom' ? (
+                      <input className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-1.5 text-xs" type="number" min="0" step="0.01" placeholder="m²" value={sp.area} onChange={setSp(idx, 'area')} />
+                    ) : null}
+                  </div>
                   <input
                     className="col-span-5 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-xs"
                     placeholder="Observação do subprojeto"
@@ -1491,6 +1556,7 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
               amount: form.subprojectAmount,
               deadline: form.subprojectDeadline || null,
               observacao: form.observacao,
+              area: form.subprojectAreaMode === 'na' ? -1 : (form.subprojectAreaMode === 'custom' ? (form.subprojectArea || null) : null),
             })
           : undefined,
       )
@@ -1555,7 +1621,15 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
     (form: CreateProjectForm) => {
       void submitMutation(
         'createProject',
-        { ...form, subprojects: form.subprojects.filter((sp) => sp.discipline) },
+        {
+          ...form,
+          subprojects: form.subprojects
+            .filter((sp) => sp.discipline)
+            .map((sp) => ({
+              ...sp,
+              area: sp.areaMode === 'na' ? -1 : (sp.areaMode === 'custom' ? (sp.area || null) : null),
+            })),
+        },
         () => setShowCreateProject(false),
         'Projeto criado',
       )

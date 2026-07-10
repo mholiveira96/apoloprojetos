@@ -285,6 +285,7 @@ export async function getBootstrapData() {
         subprojects.responsible_partner,
         subprojects.deadline,
         subprojects.observacao,
+        subprojects.area,
         subprojects.contracted_at,
         subprojects.created_at,
         subprojects.updated_at,

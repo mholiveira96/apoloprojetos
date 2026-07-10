@@ -138,6 +138,7 @@ export type Subproject = {
   responsible_partner: string
   deadline: string | null
   observacao: string | null
+  area: number | null
   contracted_at: string | null
   created_at: string
   updated_at: string
