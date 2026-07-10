@@ -443,7 +443,7 @@ async function hasExpectedSchemaShape(db) {
     await db.execute(`SELECT lead_id FROM projects LIMIT 0`)
     await db.execute(`SELECT area FROM projects LIMIT 0`)
     await db.execute(`SELECT drive_enabled, drive_token, drive_updated_at FROM projects LIMIT 0`)
-    await db.execute(`SELECT observacao FROM subprojects LIMIT 0`)
+    await db.execute(`SELECT observacao, area FROM subprojects LIMIT 0`)
     await db.execute(`SELECT 1 FROM subproject_comments LIMIT 0`)
     await db.execute(`SELECT project_id, subproject_id, blob_url, blob_pathname FROM project_drive_files LIMIT 0`)
     await db.execute(`SELECT stage FROM revisions LIMIT 0`)

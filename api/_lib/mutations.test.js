@@ -336,6 +336,13 @@ test('bootstrap returns project drive files ordered by newest first', async () =
   assert.equal(data.projectDriveFiles[1].subproject_id, subproject.id)
 })
 
+test('ensureSchema expected-shape check includes subproject area column', async () => {
+  const db = getDb()
+  const info = await db.execute("PRAGMA table_info(subprojects)")
+  const columns = info.rows.map((row) => String(row.name))
+  assert.ok(columns.includes('area'))
+})
+
 test('createProject persists subproject area modes from the zero-state operations form', async () => {
   await runMutation('createProject', {
     clientName: 'Cliente Projeto Zero',
