@@ -914,8 +914,8 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
       ) : null}
 
       {showSaida ? (
-        <div className="workspace-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="workspace-modal-panel w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6">
+        <div className="workspace-modal-backdrop fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4">
+          <div className="workspace-modal-panel mx-auto my-4 w-full max-w-md border border-[var(--line)] bg-[var(--bg-card-solid)] p-6 max-h-[calc(100vh-2rem)] overflow-y-auto">
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-[var(--ink)]">Registrar saida</h3>
               <button type="button" className="rounded-full p-1 hover:bg-[var(--paper)]" onClick={() => { setShowSaida(false); resetSaida() }}>
