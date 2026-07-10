@@ -55,7 +55,10 @@ const PAYOUT_KEY = 'repasse'
 type PayoutShareForm = {
   partnerName: string
   percentage: string
+  amount: string
 }
+
+type PayoutValueMode = 'percentage' | 'amount'
 
 type PayoutFormState = {
   projectId: string
@@ -64,6 +67,7 @@ type PayoutFormState = {
   entryDate: string
   note: string
   splitEnabled: boolean
+  valueMode: PayoutValueMode
   shares: [PayoutShareForm, PayoutShareForm]
 }
 
@@ -76,9 +80,10 @@ const createDefaultPayoutForm = (): PayoutFormState => ({
   entryDate: today(),
   note: '',
   splitEnabled: false,
+  valueMode: 'percentage',
   shares: [
-    { partnerName: partners[0], percentage: '' },
-    { partnerName: defaultSecondaryPartner(), percentage: '' },
+    { partnerName: partners[0], percentage: '', amount: '' },
+    { partnerName: defaultSecondaryPartner(), percentage: '', amount: '' },
   ],
 })
 
@@ -401,12 +406,16 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
     () => (payoutForm.subprojectId ? subprojectsById.get(payoutForm.subprojectId) ?? null : null),
     [payoutForm.subprojectId, subprojectsById],
   )
-  const activePayoutShares = payoutForm.shares.filter((share) => share.partnerName && (Number(share.percentage) || 0) > 0)
-  const payoutShareAmounts: Array<number | null> = payoutForm.shares.map((share) => (
-    selectedSubproject && share.percentage
+  const activePayoutShares = payoutForm.shares.filter((share) => {
+    const numericField = payoutForm.valueMode === 'percentage' ? Number(share.percentage) || 0 : Number(share.amount) || 0
+    return share.partnerName && numericField > 0
+  })
+  const payoutShareAmounts: Array<number | null> = payoutForm.shares.map((share) => {
+    if (payoutForm.valueMode === 'amount') return share.amount ? Number(share.amount) || 0 : null
+    return selectedSubproject && share.percentage
       ? numericValue(selectedSubproject.amount) * Number(share.percentage) / 100
       : null
-  ))
+  })
   const payoutPercentageTotal = activePayoutShares.reduce((sum, share) => sum + (Number(share.percentage) || 0), 0)
   const payoutAmountTotal = (() => {
     let total = 0
@@ -544,7 +553,19 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
       splitEnabled: enabled,
       shares: enabled
         ? current.shares
-        : [current.shares[0], { ...current.shares[1], percentage: '' }],
+        : [current.shares[0], { ...current.shares[1], percentage: '', amount: '' }],
+    }))
+  }
+
+  const setPayoutValueMode = (valueMode: PayoutValueMode) => {
+    setPayoutForm((current) => ({
+      ...current,
+      valueMode,
+      shares: current.shares.map((share) => ({
+        ...share,
+        percentage: valueMode === 'percentage' ? share.percentage : '',
+        amount: valueMode === 'amount' ? share.amount : '',
+      })) as [PayoutShareForm, PayoutShareForm],
     }))
   }
 
@@ -668,7 +689,11 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
         bankAccount: payoutForm.bankAccount,
         entryDate: payoutForm.entryDate,
         note: payoutForm.note,
-        shares: activePayoutShares,
+        shares: activePayoutShares.map((share) => ({
+          partnerName: share.partnerName,
+          percentage: payoutForm.valueMode === 'percentage' ? share.percentage : '',
+          amount: payoutForm.valueMode === 'amount' ? share.amount : '',
+        })),
       }, () => {
         resetSaida()
         setShowSaida(false)
@@ -991,6 +1016,25 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                       Valor do subprojeto: <span className="font-semibold text-[var(--ink)]">{formatCurrency(numericValue(selectedSubproject.amount))}</span>
                     </div>
                   ) : null}
+                  <div className="grid gap-2 rounded-xl border border-[var(--line)] bg-[var(--paper)] p-3">
+                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">Modo do repasse</div>
+                    <div className="inline-flex overflow-hidden rounded-xl border border-[var(--line)]">
+                      <button
+                        type="button"
+                        className={`px-4 py-2 text-sm font-medium ${payoutForm.valueMode === 'percentage' ? 'bg-[var(--ink)] text-[var(--bg-card-solid)]' : 'bg-transparent text-[var(--ink-soft)] hover:bg-[var(--bg-card-solid)]'}`}
+                        onClick={() => setPayoutValueMode('percentage')}
+                      >
+                        Percentual
+                      </button>
+                      <button
+                        type="button"
+                        className={`px-4 py-2 text-sm font-medium ${payoutForm.valueMode === 'amount' ? 'bg-[var(--ink)] text-[var(--bg-card-solid)]' : 'bg-transparent text-[var(--ink-soft)] hover:bg-[var(--bg-card-solid)]'}`}
+                        onClick={() => setPayoutValueMode('amount')}
+                      >
+                        Valor
+                      </button>
+                    </div>
+                  </div>
                   <label className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--ink)]">
                     <input
                       type="checkbox"
@@ -1005,7 +1049,11 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                       {partners.map((partner) => <option key={partner} value={partner}>{partner}</option>)}
                     </select>
                     <div className="flex items-center gap-3">
-                      <input required type="number" min="0" max="100" step="0.01" className={inputClass} placeholder="Percentual (%)" value={payoutForm.shares[0].percentage} onChange={(event) => updatePayoutShare(0, 'percentage', event.target.value)} />
+                      {payoutForm.valueMode === 'percentage' ? (
+                        <input required type="number" min="0" max="100" step="0.01" className={inputClass} placeholder="Percentual (%)" value={payoutForm.shares[0].percentage} onChange={(event) => updatePayoutShare(0, 'percentage', event.target.value)} />
+                      ) : (
+                        <input required type="number" min="0.01" step="0.01" className={inputClass} placeholder="Valor (R$)" value={payoutForm.shares[0].amount} onChange={(event) => updatePayoutShare(0, 'amount', event.target.value)} />
+                      )}
                       {payoutShareAmounts[0] != null ? <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">= {formatCurrency(payoutShareAmounts[0])}</span> : null}
                     </div>
                   </div>
@@ -1019,7 +1067,11 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                         {partners.map((partner) => <option key={partner} value={partner}>{partner}</option>)}
                       </select>
                       <div className="flex items-center gap-3">
-                        <input type="number" min="0" max="100" step="0.01" className={inputClass} placeholder="Percentual (%)" value={payoutForm.shares[1].percentage} onChange={(event) => updatePayoutShare(1, 'percentage', event.target.value)} />
+                        {payoutForm.valueMode === 'percentage' ? (
+                          <input type="number" min="0" max="100" step="0.01" className={inputClass} placeholder="Percentual (%)" value={payoutForm.shares[1].percentage} onChange={(event) => updatePayoutShare(1, 'percentage', event.target.value)} />
+                        ) : (
+                          <input type="number" min="0.01" step="0.01" className={inputClass} placeholder="Valor (R$)" value={payoutForm.shares[1].amount} onChange={(event) => updatePayoutShare(1, 'amount', event.target.value)} />
+                        )}
                         {payoutShareAmounts[1] != null ? <span className="shrink-0 text-sm font-semibold text-[var(--ink)]">= {formatCurrency(payoutShareAmounts[1])}</span> : null}
                       </div>
                     </div>
@@ -1027,7 +1079,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
                   {selectedSubproject ? (
                     <div className={`rounded-xl border px-4 py-3 text-sm ${payoutPercentagesExceeded ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-[var(--line)] bg-[var(--paper)] text-[var(--ink-soft)]'}`}>
                       <div>Total do repasse: <span className="font-semibold text-[var(--ink)]">{formatCurrency(payoutAmountTotal)}</span></div>
-                      <div>Total percentual: <span className="font-semibold">{payoutPercentageTotal.toFixed(2)}%</span></div>
+                      {payoutForm.valueMode === 'percentage' ? <div>Total percentual: <span className="font-semibold">{payoutPercentageTotal.toFixed(2)}%</span></div> : null}
                       {payoutPercentagesExceeded ? <div className="mt-1 text-xs">A soma dos percentuais não pode passar de 100%.</div> : null}
                     </div>
                   ) : null}

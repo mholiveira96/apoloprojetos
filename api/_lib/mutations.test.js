@@ -210,6 +210,46 @@ test('addPayout rejects split payouts whose percentages exceed 100%', async () =
   )
 })
 
+test('addPayout accepts split payouts entered by absolute amount', async () => {
+  const lead = await createWonLead({ clientName: 'Cliente Valor', title: 'Projeto Valor', estimatedAmount: '1000' })
+
+  await runMutation('createProjectFromLead', {
+    leadId: lead.id,
+    name: 'Projeto Valor',
+    area: '60',
+    discipline: 'hidraulico',
+    salesOwner: 'Matheus',
+    contractAmount: '1000',
+  }, 'tester@example.com')
+
+  const created = await getBootstrapData()
+  const subproject = created.subprojects[0]
+
+  await runMutation('addPayout', {
+    projectId: created.projects[0].id,
+    subprojectId: subproject.id,
+    bankAccount: 'Nubank',
+    entryDate: '2026-06-21',
+    note: 'Repasse por valor',
+    shares: [
+      { partnerName: 'Letícia', amount: '300' },
+      { partnerName: 'Luís', amount: '200' },
+    ],
+  }, 'tester@example.com')
+
+  const data = await getBootstrapData()
+  assert.equal(data.payouts.length, 2)
+  assert.deepEqual(
+    data.payouts
+      .map((payout) => ({ partner: payout.partner_name, amount: payout.amount, percentage: payout.percentage, note: payout.note, bank: payout.bank_account }))
+      .sort((a, b) => a.partner.localeCompare(b.partner, 'pt-BR', { sensitivity: 'base' })),
+    [
+      { partner: 'Letícia', amount: 300, percentage: null, note: 'Repasse por valor', bank: 'Nubank' },
+      { partner: 'Luís', amount: 200, percentage: null, note: 'Repasse por valor', bank: 'Nubank' },
+    ],
+  )
+})
+
 test('addSubprojectComment stores comment with author and timestamp', async () => {
   const lead = await createWonLead({ clientName: 'Cliente Comments', title: 'Projeto Estrutural', estimatedAmount: '9000' })
 
