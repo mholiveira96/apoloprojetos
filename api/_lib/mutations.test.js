@@ -451,8 +451,13 @@ test('subproject area supports inherit, custom, and N/A', async () => {
   }, 'tester@example.com')
 
   data = await getBootstrapData()
-  const subs = data.subprojects.filter((sp) => sp.project_id === project.id)
-  assert.equal(subs.length, 4)
+  // createProjectFromLead also creates the initial architecture subproject.
+  // Restrict this assertion to the three subprojects created by this test.
+  const subs = data.subprojects.filter((sp) => (
+    sp.project_id === project.id
+    && ['eletrico', 'hidrossanitario', 'incendio'].includes(sp.discipline)
+  ))
+  assert.equal(subs.length, 3)
 
   const inherit = subs.find((sp) => sp.discipline === 'eletrico')
   assert.equal(inherit.area, null)
