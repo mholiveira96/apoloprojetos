@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import type { BootstrapData, PremiseQuestionnaire } from '@/types/app'
 
-import { emptyAnswers, questions, welcomeCopy } from '@/lib/premise-questionnaire'
+import { canonicalQuestionnaireAnswer, emptyAnswers, questions, welcomeCopy } from '@/lib/premise-questionnaire'
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—'
@@ -19,7 +19,10 @@ function formatDate(value: string | null | undefined) {
 }
 
 function questionnaireAnswers(record: PremiseQuestionnaire) {
-  return { ...emptyAnswers(), ...record.answers }
+  const answers = { ...emptyAnswers(), ...record.answers }
+  return Object.fromEntries(
+    questions.map((question) => [question.id, canonicalQuestionnaireAnswer(question, answers[question.id] || '')]),
+  )
 }
 
 export function PremiseQuestionnairesPage({
