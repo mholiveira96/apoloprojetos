@@ -16,6 +16,7 @@ const apiRoutes: Record<string, string> = {
   '/api/app/bootstrap': 'api/app/bootstrap.js',
   '/api/app/mutate': 'api/app/mutate.js',
   '/api/app/proposal': 'api/app/proposal.js',
+  '/api/public/premissas': 'api/public/premissas.js',
 }
 
 function localApiPlugin() {
