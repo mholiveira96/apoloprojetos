@@ -6,29 +6,40 @@ import { json, methodNotAllowed, readJsonBody } from '../_lib/http.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+async function loadMutations() {
+  const mutationsPath = path.resolve(__dirname, '../_lib/mutations.js')
+  const mtime = await fs.stat(mutationsPath).then((stat) => stat.mtimeMs)
+  return import(`${pathToFileURL(mutationsPath).href}?t=${mtime}`)
+}
+
+async function loadAppData() {
+  const appDataPath = path.resolve(__dirname, '../_lib/app-data.js')
+  const mtime = await fs.stat(appDataPath).then((stat) => stat.mtimeMs)
+  return import(`${pathToFileURL(appDataPath).href}?t=${mtime}`)
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return methodNotAllowed(res, ['POST'])
 
-  const user = requireSession(req, res)
-  if (!user) return
-
   try {
     const body = await readJsonBody(req)
-    const action = typeof body.action === 'string' ? body.action : ''
-    const payload = typeof body.payload === 'object' && body.payload !== null ? body.payload : {}
+    const action = typeof body?.action === 'string' ? body.action : ''
+    const payload = typeof body?.payload === 'object' && body.payload !== null ? body.payload : {}
+    const isPublicQuestionnaire = action === 'savePremiseQuestionnaire' && body?.public === true
 
-    const mutationsPath = path.resolve(__dirname, '../_lib/mutations.js')
-    const appDataPath = path.resolve(__dirname, '../_lib/app-data.js')
-    const [mutationsMtime, appDataMtime] = await Promise.all([
-      fs.stat(mutationsPath).then((s) => s.mtimeMs),
-      fs.stat(appDataPath).then((s) => s.mtimeMs),
-    ])
-    const [{ runMutation }, { getBootstrapData }] = await Promise.all([
-      import(`${pathToFileURL(mutationsPath).href}?t=${mutationsMtime}`),
-      import(`${pathToFileURL(appDataPath).href}?t=${appDataMtime}`),
-    ])
+    let user = null
+    if (!isPublicQuestionnaire) {
+      user = requireSession(req, res)
+      if (!user) return
+    }
 
-    await runMutation(action, payload, user.email)
+    const { runMutation } = await loadMutations()
+    await runMutation(action, payload, isPublicQuestionnaire ? 'public-questionnaire' : user.email)
+
+    // Public questionnaire submissions may create a record, but can never read it back.
+    if (isPublicQuestionnaire) return json(res, 201, { ok: true })
+
+    const { getBootstrapData } = await loadAppData()
     const data = await getBootstrapData()
     return json(res, 200, { user, ...data })
   } catch (error) {

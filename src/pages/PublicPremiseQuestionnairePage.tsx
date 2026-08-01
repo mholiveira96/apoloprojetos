@@ -3,10 +3,10 @@ import { ArrowLeft, ArrowRight, Check, ClipboardList } from 'lucide-react'
 import { emptyAnswers, questions, welcomeCopy } from '@/lib/premise-questionnaire'
 
 async function submitPublicQuestionnaire(payload: Record<string, unknown>) {
-  const response = await fetch('/api/public/premissas', {
+  const response = await fetch('/api/app/mutate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ action: 'savePremiseQuestionnaire', public: true, payload }),
   })
   const body = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(body.error || 'Não foi possível enviar o questionário')
