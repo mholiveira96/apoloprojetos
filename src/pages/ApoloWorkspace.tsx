@@ -50,6 +50,7 @@ import { FinancialPage } from '@/pages/FinancialPage'
 import { CashflowPage } from '@/pages/CashflowPage'
 import { RevisoesKanbanPage } from '@/pages/RevisoesKanbanPage'
 import DatabasePage from '@/pages/DatabasePage'
+import { PremiseQuestionnairesPage } from '@/pages/PremiseQuestionnairesPage'
 import { buildClientTimeline } from '@/lib/client-timeline'
 import { useTheme } from '@/lib/theme-context'
 
@@ -1160,6 +1161,10 @@ export function ApoloWorkspace() {
 
             {section === 'database' ? (
               <DatabasePage data={data} submitMutation={submitMutation} mutating={mutating} />
+            ) : null}
+
+            {section === 'premissas' ? (
+              <PremiseQuestionnairesPage data={data} submitMutation={submitMutation} mutating={mutating} />
             ) : null}
           </div>
         </main>

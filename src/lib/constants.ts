@@ -1,6 +1,7 @@
 import {
   BriefcaseBusiness,
   CircleDollarSign,
+  ClipboardList,
   FolderKanban,
   HardDrive,
   Landmark,
@@ -15,6 +16,7 @@ export const NAV_ITEMS = [
   { key: 'drive', label: 'Drive', href: '/app/drive', icon: HardDrive },
   { key: 'financeiro', label: 'Financeiro', href: '/app/financeiro', icon: CircleDollarSign },
   { key: 'fluxo', label: 'Fluxo de caixa', href: '/app/fluxo', icon: Landmark },
+  { key: 'premissas', label: 'Premissas', href: '/app/premissas', icon: ClipboardList },
 ]
 
 export const BOTTOM_NAV_ITEMS = [

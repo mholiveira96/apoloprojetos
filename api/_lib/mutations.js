@@ -15,6 +15,13 @@ function normalizeDate(value) {
   return text || null
 }
 
+function normalizeAnswers(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return Object.fromEntries(
+    Object.entries(value).map(([key, answer]) => [String(key), String(answer ?? '').trim()]),
+  )
+}
+
 function todayIsoDate() {
   return nowIso().slice(0, 10)
 }
@@ -971,6 +978,49 @@ export async function runMutation(action, payload, actor) {
       }
 
       break
+    }
+
+    case 'savePremiseQuestionnaire': {
+      const id = normalizeText(payload.id)
+      const respondentName = normalizeText(payload.respondentName)
+      const contactInfo = normalizeText(payload.contactInfo)
+      const identificationNote = normalizeText(payload.identificationNote)
+      if (!respondentName && !contactInfo && !identificationNote) {
+        throw new Error('Informe ao menos uma forma de identificar a residência')
+      }
+
+      const answersJson = JSON.stringify(normalizeAnswers(payload.answers))
+      const status = normalizeText(payload.status) || 'completed'
+      if (id) {
+        await db.execute({
+          sql: `UPDATE premise_questionnaires
+                SET respondent_name = ?,
+                    contact_info = ?,
+                    identification_note = ?,
+                    answers_json = ?,
+                    status = ?,
+                    updated_at = ?,
+                    completed_at = CASE WHEN ? = 'completed' THEN COALESCE(completed_at, ?) ELSE completed_at END
+                WHERE id = ?`,
+          args: [respondentName, contactInfo, identificationNote, answersJson, status, timestamp, status, timestamp, id],
+        })
+      } else {
+        await db.execute({
+          sql: `INSERT INTO premise_questionnaires (
+                  id, respondent_name, contact_info, identification_note, answers_json,
+                  status, created_by, created_at, updated_at, completed_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [createId('premise'), respondentName, contactInfo, identificationNote, answersJson, status, actor, timestamp, timestamp, status === 'completed' ? timestamp : null],
+        })
+      }
+      return { ok: true }
+    }
+
+    case 'deletePremiseQuestionnaire': {
+      const id = normalizeText(payload.id)
+      if (!id) throw new Error('id é obrigatório')
+      await db.execute({ sql: 'DELETE FROM premise_questionnaires WHERE id = ?', args: [id] })
+      return { ok: true }
     }
 
     case 'createRevision': {

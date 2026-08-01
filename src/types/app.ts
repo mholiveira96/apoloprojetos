@@ -182,6 +182,19 @@ export type Revision = {
   project_name: string | null
 }
 
+export type PremiseQuestionnaire = {
+  id: string
+  respondent_name: string
+  contact_info: string | null
+  identification_note: string | null
+  answers: Record<string, string>
+  status: string
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  completed_at: string | null
+}
+
 export type CashflowEntry = {
   id: string
   project_id: string | null
@@ -209,4 +222,5 @@ export type BootstrapData = {
   subprojectComments: SubprojectComment[]
   projectDriveFiles: ProjectDriveFile[]
   revisions: Revision[]
+  premiseQuestionnaires: PremiseQuestionnaire[]
 }

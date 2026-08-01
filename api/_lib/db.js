@@ -180,7 +180,20 @@ const schemaStatements = [
     created_at TEXT NOT NULL,
     FOREIGN KEY (project_id) REFERENCES projects(id)
   )`,
-  `CREATE INDEX IF NOT EXISTS idx_revisions_stage ON revisions(stage)`
+  `CREATE INDEX IF NOT EXISTS idx_revisions_stage ON revisions(stage)`,
+  `CREATE TABLE IF NOT EXISTS premise_questionnaires (
+    id TEXT PRIMARY KEY,
+    respondent_name TEXT NOT NULL,
+    contact_info TEXT,
+    identification_note TEXT,
+    answers_json TEXT NOT NULL DEFAULT '{}',
+    status TEXT NOT NULL DEFAULT 'completed',
+    created_by TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    completed_at TEXT
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_premise_questionnaires_updated ON premise_questionnaires(updated_at DESC)`
 ]
 
 export function getDb() {
@@ -436,7 +449,7 @@ async function runExpenseSchemaMigrations() {
   }
 }
 
-const SCHEMA_VERSION = '11'
+const SCHEMA_VERSION = '12'
 
 async function hasExpectedSchemaShape(db) {
   try {
@@ -447,6 +460,7 @@ async function hasExpectedSchemaShape(db) {
     await db.execute(`SELECT 1 FROM subproject_comments LIMIT 0`)
     await db.execute(`SELECT project_id, subproject_id, blob_url, blob_pathname FROM project_drive_files LIMIT 0`)
     await db.execute(`SELECT stage FROM revisions LIMIT 0`)
+    await db.execute(`SELECT respondent_name, contact_info, answers_json FROM premise_questionnaires LIMIT 0`)
     return true
   } catch {
     return false

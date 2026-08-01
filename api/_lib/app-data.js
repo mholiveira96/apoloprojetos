@@ -6,6 +6,15 @@ function asNumber(value) {
   return 0
 }
 
+function parseAnswers(value) {
+  try {
+    const parsed = JSON.parse(String(value || '{}'))
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
 async function hasColumn(db, tableName, columnName) {
   try {
     await db.execute(`SELECT ${columnName} FROM ${tableName} LIMIT 0`)
@@ -37,6 +46,7 @@ export async function getBootstrapData() {
     subprojectCommentsResult,
     projectDriveFilesResult,
     revisionsResult,
+    premiseQuestionnairesResult,
   ] = await Promise.all([
     db.execute(`SELECT COUNT(*) AS total FROM leads WHERE stage NOT IN ('won', 'lost')`),
     db.execute(`SELECT COUNT(*) AS total FROM projects WHERE stage NOT IN ('concluÃ­do')`),
@@ -364,6 +374,21 @@ export async function getBootstrapData() {
         END,
         COALESCE(revisions.deadline, revisions.created_at) ASC
     `),
+    db.execute(`
+      SELECT
+        id,
+        respondent_name,
+        contact_info,
+        identification_note,
+        answers_json,
+        status,
+        created_by,
+        created_at,
+        updated_at,
+        completed_at
+      FROM premise_questionnaires
+      ORDER BY updated_at DESC
+    `),
   ])
 
   const financial = financialSummaryResult.rows[0] ?? {}
@@ -406,5 +431,9 @@ export async function getBootstrapData() {
     subprojectComments: subprojectCommentsResult.rows,
     projectDriveFiles: projectDriveFilesResult.rows,
     revisions: revisionsResult.rows,
+    premiseQuestionnaires: premiseQuestionnairesResult.rows.map((questionnaire) => ({
+      ...questionnaire,
+      answers: parseAnswers(questionnaire.answers_json),
+    })),
   }
 }
