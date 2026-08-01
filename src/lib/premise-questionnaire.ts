@@ -82,7 +82,7 @@ export const questions: Question[] = [
   },
   {
     id: 'additionalSystems',
-    label: 'O(a) sr.(a) tem conhecimento da necessidade de sistemas adicionais que não foram questionados anteriormente, como piscina aquecida, reaproveitamento de águas pluviais, sistema de recirculação de água quente etc.?',
+    label: 'O(a) sr.(a) tem conhecimento da necessidade de sistemas adicionais que não foram questionados anteriormente, como reaproveitamento de águas pluviais, sistema de recirculação de água quente ou outro sistema adicional?',
     kind: 'textarea',
     placeholder: 'Descreva ou escreva “não”',
   },
