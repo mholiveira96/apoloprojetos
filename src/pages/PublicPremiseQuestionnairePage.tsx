@@ -94,7 +94,7 @@ export function PublicPremiseQuestionnairePage() {
   if (submitted) {
     return (
       <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--paper)] px-5 py-12 text-[var(--ink)]">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-contain bg-center bg-no-repeat opacity-[0.035] grayscale" style={{ backgroundImage: "url('/logo-apolo.png')" }} />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-contain bg-center bg-no-repeat opacity-[0.035] grayscale" style={{ backgroundImage: "url('/logo-apolo-pdf.png')" }} />
         <section className="relative w-full max-w-2xl rounded-[34px] border border-[var(--line)] bg-[var(--bg-card-solid)] p-8 text-center sm:p-14">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--teal)] text-white"><Check className="h-8 w-8" /></div>
           <div className="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--teal)]">Apolo Projetos Inteligentes</div>
@@ -115,10 +115,10 @@ export function PublicPremiseQuestionnairePage() {
 
   return (
     <main className="relative isolate min-h-screen overflow-hidden bg-[var(--paper)] text-[var(--ink)]">
-      <div aria-hidden="true" className="pointer-events-none absolute -right-28 top-24 z-[-1] h-[720px] w-[720px] bg-contain bg-center bg-no-repeat opacity-[0.045] grayscale" style={{ backgroundImage: "url('/logo-apolo.png')" }} />
+      <div aria-hidden="true" className="pointer-events-none absolute -right-28 top-24 z-[-1] h-[720px] w-[720px] bg-contain bg-center bg-no-repeat opacity-[0.045] grayscale" style={{ backgroundImage: "url('/logo-apolo-pdf.png')" }} />
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col">
         <header className="flex items-center justify-between gap-4 px-5 py-5 sm:px-8 lg:px-12">
-          <img src="/logo-apolo.png" alt="Apolo Projetos Inteligentes" className="h-9 w-auto object-contain sm:h-11" />
+          <img src="/logo-apolo-pdf.png" alt="Apolo Projetos Inteligentes" className="h-11 w-auto object-contain sm:h-14" />
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-soft)]"><ClipboardList className="h-4 w-4 text-[var(--teal)]" /> Premissas</div>
         </header>
 
@@ -132,7 +132,9 @@ export function PublicPremiseQuestionnairePage() {
               </div>
               <div className="mt-10 border-l-2 border-[var(--teal)] pl-5 text-sm leading-7 text-[var(--ink-soft)]">
                 <div className="font-semibold text-[var(--ink)]">Apolo Projetos Inteligentes</div>
-                <div>Ed. Plenarium - Lagoa NovaSala 1304</div>
+                <div>R. João Célso Filho, 1950</div>
+                <div>Sala 1304</div>
+                <div>Lagoa Nova, Natal - RN</div>
               </div>
               <button type="button" onClick={() => setStep(0)} className="mt-10 inline-flex items-center gap-3 bg-[var(--teal)] px-6 py-4 text-sm font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[var(--teal-bright)]">Começar questionário <ArrowRight className="h-4 w-4" /></button>
             </section>
@@ -164,7 +166,10 @@ export function PublicPremiseQuestionnairePage() {
           ) : null}
         </div>
 
-        <footer className="px-5 py-6 text-center text-xs text-[var(--ink-soft)] sm:px-8 lg:px-12">Apolo Projetos Inteligentes · Ed. Plenarium - Lagoa NovaSala 1304</footer>
+        <footer className="px-5 py-6 text-center text-xs leading-5 text-[var(--ink-soft)] sm:px-8 lg:px-12">
+          <div>Apolo Projetos Inteligentes</div>
+          <div>R. João Célso Filho, 1950 · Sala 1304 · Lagoa Nova, Natal - RN</div>
+        </footer>
       </div>
     </main>
   )
