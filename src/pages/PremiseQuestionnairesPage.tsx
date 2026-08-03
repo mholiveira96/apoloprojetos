@@ -43,7 +43,7 @@ export function PremiseQuestionnairesPage({
   const [answers, setAnswers] = useState<Record<string, string>>(emptyAnswers)
   const [identificationNote, setIdentificationNote] = useState('')
   const [error, setError] = useState('')
-  const [exportingPdf, setExportingPdf] = useState(false)
+  const [exportingPdfId, setExportingPdfId] = useState<string | null>(null)
 
   const activeQuestion = step >= 0 ? questions[step] : null
   const answeredCount = useMemo(
@@ -131,17 +131,17 @@ export function PremiseQuestionnairesPage({
     void submitMutation('deletePremiseQuestionnaire', { id: record.id }, undefined, 'Questionário excluído')
   }
 
-  const exportPdf = async () => {
-    if (data.premiseQuestionnaires.length === 0 || exportingPdf) return
-    setExportingPdf(true)
+  const exportPdf = async (record: PremiseQuestionnaire) => {
+    if (exportingPdfId) return
+    setExportingPdfId(record.id)
     try {
-      await exportPremiseQuestionnairesPdf(data.premiseQuestionnaires)
+      await exportPremiseQuestionnairesPdf([record])
       toast.success('PDF exportado com sucesso')
     } catch (exportError) {
       console.error(exportError)
       toast.error('Não foi possível exportar o PDF')
     } finally {
-      setExportingPdf(false)
+      setExportingPdfId(null)
     }
   }
 
@@ -270,14 +270,6 @@ export function PremiseQuestionnairesPage({
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--ink-soft)]">Preencha uma residência por vez. As respostas ficam salvas para consulta e edição da equipe.</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => void exportPdf()}
-            disabled={data.premiseQuestionnaires.length === 0 || exportingPdf}
-            className="inline-flex items-center gap-2 border border-[var(--teal)] px-4 py-3 text-sm font-semibold text-[var(--teal)] transition hover:bg-[var(--teal-active-bg)] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <FileDown className="h-4 w-4" /> {exportingPdf ? 'Gerando PDF…' : 'Exportar PDF'}
-          </button>
           <button type="button" onClick={startNew} className="inline-flex items-center gap-2 bg-[var(--teal)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--teal-bright)]">
             <Plus className="h-4 w-4" /> Novo questionário
           </button>
@@ -307,7 +299,16 @@ export function PremiseQuestionnairesPage({
                     <div className="mt-1 text-sm text-[var(--ink-soft)]">{recordAnswers.contactInfo || record.contact_info || record.identification_note || 'Sem contato informado'}</div>
                     <div className="mt-2 text-xs text-[var(--ink-soft)]">Atualizado em {formatDate(record.updated_at)}</div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      aria-label={`Exportar PDF do questionário de ${record.respondent_name || 'cliente'}`}
+                      onClick={() => void exportPdf(record)}
+                      disabled={Boolean(exportingPdfId) && exportingPdfId !== record.id}
+                      className="inline-flex items-center gap-2 border border-[var(--teal)] px-3 py-2 text-xs font-semibold text-[var(--teal)] transition hover:bg-[var(--teal-active-bg)] disabled:cursor-wait disabled:opacity-40"
+                    >
+                      <FileDown className="h-3.5 w-3.5" /> {exportingPdfId === record.id ? 'Gerando…' : 'Exportar PDF'}
+                    </button>
                     <button type="button" aria-label={`Editar questionário de ${record.respondent_name || 'cliente'}`} onClick={() => editQuestionnaire(record)} className="inline-flex items-center gap-2 border border-[var(--line)] px-3 py-2 text-xs font-semibold text-[var(--ink-soft)] transition hover:border-[var(--teal)] hover:text-[var(--teal)]">
                       <Pencil className="h-3.5 w-3.5" /> Editar
                     </button>

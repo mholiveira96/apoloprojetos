@@ -19,6 +19,15 @@ function formatDate(value: string | null | undefined) {
   return new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
+function filenameSlug(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || 'residencia'
+}
+
 function questionnaireAnswers(record: PdfRecord) {
   const answers = { ...emptyAnswers(), ...record.answers }
   return Object.fromEntries(
@@ -63,7 +72,7 @@ export async function exportPremiseQuestionnairesPdf(records: PdfRecord[]) {
   doc.text('APOLO / PREMISSAS', 60, 17)
   doc.setFontSize(21)
   doc.setTextColor(...INK)
-  doc.text('Questionários de premissas', 60, 26)
+  doc.text(records.length === 1 ? 'Questionário de premissas' : 'Questionários de premissas', 60, 26)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8.5)
   doc.setTextColor(...MUTED)
@@ -133,5 +142,8 @@ export async function exportPremiseQuestionnairesPdf(records: PdfRecord[]) {
   }
 
   const date = new Date().toISOString().slice(0, 10)
-  doc.save(`questionarios-premissas-${date}.pdf`)
+  const name = records.length === 1
+    ? filenameSlug(questionnaireAnswers(records[0]).respondentName || records[0].respondent_name)
+    : 'lote'
+  doc.save(`${records.length === 1 ? 'questionario' : 'questionarios'}-premissas-${name}-${date}.pdf`)
 }
