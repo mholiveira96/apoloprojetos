@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { ArrowLeft, ArrowRight, Check, ClipboardList } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, ClipboardList, FileDown } from 'lucide-react'
 import { emptyAnswers, questions, welcomeCopy } from '@/lib/premise-questionnaire'
+import { exportPremiseQuestionnairesPdf } from '@/lib/premise-questionnaire-pdf'
 
 async function submitPublicQuestionnaire(payload: Record<string, unknown>) {
   const response = await fetch('/api/app/mutate', {
@@ -18,6 +19,9 @@ export function PublicPremiseQuestionnairePage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [submittedAt, setSubmittedAt] = useState<string | null>(null)
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const [pdfError, setPdfError] = useState('')
 
   const activeQuestion = step >= 0 ? questions[step] : null
   const progress = step < 0 ? 0 : Math.round(((step + 1) / questions.length) * 100)
@@ -52,11 +56,38 @@ export function PublicPremiseQuestionnairePage() {
         contactInfo: answers.contactInfo,
         answers,
       })
+      setSubmittedAt(new Date().toISOString())
       setSubmitted(true)
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Não foi possível enviar o questionário')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const exportSubmittedPdf = async () => {
+    if (exportingPdf) return
+    const completedAt = submittedAt || new Date().toISOString()
+    setExportingPdf(true)
+    setPdfError('')
+    try {
+      await exportPremiseQuestionnairesPdf([{
+        id: 'public-premise-questionnaire',
+        respondent_name: answers.respondentName || 'Questionário de premissas',
+        contact_info: answers.contactInfo || null,
+        identification_note: null,
+        answers,
+        status: 'completed',
+        created_by: null,
+        created_at: completedAt,
+        updated_at: completedAt,
+        completed_at: completedAt,
+      }])
+    } catch (exportError) {
+      console.error(exportError)
+      setPdfError('Não foi possível gerar o PDF. Tente novamente.')
+    } finally {
+      setExportingPdf(false)
     }
   }
 
@@ -69,6 +100,13 @@ export function PublicPremiseQuestionnairePage() {
           <div className="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--teal)]">Apolo Projetos Inteligentes</div>
           <h1 className="mt-4 font-display text-4xl tracking-tight text-[var(--ink)] sm:text-5xl">Obrigado!</h1>
           <p className="mx-auto mt-5 max-w-lg text-base leading-8 text-[var(--ink-paragraph)]">Recebemos suas respostas. Elas nos ajudarão a elaborar os projetos da sua residência com mais clareza e segurança.</p>
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <p className="text-sm text-[var(--ink-soft)]">Baixe uma cópia das suas respostas para guardar ou compartilhar.</p>
+            <button type="button" onClick={() => void exportSubmittedPdf()} disabled={exportingPdf} className="inline-flex items-center gap-3 bg-[var(--teal)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[var(--teal-bright)] disabled:cursor-wait disabled:opacity-50">
+              <FileDown className="h-4 w-4" /> {exportingPdf ? 'Gerando PDF…' : 'Baixar respostas em PDF'}
+            </button>
+            {pdfError ? <div className="text-sm font-medium text-rose-500">{pdfError}</div> : null}
+          </div>
           <p className="mt-8 text-sm text-[var(--ink-soft)]">Você já pode fechar esta página.</p>
         </section>
       </main>
