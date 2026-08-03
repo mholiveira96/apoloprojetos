@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Check,
   ClipboardList,
+  FileDown,
   Pencil,
   Plus,
   Trash2,
@@ -12,6 +13,8 @@ import {
 import type { BootstrapData, PremiseQuestionnaire } from '@/types/app'
 
 import { canonicalQuestionnaireAnswer, emptyAnswers, questions, welcomeCopy } from '@/lib/premise-questionnaire'
+import { exportPremiseQuestionnairesPdf } from '@/lib/premise-questionnaire-pdf'
+import { toast } from 'sonner'
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—'
@@ -40,6 +43,7 @@ export function PremiseQuestionnairesPage({
   const [answers, setAnswers] = useState<Record<string, string>>(emptyAnswers)
   const [identificationNote, setIdentificationNote] = useState('')
   const [error, setError] = useState('')
+  const [exportingPdf, setExportingPdf] = useState(false)
 
   const activeQuestion = step >= 0 ? questions[step] : null
   const answeredCount = useMemo(
@@ -127,6 +131,20 @@ export function PremiseQuestionnairesPage({
     void submitMutation('deletePremiseQuestionnaire', { id: record.id }, undefined, 'Questionário excluído')
   }
 
+  const exportPdf = async () => {
+    if (data.premiseQuestionnaires.length === 0 || exportingPdf) return
+    setExportingPdf(true)
+    try {
+      await exportPremiseQuestionnairesPdf(data.premiseQuestionnaires)
+      toast.success('PDF exportado com sucesso')
+    } catch (exportError) {
+      console.error(exportError)
+      toast.error('Não foi possível exportar o PDF')
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
   if (mode === 'form') {
     const progress = step < 0 ? 0 : Math.round(((step + 1) / questions.length) * 100)
     return (
@@ -163,15 +181,6 @@ export function PremiseQuestionnairesPage({
                   <div className="font-semibold text-[var(--ink)]">Apolo Projetos Inteligentes</div>
                   <div>Ed. Plenarium - Lagoa NovaSala 1304</div>
                 </div>
-                <label className="mt-10 block max-w-xl">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-soft)]">Outra forma de identificação (opcional)</span>
-                  <input
-                    value={identificationNote}
-                    onChange={(event) => setIdentificationNote(event.target.value)}
-                    placeholder="Ex.: nome do condomínio, lote ou referência interna"
-                    className="w-full border-b border-[var(--line)] bg-transparent px-0 py-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--teal)] placeholder:text-[var(--ink-soft)]"
-                  />
-                </label>
                 <button type="button" onClick={() => setStep(0)} className="mt-10 inline-flex items-center gap-3 bg-[var(--teal)] px-6 py-4 text-sm font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[var(--teal-bright)]">
                   Começar questionário
                   <ArrowRight className="h-4 w-4" />
@@ -188,7 +197,7 @@ export function PremiseQuestionnairesPage({
                 </div>
                 <div className="mb-10 max-w-3xl">
                   <div className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--teal)]">Premissas da residência</div>
-                  <h2 className="font-display text-3xl leading-[1.16] tracking-tight text-[var(--ink)] sm:text-5xl">{activeQuestion.label}</h2>
+                  <h2 className="font-display text-2xl leading-[1.16] tracking-tight text-[var(--ink)] sm:text-5xl">{activeQuestion.label}</h2>
                 </div>
 
                 {activeQuestion.kind === 'choice' ? (
@@ -260,9 +269,19 @@ export function PremiseQuestionnairesPage({
           <h1 className="font-display text-4xl tracking-tight text-[var(--ink)] sm:text-5xl">Questionário de premissas</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--ink-soft)]">Preencha uma residência por vez. As respostas ficam salvas para consulta e edição da equipe.</p>
         </div>
-        <button type="button" onClick={startNew} className="inline-flex items-center gap-2 bg-[var(--teal)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--teal-bright)]">
-          <Plus className="h-4 w-4" /> Novo questionário
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => void exportPdf()}
+            disabled={data.premiseQuestionnaires.length === 0 || exportingPdf}
+            className="inline-flex items-center gap-2 border border-[var(--teal)] px-4 py-3 text-sm font-semibold text-[var(--teal)] transition hover:bg-[var(--teal-active-bg)] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <FileDown className="h-4 w-4" /> {exportingPdf ? 'Gerando PDF…' : 'Exportar PDF'}
+          </button>
+          <button type="button" onClick={startNew} className="inline-flex items-center gap-2 bg-[var(--teal)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--teal-bright)]">
+            <Plus className="h-4 w-4" /> Novo questionário
+          </button>
+        </div>
       </div>
 
       {data.premiseQuestionnaires.length === 0 ? (

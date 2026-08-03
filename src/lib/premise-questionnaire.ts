@@ -45,12 +45,6 @@ export const questions: Question[] = [
     options: ['7000 W', '7800 W', 'Não se aplica — usarei aquecimento solar'],
   },
   {
-    id: 'kitchenExhaust',
-    label: 'Irá utilizar coifa ou depurador em sua cozinha?',
-    kind: 'choice',
-    options: ['Coifa — com saída externa de ar', 'Coifa — com recirculação', 'Depurador', 'Ainda não decidi'],
-  },
-  {
     id: 'electricCar',
     label: 'Deseja ter uma tomada para carro elétrico?',
     kind: 'choice',
@@ -99,9 +93,6 @@ const legacyOptionLabels: Record<string, string> = {
   'NÃO SE APLICA — USAREI AQUECIMENTO SOLAR': 'Não se aplica — usarei aquecimento solar',
   '7000W': '7000 W',
   '7800W': '7800 W',
-  'COIFA - COM SAÍDA EXTERNA DE AR': 'Coifa — com saída externa de ar',
-  'COIFA - COM RECIRCULAÇÃO': 'Coifa — com recirculação',
-  DEPURADOR: 'Depurador',
   'GOSTARIA DE CONVERSAR SOBRE CARREGADORES PARA CARRO ELÉTRICO': 'Gostaria de conversar sobre carregadores para carro elétrico',
   'OBRIGADO, NÃO TENHO INTERESSE': 'Obrigado, não tenho interesse',
   'PRETENDO TER ENERGIA SOLAR AGORA': 'Pretendo ter energia solar agora',

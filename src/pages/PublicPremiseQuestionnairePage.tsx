@@ -15,7 +15,6 @@ async function submitPublicQuestionnaire(payload: Record<string, unknown>) {
 export function PublicPremiseQuestionnairePage() {
   const [step, setStep] = useState(-1)
   const [answers, setAnswers] = useState<Record<string, string>>(emptyAnswers)
-  const [identificationNote, setIdentificationNote] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -51,7 +50,6 @@ export function PublicPremiseQuestionnairePage() {
       await submitPublicQuestionnaire({
         respondentName: answers.respondentName,
         contactInfo: answers.contactInfo,
-        identificationNote,
         answers,
       })
       setSubmitted(true)
@@ -98,17 +96,13 @@ export function PublicPremiseQuestionnairePage() {
                 <div className="font-semibold text-[var(--ink)]">Apolo Projetos Inteligentes</div>
                 <div>Ed. Plenarium - Lagoa NovaSala 1304</div>
               </div>
-              <label className="mt-10 block max-w-xl">
-                <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-soft)]">Outra forma de identificação (opcional)</span>
-                <input value={identificationNote} onChange={(event) => setIdentificationNote(event.target.value)} placeholder="Ex.: nome do condomínio, lote ou referência" className="w-full border-b border-[var(--line)] bg-transparent px-0 py-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--teal)] placeholder:text-[var(--ink-soft)]" />
-              </label>
               <button type="button" onClick={() => setStep(0)} className="mt-10 inline-flex items-center gap-3 bg-[var(--teal)] px-6 py-4 text-sm font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[var(--teal-bright)]">Começar questionário <ArrowRight className="h-4 w-4" /></button>
             </section>
           ) : activeQuestion ? (
             <form onSubmit={handleNext} className="workspace-appear" key={activeQuestion.id}>
               <div className="mb-5 flex items-center justify-between gap-4 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-soft)]"><span>Pergunta {step + 1} de {questions.length}</span><span>{progress}%</span></div>
               <div className="mb-12 h-1 w-full bg-[var(--teal-wash)]"><div className="h-1 bg-[var(--teal)] transition-all duration-500" style={{ width: `${Math.max(progress, 4)}%` }} /></div>
-              <div className="mb-10 max-w-3xl"><div className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--teal)]">Premissas da residência</div><h2 className="font-display text-3xl leading-[1.16] tracking-tight text-[var(--ink)] sm:text-5xl">{activeQuestion.label}</h2></div>
+              <div className="mb-10 max-w-3xl"><div className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--teal)]">Premissas da residência</div><h2 className="font-display text-2xl leading-[1.16] tracking-tight text-[var(--ink)] sm:text-5xl">{activeQuestion.label}</h2></div>
 
               {activeQuestion.kind === 'choice' ? (
                 <div className="grid gap-3">
