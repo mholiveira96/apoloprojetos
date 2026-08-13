@@ -43,6 +43,7 @@ import { formatCurrency, formatDate, numericValue, stageLabel, toDateInputValue 
 import { buildProjectDriveUrl } from '@/lib/project-drive'
 import { projectStages, subprojectStages, partners, disciplines, LABELS, DISCIPLINE_ALIAS } from '@/lib/constants'
 import { buildClientTimeline } from '@/lib/client-timeline'
+import { isCalendarSubprojectVisible } from '@/lib/operations-calendar'
 
 const OPS_STAGES = subprojectStages
 type OpsSortKey = 'latest' | 'updated' | 'deadline' | 'value'
@@ -333,6 +334,8 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
   const deadlinesByDay = useMemo(() => {
     const map = new Map<number, Subproject[]>()
     for (const sp of subprojects) {
+      const project = projectsById.get(sp.project_id)
+      if (!project || !isCalendarSubprojectVisible(sp, project)) continue
       const deadline = sp.deadline
       if (!deadline) continue
       const d = new Date(deadline + 'T00:00:00')
@@ -343,11 +346,14 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
       }
     }
     return map
-  }, [subprojects, year, month])
+  }, [projectsById, subprojects, year, month])
 
   const noDeadline = useMemo(
-    () => subprojects.filter((sp) => !sp.deadline),
-    [subprojects],
+    () => subprojects.filter((sp) => {
+      const project = projectsById.get(sp.project_id)
+      return Boolean(project && isCalendarSubprojectVisible(sp, project) && !sp.deadline)
+    }),
+    [projectsById, subprojects],
   )
 
   const firstWeekday = new Date(year, month, 1).getDay()
