@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { isCalendarSubprojectOverdue, isCalendarDeadlineVisible, isCalendarSubprojectVisible } from './operations-calendar.ts'
+import {
+  isCalendarSubprojectFollowUp,
+  isCalendarSubprojectOverdue,
+  isCalendarDeadlineVisible,
+  isCalendarSubprojectVisible,
+} from './operations-calendar.ts'
 
 test('hides subprojects from completed projects in the calendar', () => {
   assert.equal(
@@ -82,6 +87,45 @@ test('does not classify an item due today as overdue', () => {
       { stage: 'em-andamento', deadline: '2026-08-13' },
       { stage: 'em-andamento' },
       '2026-08-13',
+    ),
+    false,
+  )
+})
+
+test('classifies acompanhamento and bloqueado as follow-up, not overdue', () => {
+  assert.equal(
+    isCalendarSubprojectFollowUp(
+      { stage: 'aguardando-revisao', deadline: '2026-07-31' },
+      { stage: 'em-andamento' },
+    ),
+    true,
+  )
+  assert.equal(
+    isCalendarSubprojectOverdue(
+      { stage: 'bloqueado', deadline: '2026-07-31' },
+      { stage: 'em-andamento' },
+      '2026-08-13',
+    ),
+    false,
+  )
+})
+
+test('does not keep follow-up items in the month calendar', () => {
+  assert.equal(
+    isCalendarDeadlineVisible(
+      { stage: 'bloqueado', deadline: '2026-08-15' },
+      { stage: 'em-andamento' },
+      '2026-08-13',
+    ),
+    false,
+  )
+})
+
+test('does not classify completed follow-up work as follow-up', () => {
+  assert.equal(
+    isCalendarSubprojectFollowUp(
+      { stage: 'bloqueado', deadline: null },
+      { stage: 'concluído' },
     ),
     false,
   )

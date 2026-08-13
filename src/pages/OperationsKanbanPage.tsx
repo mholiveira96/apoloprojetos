@@ -43,7 +43,12 @@ import { formatCurrency, formatDate, numericValue, stageLabel, toDateInputValue 
 import { buildProjectDriveUrl } from '@/lib/project-drive'
 import { projectStages, subprojectStages, partners, disciplines, LABELS, DISCIPLINE_ALIAS } from '@/lib/constants'
 import { buildClientTimeline } from '@/lib/client-timeline'
-import { isCalendarDeadlineVisible, isCalendarSubprojectOverdue, isCalendarSubprojectVisible } from '@/lib/operations-calendar'
+import {
+  isCalendarSubprojectFollowUp,
+  isCalendarDeadlineVisible,
+  isCalendarSubprojectOverdue,
+  isCalendarSubprojectVisible,
+} from '@/lib/operations-calendar'
 
 const OPS_STAGES = subprojectStages
 type OpsSortKey = 'latest' | 'updated' | 'deadline' | 'value'
@@ -352,7 +357,7 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
   const noDeadline = useMemo(
     () => subprojects.filter((sp) => {
       const project = projectsById.get(sp.project_id)
-      return Boolean(project && isCalendarSubprojectVisible(sp, project) && !sp.deadline)
+      return Boolean(project && isCalendarSubprojectVisible(sp, project) && !isCalendarSubprojectFollowUp(sp, project) && !sp.deadline)
     }),
     [projectsById, subprojects],
   )
@@ -365,6 +370,16 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
       })
       .sort((a, b) => String(a.deadline).localeCompare(String(b.deadline))),
     [projectsById, subprojects, todayKey],
+  )
+
+  const followUp = useMemo(
+    () => subprojects
+      .filter((sp) => {
+        const project = projectsById.get(sp.project_id)
+        return Boolean(project && isCalendarSubprojectFollowUp(sp, project))
+      })
+      .sort((a, b) => String(a.deadline ?? '9999-12-31').localeCompare(String(b.deadline ?? '9999-12-31'))),
+    [projectsById, subprojects],
   )
 
   const firstWeekday = new Date(year, month, 1).getDay()
@@ -515,6 +530,49 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
                       {showDiscipline(sp.discipline)}
                     </div>
                     <span className="text-xs font-medium text-[var(--rose-text)]">Prazo: {formatDate(sp.deadline)}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {followUp.length > 0 && (
+        <div>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--amber-text)]">Acompanhamento / bloqueados</div>
+          <div className="mb-3 text-sm text-[var(--ink-soft)]">Itens que precisam de atenção, mas não são considerados atrasados automaticamente.</div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {followUp.map((sp) => {
+              const project = projectsById.get(sp.project_id)
+              if (!project) return null
+              const { Icon, className: chipClass } = disciplineMeta(sp.discipline)
+              const blocked = sp.stage === 'bloqueado'
+              return (
+                <div
+                  key={sp.id}
+                  className="cursor-pointer border border-[var(--amber-border)] bg-[var(--amber-bg)] p-4 transition hover:shadow-[var(--shadow-panel-xs)]"
+                  onClick={() => onCardClick(project.id, sp.id)}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-[var(--ink)]">{project.name}</div>
+                      <div className="mt-0.5 truncate text-xs text-[var(--ink-soft)]">{project.client_name || ''}</div>
+                    </div>
+                    <span className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                      blocked
+                        ? 'border-[var(--rose-border)] bg-[var(--rose-bg)] text-[var(--rose-text)]'
+                        : 'border-[var(--amber-border)] bg-[var(--amber-bg)] text-[var(--amber-text)]'
+                    }`}>
+                      {blocked ? 'Bloqueado' : 'Acompanhamento'}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <div className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${chipClass}`}>
+                      <Icon className="h-3 w-3 shrink-0" />
+                      {showDiscipline(sp.discipline)}
+                    </div>
+                    {sp.deadline && <span className="text-xs text-[var(--ink-soft)]">Prazo: {formatDate(sp.deadline)}</span>}
                   </div>
                 </div>
               )
