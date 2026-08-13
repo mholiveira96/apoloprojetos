@@ -43,7 +43,7 @@ import { formatCurrency, formatDate, numericValue, stageLabel, toDateInputValue 
 import { buildProjectDriveUrl } from '@/lib/project-drive'
 import { projectStages, subprojectStages, partners, disciplines, LABELS, DISCIPLINE_ALIAS } from '@/lib/constants'
 import { buildClientTimeline } from '@/lib/client-timeline'
-import { isCalendarSubprojectVisible } from '@/lib/operations-calendar'
+import { isCalendarDeadlineVisible, isCalendarSubprojectOverdue, isCalendarSubprojectVisible } from '@/lib/operations-calendar'
 
 const OPS_STAGES = subprojectStages
 type OpsSortKey = 'latest' | 'updated' | 'deadline' | 'value'
@@ -328,6 +328,7 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
   onCardClick: (projectId: string, subprojectId: string) => void
 }) {
   const today = new Date()
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
 
@@ -335,7 +336,7 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
     const map = new Map<number, Subproject[]>()
     for (const sp of subprojects) {
       const project = projectsById.get(sp.project_id)
-      if (!project || !isCalendarSubprojectVisible(sp, project)) continue
+      if (!project || !isCalendarDeadlineVisible(sp, project, todayKey)) continue
       const deadline = sp.deadline
       if (!deadline) continue
       const d = new Date(deadline + 'T00:00:00')
@@ -346,7 +347,7 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
       }
     }
     return map
-  }, [projectsById, subprojects, year, month])
+  }, [projectsById, subprojects, todayKey, year, month])
 
   const noDeadline = useMemo(
     () => subprojects.filter((sp) => {
@@ -354,6 +355,16 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
       return Boolean(project && isCalendarSubprojectVisible(sp, project) && !sp.deadline)
     }),
     [projectsById, subprojects],
+  )
+
+  const overdue = useMemo(
+    () => subprojects
+      .filter((sp) => {
+        const project = projectsById.get(sp.project_id)
+        return Boolean(project && isCalendarSubprojectOverdue(sp, project, todayKey))
+      })
+      .sort((a, b) => String(a.deadline).localeCompare(String(b.deadline))),
+    [projectsById, subprojects, todayKey],
   )
 
   const firstWeekday = new Date(year, month, 1).getDay()
@@ -473,6 +484,37 @@ function CalendarView({ subprojects, projectsById, onCardClick }: {
                   <div className={`mt-2 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${chipClass}`}>
                     <Icon className="h-3 w-3 shrink-0" />
                     {showDiscipline(sp.discipline)}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {overdue.length > 0 && (
+        <div>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--rose-text)]">Atrasados</div>
+          <div className="mb-3 text-sm text-[var(--ink-soft)]">Projetos não concluídos com prazo vencido, independentemente do mês selecionado.</div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {overdue.map((sp) => {
+              const project = projectsById.get(sp.project_id)
+              if (!project) return null
+              const { Icon, className: chipClass } = disciplineMeta(sp.discipline)
+              return (
+                <div
+                  key={sp.id}
+                  className="cursor-pointer border border-[var(--rose-border)] bg-[var(--rose-bg)] p-4 transition hover:shadow-[var(--shadow-panel-xs)]"
+                  onClick={() => onCardClick(project.id, sp.id)}
+                >
+                  <div className="truncate font-medium text-[var(--ink)]">{project.name}</div>
+                  <div className="mt-0.5 truncate text-xs text-[var(--ink-soft)]">{project.client_name || ''}</div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <div className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${chipClass}`}>
+                      <Icon className="h-3 w-3 shrink-0" />
+                      {showDiscipline(sp.discipline)}
+                    </div>
+                    <span className="text-xs font-medium text-[var(--rose-text)]">Prazo: {formatDate(sp.deadline)}</span>
                   </div>
                 </div>
               )
