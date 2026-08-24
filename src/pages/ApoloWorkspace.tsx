@@ -150,8 +150,8 @@ export function ApoloWorkspace() {
     </div>
   )
 
-  const loadBootstrap = useCallback(async () => {
-    setLoadingData(true)
+  const loadBootstrap = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoadingData(true)
     try {
       const next = await getBootstrap()
       setData(next)
@@ -160,9 +160,10 @@ export function ApoloWorkspace() {
       const message = error instanceof Error ? error.message : 'Falha ao carregar o app'
       toast.error(message)
     } finally {
-      setLoadingData(false)
+      if (showLoading) setLoadingData(false)
     }
   }, [])
+  const refreshFinancial = useCallback(() => loadBootstrap(false), [loadBootstrap])
 
   useEffect(() => {
     const init = async () => {
@@ -1155,7 +1156,7 @@ export function ApoloWorkspace() {
             ) : null}
 
             {section === 'financeiro' ? (
-              <FinancialPage data={data} submitMutation={submitMutation} mutating={mutating} onRefresh={loadBootstrap} />
+              <FinancialPage data={data} submitMutation={submitMutation} mutating={mutating} onRefresh={refreshFinancial} />
             ) : null}
 
             {section === 'fluxo' ? (
