@@ -138,6 +138,16 @@ const schemaStatements = [
     uploaded_by TEXT,
     FOREIGN KEY (lead_id) REFERENCES leads(id)
   )`,
+  `CREATE TABLE IF NOT EXISTS lead_subprojects (
+    id TEXT PRIMARY KEY,
+    lead_id TEXT NOT NULL,
+    discipline TEXT NOT NULL,
+    amount REAL NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (lead_id) REFERENCES leads(id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_lead_subprojects_lead ON lead_subprojects(lead_id, created_at)`,
   `CREATE TABLE IF NOT EXISTS subproject_comments (
     id TEXT PRIMARY KEY,
     subproject_id TEXT NOT NULL,
@@ -449,7 +459,7 @@ async function runExpenseSchemaMigrations() {
   }
 }
 
-const SCHEMA_VERSION = '12'
+const SCHEMA_VERSION = '13'
 
 async function hasExpectedSchemaShape(db) {
   try {
@@ -458,6 +468,7 @@ async function hasExpectedSchemaShape(db) {
     await db.execute(`SELECT drive_enabled, drive_token, drive_updated_at FROM projects LIMIT 0`)
     await db.execute(`SELECT observacao, area FROM subprojects LIMIT 0`)
     await db.execute(`SELECT 1 FROM subproject_comments LIMIT 0`)
+    await db.execute(`SELECT lead_id, discipline, amount FROM lead_subprojects LIMIT 0`)
     await db.execute(`SELECT project_id, subproject_id, blob_url, blob_pathname FROM project_drive_files LIMIT 0`)
     await db.execute(`SELECT stage FROM revisions LIMIT 0`)
     await db.execute(`SELECT respondent_name, contact_info, answers_json FROM premise_questionnaires LIMIT 0`)

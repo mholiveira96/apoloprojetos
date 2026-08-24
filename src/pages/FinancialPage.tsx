@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useState, useEffect } from 'react'
 import { AlertCircle, Archive, ArchiveRestore, ArrowDownToLine, ChevronDown, ChevronUp, CircleDollarSign, HandCoins, Pencil, TrendingUp, Wallet, X } from 'lucide-react'
 import type { BootstrapData, Expense, Payout, Project, Receipt, Subproject } from '@/types/app'
 import { partners } from '@/lib/constants'
@@ -17,6 +17,7 @@ type Props = {
   data: BootstrapData
   submitMutation: SubmitMutation
   mutating: boolean
+  onRefresh: () => Promise<void>
 }
 
 const labelClass = 'text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70'
@@ -362,7 +363,7 @@ function ProjectHistoryModal({
   )
 }
 
-export function FinancialPage({ data, submitMutation, mutating }: Props) {
+export function FinancialPage({ data, submitMutation, mutating, onRefresh }: Props) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
@@ -370,6 +371,10 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
     direction: 'asc',
     key: 'project',
   })
+
+  useEffect(() => {
+    if (selectedProjectId) void onRefresh()
+  }, [onRefresh, selectedProjectId])
 
   const trackedProjects = useMemo(
     () => data.projects.filter((project) => !project.archived),
@@ -389,7 +394,7 @@ export function FinancialPage({ data, submitMutation, mutating }: Props) {
     [visibleProjects],
   )
   const subprojectsByProjectId = useMemo(() => {
-    const map = new Map<string, typeof data.subprojects>()
+    const map = new Map<string, Subproject[]>()
     for (const subproject of data.subprojects) {
       const current = map.get(subproject.project_id) ?? []
       current.push(subproject)

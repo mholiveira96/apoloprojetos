@@ -71,6 +71,21 @@ export function LeadModal({
           {partners.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
         <input className="border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" type="date" value={form.nextFollowUpAt} onChange={(e) => setForm((c) => ({ ...c, nextFollowUpAt: e.target.value }))} placeholder="Próximo follow-up" />
+        <div className="md:col-span-2 border-t border-[var(--line)] pt-4">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-medium text-[var(--ink)]">Subdisciplinas e valores</span>
+            <button type="button" className="inline-flex items-center gap-1 border border-[var(--line)] px-3 py-1.5 text-xs text-[var(--ink)]" onClick={() => setForm((c) => ({ ...c, subprojects: [...c.subprojects, { discipline: '', amount: '', responsiblePartner: '', deadline: '' }] }))}><Plus className="h-3 w-3" /> Adicionar</button>
+          </div>
+          <div className="mt-3 space-y-2">
+            {form.subprojects.map((sp, index) => <div key={index} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+              <select className="border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-sm" value={sp.discipline} onChange={(e) => setForm((c) => ({ ...c, subprojects: c.subprojects.map((item, i) => i === index ? { ...item, discipline: e.target.value } : item) }))}>
+                <option value="">Disciplina</option>{disciplines.map((d) => <option key={d} value={d}>{LABELS[d]}</option>)}
+              </select>
+              <input className="border border-[var(--line)] bg-[var(--bg-card-solid)] px-3 py-2 text-sm" type="number" min="0" step="0.01" placeholder="Valor" value={sp.amount} onChange={(e) => setForm((c) => ({ ...c, subprojects: c.subprojects.map((item, i) => i === index ? { ...item, amount: e.target.value } : item) }))} />
+              <button type="button" className="border border-[var(--line)] px-3 text-[var(--ink-soft)]" onClick={() => setForm((c) => ({ ...c, subprojects: c.subprojects.filter((_, i) => i !== index) }))}><X className="h-3.5 w-3.5" /></button>
+            </div>)}
+          </div>
+        </div>
         <textarea className="md:col-span-2 min-h-24 border border-[var(--line)] bg-[var(--bg-card-solid)] px-4 py-3" placeholder="Observações" value={form.notes} onChange={(e) => setForm((c) => ({ ...c, notes: e.target.value }))} />
         <button className="md:col-span-2 inline-flex items-center justify-center gap-2 bg-[var(--teal)] px-4 py-3 text-white transition hover:bg-[var(--teal-bright)]" disabled={mutating}>
           <Plus className="h-4 w-4" /> Criar lead
@@ -187,6 +202,7 @@ export function LeadDetailModal({
       </div>
 
       <div className="mt-3 grid gap-3 md:grid-cols-3">
+        {lead.subprojects.length ? <div className="md:col-span-3 border border-[var(--line)] bg-[var(--bg-card-70)] p-4"><div className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70">Subdisciplinas e valores</div><div className="mt-3 grid gap-2 sm:grid-cols-2">{lead.subprojects.map((sp) => <div key={sp.id} className="flex items-center justify-between border border-[var(--line)] bg-[var(--bg-card-85)] px-3 py-2 text-sm"><span className="text-[var(--ink)]">{LABELS[sp.discipline] ?? sp.discipline}</span><strong className="text-[var(--ink)]">{formatCurrency(numericValue(sp.amount))}</strong></div>)}</div></div> : null}
         <Editable label="Data de entrada" value={draft.inboundAt} onChange={(v) => onChange('inboundAt', v)} type="date" />
         <Editable label="Primeiro contato" value={draft.firstContactAt} onChange={(v) => onChange('firstContactAt', v)} type="date" />
         <Editable label="Proposta enviada" value={draft.proposalSentAt} onChange={(v) => onChange('proposalSentAt', v)} type="date" />

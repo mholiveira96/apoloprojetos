@@ -1295,6 +1295,7 @@ interface CreateFromLeadForm {
   contractAmount: string
   statusNote: string
   observacao: string
+  subprojects: { discipline: string; amount: string; responsiblePartner: string; deadline: string }[]
 }
 
 function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFromLeadModalProps) {
@@ -1309,6 +1310,7 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
     contractAmount: String(selectedLead?.estimated_amount || ''),
     statusNote: '',
     observacao: '',
+    subprojects: selectedLead?.subprojects.map((sp) => ({ discipline: sp.discipline, amount: String(sp.amount), responsiblePartner: '', deadline: '' })) ?? [],
   })
 
   const handleLeadChange = (leadId: string) => {
@@ -1319,6 +1321,7 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
       name: lead?.title || '',
       salesOwner: lead?.sales_owner || '',
       contractAmount: String(lead?.estimated_amount || ''),
+      subprojects: lead?.subprojects.map((sp) => ({ discipline: sp.discipline, amount: String(sp.amount), responsiblePartner: '', deadline: '' })) ?? [],
     }))
   }
 
@@ -1392,6 +1395,10 @@ function CreateFromLeadModal({ wonLeads, onClose, onCreate, mutating }: CreateFr
               <div>
                 <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Valor do contrato</label>
                 <input className="w-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2.5 text-sm" type="number" value={form.contractAmount} onChange={set('contractAmount')} />
+              </div>
+              <div className="col-span-2">
+                <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Subdisciplinas importadas do comercial</label>
+                <div className="space-y-2">{form.subprojects.length ? form.subprojects.map((sp, index) => <div key={index} className="grid grid-cols-2 gap-2"><select className="border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-sm" value={sp.discipline} onChange={(e) => setForm((f) => ({ ...f, subprojects: f.subprojects.map((item, i) => i === index ? { ...item, discipline: e.target.value } : item) }))}>{disciplines.map((d) => <option key={d} value={d}>{LABELS[d]}</option>)}</select><input className="border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-sm" type="number" value={sp.amount} onChange={(e) => setForm((f) => ({ ...f, subprojects: f.subprojects.map((item, i) => i === index ? { ...item, amount: e.target.value } : item) }))} /></div>) : <div className="text-xs text-[var(--ink-soft)]">Este lead não possui subdisciplinas cadastradas.</div>}</div>
               </div>
               <div className="col-span-2">
                 <label className="mb-1 block text-xs font-medium text-[var(--ink-soft)]">Observação do subprojeto</label>

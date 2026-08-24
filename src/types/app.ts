@@ -34,6 +34,14 @@ export type Lead = {
   created_at: string
   proposal_filename: string | null
   client_name: string | null
+  subprojects: LeadSubproject[]
+}
+
+export type LeadSubproject = {
+  id: string
+  lead_id: string
+  discipline: string
+  amount: number
 }
 
 export type Project = {

@@ -124,6 +124,7 @@ export async function runMutation(action, payload, actor) {
       const stage = normalizeText(payload.stage) || 'incoming'
       const inboundAt = normalizeDate(payload.inboundAt) || todayIsoDate()
       const nextFollowUpAt = normalizeDate(payload.nextFollowUpAt)
+      const leadId = createId('lead')
       await db.execute({
         sql: `INSERT INTO leads (
                 id, client_id, title, stage, source, estimated_amount, sales_owner, notes,
@@ -131,7 +132,7 @@ export async function runMutation(action, payload, actor) {
                 created_at, updated_at
               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
-          createId('lead'),
+          leadId,
           clientId,
           normalizeText(payload.title),
           stage,
@@ -149,6 +150,15 @@ export async function runMutation(action, payload, actor) {
           timestamp,
         ],
       })
+      for (const sp of Array.isArray(payload.subprojects) ? payload.subprojects : []) {
+        const discipline = normalizeText(sp.discipline)
+        const amount = normalizeAmount(sp.amount)
+        if (!discipline && amount <= 0) continue
+        await db.execute({
+          sql: 'INSERT INTO lead_subprojects (id, lead_id, discipline, amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+          args: [createId('leadsp'), leadId, discipline, amount, timestamp, timestamp],
+        })
+      }
       return { ok: true }
     }
 
@@ -219,6 +229,16 @@ export async function runMutation(action, payload, actor) {
           normalizeText(payload.id),
         ],
       })
+      await db.execute({ sql: 'DELETE FROM lead_subprojects WHERE lead_id = ?', args: [normalizeText(payload.id)] })
+      for (const sp of Array.isArray(payload.subprojects) ? payload.subprojects : []) {
+        const discipline = normalizeText(sp.discipline)
+        const amount = normalizeAmount(sp.amount)
+        if (!discipline && amount <= 0) continue
+        await db.execute({
+          sql: 'INSERT INTO lead_subprojects (id, lead_id, discipline, amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+          args: [createId('leadsp'), normalizeText(payload.id), discipline, amount, timestamp, timestamp],
+        })
+      }
       return { ok: true }
     }
 

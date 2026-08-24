@@ -25,7 +25,7 @@ import {
 import { Toaster, toast } from 'sonner'
 import { deleteProjectDriveFile, getBootstrap, getSession, login, logout, mutate, PROJECT_DRIVE_MAX_FILE_BYTES, uploadProjectDriveFile } from '@/lib/app-api'
 import type { BootstrapData, Lead, SessionUser, Subproject } from '@/types/app'
-import type { ConvertProjectForm, LeadDetailForm, ViewMode } from '@/types/forms'
+import type { ConvertProjectForm, LeadDetailForm, LeadForm, ViewMode } from '@/types/forms'
 import { NAV_ITEMS, BOTTOM_NAV_ITEMS, leadStages } from '@/lib/constants'
 import {
   formatCurrency,
@@ -68,7 +68,7 @@ export function ApoloWorkspace() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [subprojectSort, setSubprojectSort] = useState<'recent' | 'stage' | 'partner'>('recent')
 
-  const [leadForm, setLeadForm] = useState({
+  const [leadForm, setLeadForm] = useState<LeadForm>({
     clientName: '',
     title: '',
     stage: 'incoming',
@@ -78,6 +78,7 @@ export function ApoloWorkspace() {
     notes: '',
     inboundAt: new Date().toISOString().slice(0, 10),
     nextFollowUpAt: '',
+    subprojects: [],
   })
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [commercialView, setCommercialView] = useState<ViewMode>('kanban')
@@ -94,6 +95,7 @@ export function ApoloWorkspace() {
     nextFollowUpAt: '',
     proposalSentAt: '',
     closedAt: '',
+    subprojects: [],
   })
   const [showLeadModal, setShowLeadModal] = useState(false)
   const [showConvertModal, setShowConvertModal] = useState(false)
@@ -148,7 +150,7 @@ export function ApoloWorkspace() {
     </div>
   )
 
-  const loadBootstrap = async () => {
+  const loadBootstrap = useCallback(async () => {
     setLoadingData(true)
     try {
       const next = await getBootstrap()
@@ -160,7 +162,7 @@ export function ApoloWorkspace() {
     } finally {
       setLoadingData(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     const init = async () => {
@@ -242,6 +244,7 @@ export function ApoloWorkspace() {
       nextFollowUpAt: toDateInputValue(lead.next_follow_up_at),
       proposalSentAt: toDateInputValue(lead.proposal_sent_at),
       closedAt: toDateInputValue(lead.closed_at),
+      subprojects: lead.subprojects.map((sp) => ({ discipline: sp.discipline, amount: String(sp.amount), responsiblePartner: '', deadline: '' })),
     })
   }
 
@@ -1079,7 +1082,7 @@ export function ApoloWorkspace() {
                   setForm={setLeadForm}
                   onSubmit={() => {
                     void submitMutation('createLead', leadForm, () => {
-                      setLeadForm({ clientName: '', title: '', stage: 'incoming', source: '', estimatedAmount: '', salesOwner: '', notes: '', inboundAt: new Date().toISOString().slice(0, 10), nextFollowUpAt: '' })
+                      setLeadForm({ clientName: '', title: '', stage: 'incoming', source: '', estimatedAmount: '', salesOwner: '', notes: '', inboundAt: new Date().toISOString().slice(0, 10), nextFollowUpAt: '', subprojects: [] })
                       setShowLeadModal(false)
                     }, 'Lead criado')
                   }}
@@ -1105,7 +1108,7 @@ export function ApoloWorkspace() {
                         firstContactAt: toDateInputValue(selectedLead.first_contact_at),
                         proposalSentAt: toDateInputValue(selectedLead.proposal_sent_at),
                         closedAt: toDateInputValue(selectedLead.closed_at) || new Date().toISOString().slice(0, 10),
-                        subprojects: [{ discipline: '', amount: String(selectedLead.estimated_amount || ''), responsiblePartner: '', deadline: '' }],
+                        subprojects: selectedLead.subprojects.map((sp) => ({ discipline: sp.discipline, amount: String(sp.amount), responsiblePartner: '', deadline: '' })),
                       })
                       setShowConvertModal(true)
                     }}
@@ -1152,7 +1155,7 @@ export function ApoloWorkspace() {
             ) : null}
 
             {section === 'financeiro' ? (
-              <FinancialPage data={data} submitMutation={submitMutation} mutating={mutating} />
+              <FinancialPage data={data} submitMutation={submitMutation} mutating={mutating} onRefresh={loadBootstrap} />
             ) : null}
 
             {section === 'fluxo' ? (

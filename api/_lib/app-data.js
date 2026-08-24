@@ -36,6 +36,7 @@ export async function getBootstrapData() {
     activeProjectsResult,
     financialSummaryResult,
     leadsResult,
+    leadSubprojectsResult,
     projectsResult,
     logsResult,
     receiptsResult,
@@ -123,6 +124,7 @@ export async function getBootstrapData() {
         leads.updated_at DESC
       LIMIT 80
     `),
+    db.execute(`SELECT id, lead_id, discipline, amount FROM lead_subprojects ORDER BY created_at ASC`),
     db.execute(`
       SELECT
         projects.id,
@@ -405,6 +407,13 @@ export async function getBootstrapData() {
     archived: Boolean(asNumber(project.archived)),
     drive_enabled: Boolean(asNumber(project.drive_enabled)),
   }))
+  const leadSubprojectsByLead = new Map()
+  for (const row of leadSubprojectsResult.rows) {
+    const list = leadSubprojectsByLead.get(String(row.lead_id)) ?? []
+    list.push(row)
+    leadSubprojectsByLead.set(String(row.lead_id), list)
+  }
+  const leads = leadsResult.rows.map((lead) => ({ ...lead, subprojects: leadSubprojectsByLead.get(String(lead.id)) ?? [] }))
 
   return {
     summary: {
@@ -420,7 +429,7 @@ export async function getBootstrapData() {
       currentYearSales,
       deliveredUnpaidTotal,
     },
-    leads: leadsResult.rows,
+    leads,
     projects,
     logs: logsResult.rows,
     receipts: receiptsResult.rows,

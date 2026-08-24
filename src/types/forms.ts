@@ -13,6 +13,7 @@ export type LeadDetailForm = {
   nextFollowUpAt: string
   proposalSentAt: string
   closedAt: string
+  subprojects: SubprojectEntry[]
 }
 
 export type ProjectDetailForm = {
@@ -45,6 +46,7 @@ export type LeadForm = {
   notes: string
   inboundAt: string
   nextFollowUpAt: string
+  subprojects: SubprojectEntry[]
 }
 
 export type ProjectForm = {
