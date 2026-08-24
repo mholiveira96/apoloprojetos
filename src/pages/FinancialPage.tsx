@@ -21,6 +21,17 @@ type Props = {
 }
 
 const labelClass = 'text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]/70'
+
+function monthKey(value: Date | string) {
+  if (typeof value === 'string') {
+    const isoMonth = value.match(/^(\d{4})-(\d{2})/)
+    if (isoMonth) return `${isoMonth[1]}-${isoMonth[2]}`
+  }
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
 type ProjectSortKey = 'project' | 'stage' | 'contract' | 'received' | 'outstanding' | 'expenses' | 'payouts' | 'pending'
 
 function isFixedCostExpense(expense: Expense) {
@@ -560,16 +571,15 @@ export function FinancialPage({ data, submitMutation, mutating, onRefresh }: Pro
   const partnerMonthlyPayouts = useMemo(() => {
     const now = new Date()
     const monthStarts = Array.from({ length: 6 }, (_, index) => new Date(now.getFullYear(), now.getMonth() - (5 - index), 1))
-    const monthKeys = monthStarts.map((d) => ({ key: d.toISOString().slice(0, 7), label: new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric' }).format(d) }))
+    const monthKeys = monthStarts.map((d) => ({ key: monthKey(d)!, label: new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric' }).format(d) }))
 
     const totals = new Map<string, Record<string, number>>()
     for (const partner of partners) totals.set(partner, Object.fromEntries(monthKeys.map((m) => [m.key, 0])))
 
     for (const payout of data.payouts) {
       if (!trackedProjectIds.has(payout.project_id)) continue
-      const paidAt = new Date(payout.paid_at)
-      if (Number.isNaN(paidAt.getTime())) continue
-      const key = `${paidAt.getFullYear()}-${String(paidAt.getMonth() + 1).padStart(2, '0')}`
+      const key = monthKey(payout.paid_at)
+      if (!key) continue
       const partnerRow = totals.get(payout.partner_name)
       if (!partnerRow || !(key in partnerRow)) continue
       partnerRow[key] += numericValue(payout.amount)
