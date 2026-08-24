@@ -246,7 +246,6 @@ export async function getBootstrapData() {
       INNER JOIN projects ON projects.id = partner_payouts.project_id
       LEFT JOIN subprojects ON subprojects.id = partner_payouts.subproject_id
       ORDER BY partner_payouts.paid_at DESC
-      LIMIT 40
     `),
     db.execute(`
       SELECT * FROM (
