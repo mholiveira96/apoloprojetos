@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Copy, ExternalLink, FolderOpen, QrCode, RefreshCcw, Upload, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import type { ProjectDriveUploadInput } from '@/lib/app-api'
 import type { BootstrapData, Project, ProjectDriveFile, Subproject } from '@/types/app'
 import { EmptyState, Panel } from '@/components/workspace/ui'
 import { formatDate } from '@/lib/formatters'
@@ -19,8 +20,18 @@ interface Props {
   data: BootstrapData
   submitMutation: SubmitMutation
   mutating: boolean
-  onProjectDriveUpload: (payload: { projectId: string; subprojectId?: string | null; file: File }) => Promise<void>
+  uploadProgress: UploadProgress | null
+  onProjectDriveUpload: (payloads: ProjectDriveUploadInput[]) => Promise<void>
   onProjectDriveDelete: (fileId: string) => Promise<void>
+}
+
+export type UploadProgress = {
+  currentFile: string
+  currentFileIndex: number
+  totalFiles: number
+  currentPercentage: number
+  overallPercentage: number
+  completedFiles: number
 }
 
 function showDiscipline(value: string | null | undefined): string {
@@ -93,6 +104,7 @@ type DrivePanelProps = {
   projectFiles: ProjectDriveFile[]
   subprojects: Subproject[]
   mutating: boolean
+  uploadProgress: UploadProgress | null
   triggerUpload: (subprojectId?: string | null) => void
   handleDriveToggle: (enabled: boolean) => void
   handleRotateToken: () => void
@@ -108,6 +120,7 @@ function DrivePanel({
   projectFiles,
   subprojects,
   mutating,
+  uploadProgress,
   triggerUpload,
   handleDriveToggle,
   handleRotateToken,
@@ -173,6 +186,29 @@ function DrivePanel({
               <ExternalLink className="h-4 w-4" /> Página pública
             </a>
           </div>
+
+          {uploadProgress ? (
+            <div
+              className="mt-4 rounded-2xl border border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] px-4 py-3"
+              role="status"
+              aria-live="polite"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-[var(--ink)]">
+                <span>Enviando arquivos</span>
+                <span>{uploadProgress.completedFiles}/{uploadProgress.totalFiles} concluídos · {uploadProgress.overallPercentage}%</span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--bg-card-solid)]" aria-hidden="true">
+                <div
+                  className="h-full rounded-full bg-[var(--teal)] transition-[width] duration-200"
+                  style={{ width: `${uploadProgress.overallPercentage}%` }}
+                />
+              </div>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--ink-soft)]">
+                <span className="max-w-full truncate">Arquivo atual: {uploadProgress.currentFile}</span>
+                <span>{uploadProgress.currentPercentage}% deste arquivo</span>
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-4 rounded-2xl border border-dashed border-[var(--line)] bg-[var(--bg-card-70)] px-4 py-3 text-xs text-[var(--ink-soft)]">
             <div>{publicUrl || 'Ative o drive para gerar o link público do projeto.'}</div>
@@ -258,7 +294,7 @@ function DrivePanel({
   )
 }
 
-export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriveUpload, onProjectDriveDelete }: Props) {
+export function ProjectDrivePage({ data, submitMutation, mutating, uploadProgress, onProjectDriveUpload, onProjectDriveDelete }: Props) {
   const [searchParams, setSearchParams] = useSearchParams()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const uploadTargetRef = useRef<string | null>(null)
@@ -307,15 +343,15 @@ export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriv
   }
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+    const files = Array.from(event.target.files ?? [])
     event.currentTarget.value = ''
-    if (!file || !selectedProject) return
+    if (!files.length || !selectedProject) return
 
-    await onProjectDriveUpload({
+    await onProjectDriveUpload(files.map((file) => ({
       projectId: selectedProject.id,
       subprojectId: uploadTargetRef.current,
       file,
-    })
+    })))
   }
 
   const handleDriveToggle = (enabled: boolean) => {
@@ -353,6 +389,7 @@ export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriv
       projectFiles={projectFiles}
       subprojects={subprojects}
       mutating={mutating}
+      uploadProgress={uploadProgress}
       triggerUpload={triggerUpload}
       handleDriveToggle={handleDriveToggle}
       handleRotateToken={handleRotateToken}
@@ -366,7 +403,7 @@ export function ProjectDrivePage({ data, submitMutation, mutating, onProjectDriv
       title="Drive por projeto"
       subtitle="Central de arquivos por projeto, com separação entre pasta geral e subprojetos."
     >
-      <input ref={fileInputRef} type="file" className="hidden" onChange={(event) => void handleFileChange(event)} />
+      <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(event) => void handleFileChange(event)} />
 
       <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)] xl:items-start">
         <aside className="space-y-3">

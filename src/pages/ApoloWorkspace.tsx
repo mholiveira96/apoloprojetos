@@ -23,7 +23,7 @@ import {
   X,
 } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
-import { deleteProjectDriveFile, getBootstrap, getSession, login, logout, mutate, PROJECT_DRIVE_MAX_FILE_BYTES, uploadProjectDriveFile } from '@/lib/app-api'
+import { deleteProjectDriveFile, getBootstrap, getSession, login, logout, mutate, PROJECT_DRIVE_MAX_FILE_BYTES, uploadProjectDriveFile, type ProjectDriveUploadInput } from '@/lib/app-api'
 import type { BootstrapData, Lead, SessionUser, Subproject } from '@/types/app'
 import type { ConvertProjectForm, LeadDetailForm, LeadForm, ViewMode } from '@/types/forms'
 import { NAV_ITEMS, BOTTOM_NAV_ITEMS, leadStages } from '@/lib/constants'
@@ -45,7 +45,7 @@ import { DashboardProjectRow, DashboardSubprojectRow } from '@/components/worksp
 import { LoginScreen } from '@/components/workspace/login-screen'
 import { InstallPrompt } from '@/components/workspace/install-prompt'
 import { OperationsKanbanPage } from '@/pages/OperationsKanbanPage'
-import { ProjectDrivePage } from '@/pages/ProjectDrivePage'
+import { ProjectDrivePage, type UploadProgress } from '@/pages/ProjectDrivePage'
 import { FinancialPage } from '@/pages/FinancialPage'
 import { CashflowPage } from '@/pages/CashflowPage'
 import { RevisoesKanbanPage } from '@/pages/RevisoesKanbanPage'
@@ -64,6 +64,7 @@ export function ApoloWorkspace() {
   const [data, setData] = useState<BootstrapData | null>(null)
   const [loadingData, setLoadingData] = useState(false)
   const [mutating, setMutating] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [subprojectSort, setSubprojectSort] = useState<'recent' | 'stage' | 'partner'>('recent')
@@ -268,27 +269,68 @@ export function ApoloWorkspace() {
     reader.readAsDataURL(file)
   }
 
-  const handleProjectDriveUpload = async (payload: { projectId: string; subprojectId?: string | null; file: File }) => {
-    if (payload.file.size > PROJECT_DRIVE_MAX_FILE_BYTES) {
-      toast.error('Arquivo muito grande. Máximo: 50 MB')
+  const handleProjectDriveUpload = async (payloads: ProjectDriveUploadInput[]) => {
+    if (!payloads.length) return
+
+    const oversizedFile = payloads.find((payload) => payload.file.size > PROJECT_DRIVE_MAX_FILE_BYTES)
+    if (oversizedFile) {
+      toast.error(`Arquivo muito grande: ${oversizedFile.file.name}. Máximo: 50 MB`)
       return
     }
 
     setMutating(true)
-    try {
-      const next = await uploadProjectDriveFile({
-        projectId: payload.projectId,
-        subprojectId: payload.subprojectId,
-        file: payload.file,
-      })
+    setUploadProgress({
+      currentFile: payloads[0].file.name,
+      currentFileIndex: 0,
+      totalFiles: payloads.length,
+      currentPercentage: 0,
+      overallPercentage: 0,
+      completedFiles: 0,
+    })
 
-      setData(next)
-      setUser(next.user)
-      toast.success('Arquivo enviado para o drive')
+    let uploadedCount = 0
+    try {
+      for (const [index, payload] of payloads.entries()) {
+        setUploadProgress({
+          currentFile: payload.file.name,
+          currentFileIndex: index,
+          totalFiles: payloads.length,
+          currentPercentage: 0,
+          overallPercentage: Math.round((index / payloads.length) * 100),
+          completedFiles: uploadedCount,
+        })
+
+        const next = await uploadProjectDriveFile(
+          payload,
+          (progress) => setUploadProgress({
+            currentFile: payload.file.name,
+            currentFileIndex: index,
+            totalFiles: payloads.length,
+            currentPercentage: progress.percentage,
+            overallPercentage: Math.min(100, Math.round(((index + progress.percentage / 100) / payloads.length) * 100)),
+            completedFiles: uploadedCount,
+          }),
+        )
+
+        uploadedCount += 1
+        setData(next)
+        setUser(next.user)
+        setUploadProgress({
+          currentFile: payload.file.name,
+          currentFileIndex: index,
+          totalFiles: payloads.length,
+          currentPercentage: 100,
+          overallPercentage: Math.round((uploadedCount / payloads.length) * 100),
+          completedFiles: uploadedCount,
+        })
+      }
+
+      toast.success(`${uploadedCount} ${uploadedCount === 1 ? 'arquivo enviado' : 'arquivos enviados'} para o drive`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Falha no upload do arquivo')
     } finally {
       setMutating(false)
+      setUploadProgress(null)
     }
   }
 
@@ -1150,6 +1192,7 @@ export function ApoloWorkspace() {
                 data={data}
                 submitMutation={submitMutation}
                 mutating={mutating}
+                uploadProgress={uploadProgress}
                 onProjectDriveUpload={handleProjectDriveUpload}
                 onProjectDriveDelete={handleProjectDriveDelete}
               />

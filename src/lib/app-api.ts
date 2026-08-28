@@ -3,10 +3,16 @@ import type { BootstrapData, SessionUser } from '@/types/app'
 
 type JsonResult<T> = Promise<T>
 
-type ProjectDriveUploadInput = {
+export type ProjectDriveUploadInput = {
   projectId: string
   subprojectId?: string | null
   file: File
+}
+
+export type ProjectDriveUploadProgress = {
+  loaded: number
+  total: number
+  percentage: number
 }
 
 export const PROJECT_DRIVE_MAX_FILE_BYTES = 50 * 1024 * 1024
@@ -79,7 +85,10 @@ export function mutate(action: string, payload: Record<string, unknown>) {
   })
 }
 
-export async function uploadProjectDriveFile(payload: ProjectDriveUploadInput) {
+export async function uploadProjectDriveFile(
+  payload: ProjectDriveUploadInput,
+  onUploadProgress?: (progress: ProjectDriveUploadProgress) => void,
+) {
   const pathname = buildProjectDriveUploadPath(payload.projectId, payload.subprojectId, payload.file.name)
   const blob = await upload(pathname, payload.file, {
     access: 'public',
@@ -92,6 +101,7 @@ export async function uploadProjectDriveFile(payload: ProjectDriveUploadInput) {
       contentType: payload.file.type || null,
     }),
     multipart: payload.file.size > 20 * 1024 * 1024,
+    onUploadProgress,
   })
 
   return request<BootstrapData>('/api/app/drive-upload', {

@@ -16,6 +16,12 @@ const apiRoutes: Record<string, string> = {
   '/api/app/bootstrap': 'api/app/bootstrap.js',
   '/api/app/mutate': 'api/app/mutate.js',
   '/api/app/proposal': 'api/app/proposal.js',
+  '/api/app/drive-upload-token': 'api/app/drive-upload-token.js',
+  '/api/app/drive-upload': 'api/app/drive-upload.js',
+  '/api/app/drive-delete': 'api/app/drive-delete.js',
+  '/api/app/drive-download': 'api/app/drive-download.js',
+  '/api/public/project-drive': 'api/public/project-drive.js',
+  '/api/public/project-drive-download': 'api/public/project-drive-download.js',
 }
 
 function localApiPlugin() {
