@@ -11,6 +11,7 @@ type SubmitMutation = (
   payload: Record<string, unknown>,
   onSuccess?: () => void,
   successMessage?: string,
+  onError?: () => void,
 ) => Promise<void>
 
 type Props = {
@@ -112,7 +113,8 @@ function PickerField({
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    setQuery(selectedOption?.label ?? '')
+    const frame = window.requestAnimationFrame(() => setQuery(selectedOption?.label ?? ''))
+    return () => window.cancelAnimationFrame(frame)
   }, [selectedOption?.label])
 
   const normalizedQuery = normalizeSearchText(query)
@@ -529,7 +531,7 @@ export function CashflowPage({ data, submitMutation, mutating }: Props) {
       type: stageLabel(viewingEntry.entry_type),
       vendor: viewedExpense?.vendor ?? '',
     }
-  }, [viewedExpense?.category, viewedExpense?.vendor, viewedPayout?.discipline, viewedPayout?.partner_name, viewedReceipt?.client_name, viewingEntry])
+  }, [viewedExpense, viewedPayout, viewedReceipt, viewingEntry])
 
   const resetEntrada = () => setReceiptForm({ projectId: '', amount: '', bankAccount: '', entryDate: today(), note: '' })
   const resetSaida = () => {

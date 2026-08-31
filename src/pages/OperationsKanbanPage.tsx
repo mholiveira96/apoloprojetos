@@ -107,6 +107,7 @@ type SubmitMutation = (
   payload: Record<string, unknown>,
   onSuccess?: () => void,
   successMessage?: string,
+  onError?: () => void,
 ) => Promise<void>
 
 interface Props {
@@ -1628,9 +1629,8 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
           { id: subprojectId, projectId: subproject.project_id, stage: targetStage },
           () => setStageOverrides((prev) => { const next = { ...prev }; delete next[subprojectId]; return next }),
           'Etapa atualizada',
-        ).catch(() => {
-          setStageOverrides((prev) => { const next = { ...prev }; delete next[subprojectId]; return next })
-        })
+          () => setStageOverrides((prev) => { const next = { ...prev }; delete next[subprojectId]; return next }),
+        )
       }, 0)
     },
     [data.subprojects, submitMutation],
@@ -1649,9 +1649,8 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
           setStageOverrides((prev) => { const next = { ...prev }; delete next[subprojectId]; return next })
         },
         'Subprojeto concluído',
-      ).catch(() => {
-        setStageOverrides((prev) => { const next = { ...prev }; delete next[subprojectId]; return next })
-      })
+        () => setStageOverrides((prev) => { const next = { ...prev }; delete next[subprojectId]; return next }),
+      )
     }, 0)
   }, [completionDate, completionDraft, submitMutation])
 
@@ -1693,9 +1692,8 @@ export function OperationsKanbanPage({ data, submitMutation, mutating }: Props) 
         { id, projectId, stage },
         () => setStageOverrides((prev) => { const next = { ...prev }; delete next[id]; return next }),
         'Etapa atualizada',
-      ).catch(() => {
-        setStageOverrides((prev) => { const next = { ...prev }; delete next[id]; return next })
-      })
+        () => setStageOverrides((prev) => { const next = { ...prev }; delete next[id]; return next }),
+      )
     },
     [selectedSubproject, submitMutation],
   )

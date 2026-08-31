@@ -16,26 +16,6 @@ export type LeadDetailForm = {
   subprojects: SubprojectEntry[]
 }
 
-export type ProjectDetailForm = {
-  name: string
-  code: string
-  area: string
-  discipline: string
-  stage: string
-  contractAmount: string
-  salesOwner: string
-  statusNote: string
-}
-
-export type LogDetailForm = {
-  projectId: string
-  logType: string
-  title: string
-  details: string
-  dueDate: string
-  status: string
-}
-
 export type LeadForm = {
   clientName: string
   title: string

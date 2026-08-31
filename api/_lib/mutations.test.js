@@ -409,6 +409,137 @@ test('createProject persists subproject area modes from the zero-state operation
   assert.equal(subs.find((sp) => sp.discipline === 'incendio')?.area, -1)
 })
 
+test('subproject completion requires a date and syncs the parent project', async () => {
+  const lead = await createWonLead({ clientName: 'Cliente Conclusão', title: 'Projeto Conclusão' })
+  await runMutation('createProjectFromLead', {
+    leadId: lead.id,
+    name: 'Projeto Conclusão',
+    area: '100',
+    discipline: 'eletrico',
+    salesOwner: 'Matheus',
+    contractAmount: '10000',
+  }, 'tester@example.com')
+
+  let data = await getBootstrapData()
+  const project = data.projects[0]
+  const subproject = data.subprojects[0]
+
+  await assert.rejects(
+    runMutation('updateSubprojectStage', {
+      id: subproject.id,
+      projectId: project.id,
+      stage: 'concluído',
+    }, 'tester@example.com'),
+    /data de conclusão é obrigatória/i,
+  )
+
+  await runMutation('updateSubprojectStage', {
+    id: subproject.id,
+    projectId: project.id,
+    stage: 'concluído',
+    completedAt: '2026-06-30',
+  }, 'tester@example.com')
+
+  data = await getBootstrapData()
+  assert.equal(data.subprojects[0].stage, 'concluído')
+  assert.equal(data.projects[0].stage, 'concluído')
+  assert.ok(data.logs.some((log) => log.title === 'Entrega concluída'))
+})
+
+test('bootstrap summary excludes completed projects and reports delivered unpaid balance', async () => {
+  const lead = await createWonLead({ clientName: 'Cliente KPI', title: 'Projeto KPI' })
+  await runMutation('createProjectFromLead', {
+    leadId: lead.id,
+    name: 'Projeto KPI',
+    area: '100',
+    discipline: 'eletrico',
+    salesOwner: 'Matheus',
+    contractAmount: '10000',
+  }, 'tester@example.com')
+
+  const data = await getBootstrapData()
+  assert.equal(data.summary.activeProjects, 1)
+
+  const project = data.projects[0]
+  const subproject = data.subprojects[0]
+  await runMutation('updateSubprojectStage', {
+    id: subproject.id,
+    projectId: project.id,
+    stage: 'concluído',
+    completedAt: '2026-06-30',
+  }, 'tester@example.com')
+
+  const completed = await getBootstrapData()
+  assert.equal(completed.summary.activeProjects, 0)
+  assert.equal(completed.summary.deliveredUnpaidTotal, 10000)
+})
+
+test('deleting a project removes every dependent record', async () => {
+  await runMutation('createProject', {
+    clientName: 'Cliente Exclusão',
+    name: 'Projeto Exclusão',
+    area: '100',
+    discipline: 'eletrico',
+    stage: 'em-andamento',
+    salesOwner: 'Matheus',
+    contractAmount: '10000',
+    subprojects: [
+      { discipline: 'eletrico', amount: '10000', responsiblePartner: 'Matheus', deadline: '', observacao: '' },
+    ],
+  }, 'tester@example.com')
+
+  const created = await getBootstrapData()
+  const project = created.projects[0]
+  const subproject = created.subprojects[0]
+  const db = getDb()
+  await db.execute({
+    sql: `INSERT INTO partner_payouts (id, project_id, subproject_id, partner_name, amount, paid_at, created_at)
+          VALUES (?, ?, NULL, ?, ?, ?, ?)`,
+    args: ['payout-orphan-check', project.id, 'Matheus', 100, '2026-06-30', new Date().toISOString()],
+  })
+  await db.execute({
+    sql: `INSERT INTO project_drive_files (id, project_id, subproject_id, filename, blob_url, blob_pathname, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    args: ['drive-delete-check', project.id, subproject.id, 'arquivo.pdf', 'https://blob.example/arquivo.pdf', 'apolo/arquivo.pdf', new Date().toISOString()],
+  })
+  await db.execute({
+    sql: `INSERT INTO revisions (id, client_name, description, project_id, responsible_partner, created_at)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+    args: ['revision-delete-check', 'Cliente Exclusão', 'Revisão', project.id, 'Matheus', new Date().toISOString()],
+  })
+
+  await runMutation('deleteProject', { projectId: project.id }, 'tester@example.com')
+
+  for (const [table, id] of [
+    ['projects', project.id],
+    ['subprojects', subproject.id],
+    ['partner_payouts', 'payout-orphan-check'],
+    ['project_drive_files', 'drive-delete-check'],
+    ['revisions', 'revision-delete-check'],
+  ]) {
+    const result = await db.execute({ sql: `SELECT id FROM ${table} WHERE id = ?`, args: [id] })
+    assert.equal(result.rows.length, 0, `${table} row should be deleted`)
+  }
+})
+
+test('financial mutations reject negative amounts', async () => {
+  await assert.rejects(
+    runMutation('addExpense', { amount: '-1', entryDate: '2026-06-30' }, 'tester@example.com'),
+    /não pode ser negativo/i,
+  )
+})
+
+test('public questionnaire answers have bounded input sizes', async () => {
+  await assert.rejects(
+    runMutation('savePremiseQuestionnaire', {
+      respondentName: 'Pessoa Teste',
+      answers: { neighborhood: 'x'.repeat(4001) },
+      status: 'completed',
+    }, 'public-questionnaire'),
+    /longa demais/i,
+  )
+})
+
 test('subproject area supports inherit, custom, and N/A', async () => {
   const lead = await createWonLead({ clientName: 'Cliente Area', title: 'Projeto Area' })
   await runMutation('createProjectFromLead', {

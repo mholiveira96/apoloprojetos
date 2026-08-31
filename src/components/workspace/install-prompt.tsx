@@ -16,8 +16,9 @@ export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showFallback, setShowFallback] = useState(false)
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISS_KEY) === '1')
-  const [isStandalone, setIsStandalone] = useState(false)
-  const [platform, setPlatform] = useState<'mobile' | 'desktop'>('desktop')
+  const [isStandalone] = useState(() => window.matchMedia('(display-mode: standalone)').matches
+    || (navigator as { standalone?: boolean }).standalone === true)
+  const [platform] = useState<'mobile' | 'desktop'>(() => detectPlatform())
 
   const dismiss = useCallback(() => {
     setDismissed(true)
@@ -27,12 +28,7 @@ export function InstallPrompt() {
   }, [])
 
   useEffect(() => {
-    const standalone = window.matchMedia('(display-mode: standalone)').matches
-      || (navigator as { standalone?: boolean }).standalone === true
-    setIsStandalone(standalone)
-    setPlatform(detectPlatform())
-
-    if (standalone) return
+    if (isStandalone) return
 
     let fallbackTimer: ReturnType<typeof setTimeout>
 
@@ -57,8 +53,7 @@ export function InstallPrompt() {
       window.removeEventListener('beforeinstallprompt', handler)
       clearTimeout(fallbackTimer)
     }
-  }, [])
-
+  }, [isStandalone])
   if (isStandalone || dismissed || (!deferredPrompt && !showFallback)) return null
 
   const handleInstall = async () => {

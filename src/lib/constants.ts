@@ -27,7 +27,6 @@ export const leadStages = ['incoming', 'qualified', 'proposal', 'negotiation', '
 export const projectStages = ['aguardar', 'em-andamento', 'bloqueado', 'concluído-aguardando-pagamento', 'concluído'] as const
 export const subprojectStages = ['a-fazer', 'em-andamento', 'aguardando-revisao', 'bloqueado', 'concluído-aguardando-pagamento', 'concluído'] as const
 export const revisionStages = ['pendente', 'em-andamento', 'bloqueado', 'concluída'] as const
-export const logTypes = ['pending', 'received_material', 'note', 'delivery', 'revision'] as const
 export const partners: string[] = ['Matheus', 'Luís', 'Letícia']
 export const leadSources = ['indicacao', 'site', 'instagram', 'linkedin', 'repete', 'parceiro', 'outro'] as const
 export const disciplines = ['estrutural', 'arquitetonico', 'eletrico', 'hidrossanitario', 'hidraulico', 'sanitario', 'pluvial', 'incendio', 'gas', 'climatizacao', 'legalizacao', 'outro'] as const

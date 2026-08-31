@@ -53,6 +53,14 @@ import DatabasePage from '@/pages/DatabasePage'
 import { PremiseQuestionnairesPage } from '@/pages/PremiseQuestionnairesPage'
 import { buildClientTimeline } from '@/lib/client-timeline'
 import { useTheme } from '@/lib/theme-context'
+import { replayOptimisticMutations, type OptimisticOperation } from '@/lib/optimistic-mutations'
+
+const LEGACY_SECTION_MAP: Record<string, string> = {
+  commercial: 'comercial',
+  operations: 'operacoes',
+  financial: 'financeiro',
+  cashflow: 'fluxo',
+}
 
 export function ApoloWorkspace() {
   const location = useLocation()
@@ -62,6 +70,12 @@ export function ApoloWorkspace() {
   const [checkingSession, setCheckingSession] = useState(true)
   const [user, setUser] = useState<SessionUser | null>(null)
   const [data, setData] = useState<BootstrapData | null>(null)
+  const confirmedDataRef = useRef<BootstrapData | null>(null)
+  const optimisticOperationsRef = useRef(new Map<number, OptimisticOperation>())
+  const mutationSequenceRef = useRef(0)
+  const pendingOperationCountRef = useRef(0)
+  const latestCanonicalOperationRef = useRef(0)
+  const canonicalRevisionRef = useRef(0)
   const [loadingData, setLoadingData] = useState(false)
   const [mutating, setMutating] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
@@ -122,13 +136,7 @@ export function ApoloWorkspace() {
   })
 
   const rawSection = location.pathname.replace('/app/', '').replace('/app', '') || 'dashboard'
-  const legacySectionMap: Record<string, string> = {
-    commercial: 'comercial',
-    operations: 'operacoes',
-    financial: 'financeiro',
-    cashflow: 'fluxo',
-  }
-  const section = legacySectionMap[rawSection] || rawSection
+  const section = LEGACY_SECTION_MAP[rawSection] || rawSection
   const opsView = searchParams.get('view') || 'operacoes'
 
   const renderOperationsViewSwitch = (compact = false) => (
@@ -152,10 +160,15 @@ export function ApoloWorkspace() {
   )
 
   const loadBootstrap = useCallback(async (showLoading = true) => {
+    const requestRevision = canonicalRevisionRef.current
     if (showLoading) setLoadingData(true)
     try {
       const next = await getBootstrap()
-      setData(next)
+      if (requestRevision !== canonicalRevisionRef.current) return
+      confirmedDataRef.current = next
+      canonicalRevisionRef.current += 1
+      const visible = replayOptimisticMutations(next, optimisticOperationsRef.current.values())
+      setData(visible)
       setUser(next.user)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Falha ao carregar o app'
@@ -180,36 +193,64 @@ export function ApoloWorkspace() {
     }
 
     void init()
-  }, [])
+  }, [loadBootstrap])
 
   useEffect(() => {
     if (location.pathname === '/app') navigate('/app/dashboard', { replace: true })
-    if (legacySectionMap[rawSection]) navigate(`/app/${legacySectionMap[rawSection]}`, { replace: true })
-  }, [location.pathname, navigate])
+    if (LEGACY_SECTION_MAP[rawSection]) navigate(`/app/${LEGACY_SECTION_MAP[rawSection]}`, { replace: true })
+  }, [location.pathname, navigate, rawSection])
 
   useEffect(() => {
     setMobileNavOpen(false)
   }, [location.pathname])
 
-  const submitMutation = async (
+  const submitMutation = useCallback(async (
     action: string,
     payload: Record<string, unknown>,
     onSuccess?: () => void,
     successMessage?: string,
+    onError?: () => void,
   ) => {
+    const operationId = ++mutationSequenceRef.current
+    optimisticOperationsRef.current.set(operationId, { action, payload })
+    pendingOperationCountRef.current += 1
     setMutating(true)
+
+    const confirmed = confirmedDataRef.current
+    if (confirmed) {
+      setData(replayOptimisticMutations(confirmed, optimisticOperationsRef.current.values()))
+    }
+
     try {
       const next = await mutate(action, payload)
-      setData(next)
-      setUser(next.user)
+      const isStaleResponse = operationId < latestCanonicalOperationRef.current
+      if (!isStaleResponse) {
+        confirmedDataRef.current = next
+        latestCanonicalOperationRef.current = operationId
+        canonicalRevisionRef.current += 1
+        setUser(next.user)
+      }
+      optimisticOperationsRef.current.delete(operationId)
+      const latestConfirmed = confirmedDataRef.current
+      if (latestConfirmed) setData(replayOptimisticMutations(latestConfirmed, optimisticOperationsRef.current.values()))
       onSuccess?.()
       if (successMessage) toast.success(successMessage)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Ação falhou')
+      optimisticOperationsRef.current.delete(operationId)
+      const latestConfirmed = confirmedDataRef.current
+      if (latestConfirmed) {
+        setData(replayOptimisticMutations(latestConfirmed, optimisticOperationsRef.current.values()))
+      }
+      onError?.()
+      toast.error(error instanceof Error ? error.message : 'Ação falhou; a alteração foi revertida')
     } finally {
-      setMutating(false)
+      pendingOperationCountRef.current -= 1
+      setMutating(pendingOperationCountRef.current > 0)
+      if (pendingOperationCountRef.current === 0 && optimisticOperationsRef.current.size === 0) {
+        void loadBootstrap(false)
+      }
     }
-  }
+  }, [loadBootstrap])
 
   const handleLeadDetailChange = (field: keyof LeadDetailForm, value: string) => {
     leadIsDirtyRef.current = true
@@ -252,7 +293,17 @@ export function ApoloWorkspace() {
 
   const handleLeadTouch = async () => {
     if (!selectedLead) return
-    await submitMutation('touchLead', { id: selectedLead.id, nextFollowUpAt: leadDetailForm.nextFollowUpAt || undefined }, undefined, 'Contato registrado')
+    const contactedAt = new Date().toISOString()
+    await submitMutation('touchLead', {
+      id: selectedLead.id,
+      firstContactAt: selectedLead.first_contact_at || contactedAt,
+      lastContactAt: contactedAt,
+      nextFollowUpAt: leadDetailForm.nextFollowUpAt || undefined,
+    }, undefined, 'Contato registrado', () => setCommercialStageOverrides((prev) => {
+      const next = { ...prev }
+      delete next[selectedLead.id]
+      return next
+    }))
   }
 
   const handleProposalUpload = (leadId: string, file: File) => {
@@ -278,6 +329,7 @@ export function ApoloWorkspace() {
       return
     }
 
+    pendingOperationCountRef.current += 1
     setMutating(true)
     setUploadProgress({
       currentFile: payloads[0].file.name,
@@ -300,6 +352,7 @@ export function ApoloWorkspace() {
           completedFiles: uploadedCount,
         })
 
+        const requestRevision = canonicalRevisionRef.current
         const next = await uploadProjectDriveFile(
           payload,
           (progress) => setUploadProgress({
@@ -313,8 +366,14 @@ export function ApoloWorkspace() {
         )
 
         uploadedCount += 1
-        setData(next)
-        setUser(next.user)
+        if (requestRevision !== canonicalRevisionRef.current) {
+          await loadBootstrap(false)
+        } else {
+          confirmedDataRef.current = next
+          canonicalRevisionRef.current += 1
+          setData(replayOptimisticMutations(next, optimisticOperationsRef.current.values()))
+          setUser(next.user)
+        }
         setUploadProgress({
           currentFile: payload.file.name,
           currentFileIndex: index,
@@ -329,22 +388,32 @@ export function ApoloWorkspace() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Falha no upload do arquivo')
     } finally {
-      setMutating(false)
+      pendingOperationCountRef.current -= 1
+      setMutating(pendingOperationCountRef.current > 0)
       setUploadProgress(null)
     }
   }
 
   const handleProjectDriveDelete = async (fileId: string) => {
+    const requestRevision = canonicalRevisionRef.current
+    pendingOperationCountRef.current += 1
     setMutating(true)
     try {
       const next = await deleteProjectDriveFile(fileId)
-      setData(next)
-      setUser(next.user)
+      if (requestRevision !== canonicalRevisionRef.current) {
+        await loadBootstrap(false)
+      } else {
+        confirmedDataRef.current = next
+        canonicalRevisionRef.current += 1
+        setData(replayOptimisticMutations(next, optimisticOperationsRef.current.values()))
+        setUser(next.user)
+      }
       toast.success('Arquivo removido do drive')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Falha ao remover arquivo')
     } finally {
-      setMutating(false)
+      pendingOperationCountRef.current -= 1
+      setMutating(pendingOperationCountRef.current > 0)
     }
   }
 
@@ -405,9 +474,8 @@ export function ApoloWorkspace() {
         { id: leadId, stage: targetStage },
         () => setCommercialStageOverrides((prev) => { const next = { ...prev }; delete next[leadId]; return next }),
         'Etapa atualizada',
-      ).catch(() => {
-        setCommercialStageOverrides((prev) => { const next = { ...prev }; delete next[leadId]; return next })
-      })
+        () => setCommercialStageOverrides((prev) => { const next = { ...prev }; delete next[leadId]; return next }),
+      )
     },
     [data?.leads, submitMutation],
   )
@@ -423,16 +491,15 @@ export function ApoloWorkspace() {
     if (!leadIsDirtyRef.current || !selectedLeadId) return
     const capturedLeadId = selectedLeadId
     const capturedForm = leadDetailForm
-    const timer = window.setTimeout(() => {
-      leadIsDirtyRef.current = false
-      void submitMutation(
-        'updateLead',
-        { id: capturedLeadId, ...capturedForm },
-        () => setCommercialStageOverrides((prev) => { const next = { ...prev }; delete next[capturedLeadId]; return next }),
-      )
-    }, 1000)
-    return () => window.clearTimeout(timer)
-  }, [leadDetailForm, selectedLeadId])
+    leadIsDirtyRef.current = false
+    void submitMutation(
+      'updateLead',
+      { id: capturedLeadId, ...capturedForm },
+      () => setCommercialStageOverrides((prev) => { const next = { ...prev }; delete next[capturedLeadId]; return next }),
+      undefined,
+      () => setCommercialStageOverrides((prev) => { const next = { ...prev }; delete next[capturedLeadId]; return next }),
+    )
+  }, [leadDetailForm, selectedLeadId, submitMutation])
 
   if (checkingSession) {
     return (

@@ -11,6 +11,7 @@ type SubmitMutation = (
   payload: Record<string, unknown>,
   onSuccess?: () => void,
   successMessage?: string,
+  onError?: () => void,
 ) => Promise<void>
 
 type Props = {

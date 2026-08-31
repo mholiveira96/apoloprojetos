@@ -459,7 +459,18 @@ async function runExpenseSchemaMigrations() {
   }
 }
 
-const SCHEMA_VERSION = '13'
+async function runCanonicalTextMigrations() {
+  const db = getDb()
+  await db.batch([
+    { sql: `UPDATE projects SET stage = 'concluído' WHERE stage = 'concluÃ­do'`, args: [] },
+    { sql: `UPDATE projects SET stage = 'concluído-aguardando-pagamento' WHERE stage = 'concluÃ­do-aguardando-pagamento'`, args: [] },
+    { sql: `UPDATE subprojects SET stage = 'concluído' WHERE stage = 'concluÃ­do'`, args: [] },
+    { sql: `UPDATE project_logs SET title = 'Contratação registrada' WHERE title = 'ContrataÃ§Ã£o registrada'`, args: [] },
+    { sql: `UPDATE project_logs SET title = 'Entrega concluída' WHERE title = 'Entrega concluÃ­da'`, args: [] },
+  ], 'write')
+}
+
+const SCHEMA_VERSION = '14'
 
 async function hasExpectedSchemaShape(db) {
   try {
@@ -482,6 +493,7 @@ export async function ensureSchema() {
   if (!schemaReady) {
     schemaReady = (async () => {
       const db = getDb()
+      await db.execute('PRAGMA foreign_keys = ON')
       // Fast-path: if schema is already at current version, skip all migrations
       try {
         const meta = await db.execute(`SELECT value FROM app_meta WHERE key = 'schema_version' LIMIT 1`)
@@ -499,6 +511,7 @@ export async function ensureSchema() {
       await runPayoutSchemaMigrations()
       await runProposalSchemaMigrations()
       await runProjectDriveSchemaMigrations()
+      await runCanonicalTextMigrations()
       await db.execute({
         sql: `INSERT INTO app_meta (key, value, updated_at)
               VALUES ('schema_version', ?, ?)

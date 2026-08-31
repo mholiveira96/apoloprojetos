@@ -651,33 +651,21 @@ export default function DatabasePage({ data, submitMutation, mutating }: Props) 
     }
 
     setConfirmModal(null)
-    try {
-      await submitMutation(action, payload)
-    } catch {
-      toast.error('Erro ao salvar alteração. Valor revertido.')
-    }
+    await submitMutation(action, payload)
   }, [confirmModal, submitMutation])
 
   const handleDeleteProject = useCallback(async () => {
     if (!deleteModal) return
 
     setDeleteModal(null)
-    try {
-      await submitMutation('deleteProject', { projectId: deleteModal.project.id })
-    } catch {
-      toast.error('Erro ao excluir projeto.')
-    }
+    await submitMutation('deleteProject', { projectId: deleteModal.project.id })
   }, [deleteModal, submitMutation])
 
   const handleDeleteSubproject = useCallback(async () => {
     if (!deleteModal || deleteModal.entityType !== 'subproject') return
 
     setDeleteModal(null)
-    try {
-      await submitMutation('deleteSubproject', { id: deleteModal.subproject.id })
-    } catch {
-      toast.error('Erro ao excluir disciplina.')
-    }
+    await submitMutation('deleteSubproject', { id: deleteModal.subproject.id })
   }, [deleteModal, submitMutation])
 
   const openCreateSubproject = useCallback((project: Project) => {
@@ -696,27 +684,23 @@ export default function DatabasePage({ data, submitMutation, mutating }: Props) 
       return
     }
 
-    try {
-      await submitMutation(
-        'createSubproject',
-        {
-          projectId: project.id,
-          discipline: newSubprojectForm.discipline,
-          amount: newSubprojectForm.amount,
-          responsiblePartner: newSubprojectForm.responsiblePartner,
-          deadline: newSubprojectForm.deadline || null,
-          observacao: newSubprojectForm.observacao,
-          area: newSubprojectForm.areaMode === 'na' ? -1 : (newSubprojectForm.areaMode === 'custom' ? (newSubprojectForm.area || null) : null),
-        },
-        () => {
-          setCreatingSubprojectFor(null)
-          setNewSubprojectForm(createNewSubprojectForm(project))
-        },
-        'Disciplina adicionada',
-      )
-    } catch {
-      toast.error('Erro ao adicionar disciplina.')
-    }
+    await submitMutation(
+      'createSubproject',
+      {
+        projectId: project.id,
+        discipline: newSubprojectForm.discipline,
+        amount: newSubprojectForm.amount,
+        responsiblePartner: newSubprojectForm.responsiblePartner,
+        deadline: newSubprojectForm.deadline || null,
+        observacao: newSubprojectForm.observacao,
+        area: newSubprojectForm.areaMode === 'na' ? -1 : (newSubprojectForm.areaMode === 'custom' ? (newSubprojectForm.area || null) : null),
+      },
+      () => {
+        setCreatingSubprojectFor(null)
+        setNewSubprojectForm(createNewSubprojectForm(project))
+      },
+      'Disciplina adicionada',
+    )
   }, [newSubprojectForm, submitMutation])
 
   const hasActiveFilters = Boolean(search.trim()) || stageFilter !== 'all' || ownerFilter !== 'all' || deadlineFilter !== 'all'

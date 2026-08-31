@@ -50,7 +50,7 @@ export async function getBootstrapData() {
     premiseQuestionnairesResult,
   ] = await Promise.all([
     db.execute(`SELECT COUNT(*) AS total FROM leads WHERE stage NOT IN ('won', 'lost')`),
-    db.execute(`SELECT COUNT(*) AS total FROM projects WHERE stage NOT IN ('concluÃ­do')`),
+    db.execute(`SELECT COUNT(*) AS total FROM projects WHERE stage NOT IN ('concluído')`),
     db.execute(`
       SELECT
         COALESCE((SELECT SUM(contract_amount) FROM projects), 0) AS contract_total,
@@ -58,7 +58,7 @@ export async function getBootstrapData() {
         COALESCE((SELECT SUM(amount) FROM project_expenses), 0) AS expense_total,
         COALESCE((SELECT SUM(amount) FROM partner_payouts), 0) AS payout_total,
         COALESCE((SELECT SUM(contract_amount) FROM projects), 0) - COALESCE((SELECT SUM(amount) FROM payment_receipts), 0) AS outstanding_total,
-        COALESCE((SELECT SUM(contract_amount) FROM projects WHERE stage != 'concluÃ­do'), 0) AS active_contract_total,
+        COALESCE((SELECT SUM(contract_amount) FROM projects WHERE stage != 'concluído'), 0) AS active_contract_total,
         COALESCE((
           SELECT SUM(projects.contract_amount)
           FROM projects
@@ -67,7 +67,7 @@ export async function getBootstrapData() {
               SELECT 1
               FROM project_logs
               WHERE project_logs.project_id = projects.id
-                AND project_logs.title IN ('Contratação registrada', 'ContrataÃ§Ã£o registrada', 'ContrataÃƒÂ§ÃƒÂ£o registrada')
+                AND project_logs.title IN ('Contratação registrada', 'Contratação registrada', 'Contratação registrada')
                 AND substr(project_logs.due_date, 1, 4) = strftime('%Y', 'now')
             )
             OR (
@@ -75,7 +75,7 @@ export async function getBootstrapData() {
                 SELECT 1
                 FROM project_logs
                 WHERE project_logs.project_id = projects.id
-                  AND project_logs.title IN ('Contratação registrada', 'ContrataÃ§Ã£o registrada', 'ContrataÃƒÂ§ÃƒÂ£o registrada')
+                  AND project_logs.title IN ('Contratação registrada', 'Contratação registrada', 'Contratação registrada')
               )
               AND substr(projects.created_at, 1, 4) = strftime('%Y', 'now')
             )
@@ -90,7 +90,7 @@ export async function getBootstrapData() {
             END
           )
           FROM projects
-          WHERE projects.stage = 'concluÃ­do'
+          WHERE projects.stage = 'concluído'
         ), 0) AS delivered_unpaid_total
     `),
     db.execute(`
@@ -151,11 +151,11 @@ export async function getBootstrapData() {
         (SELECT COUNT(*)
           FROM project_logs
           WHERE project_logs.project_id = projects.id
-            AND project_logs.title IN ('Contratação registrada', 'ContrataÃ§Ã£o registrada', 'ContrataÃƒÂ§ÃƒÂ£o registrada')) AS sale_log_count,
+            AND project_logs.title IN ('Contratação registrada', 'Contratação registrada', 'Contratação registrada')) AS sale_log_count,
         (SELECT MAX(COALESCE(project_logs.due_date, project_logs.created_at))
           FROM project_logs
           WHERE project_logs.project_id = projects.id
-            AND project_logs.title IN ('Contratação registrada', 'ContrataÃ§Ã£o registrada', 'ContrataÃƒÂ§ÃƒÂ£o registrada')) AS sale_recorded_at,
+            AND project_logs.title IN ('Contratação registrada', 'Contratação registrada', 'Contratação registrada')) AS sale_recorded_at,
         (SELECT MAX(project_logs.due_date)
           FROM project_logs
           WHERE project_logs.project_id = projects.id
@@ -171,8 +171,8 @@ export async function getBootstrapData() {
       ORDER BY CASE projects.stage
         WHEN 'em-andamento' THEN 1
         WHEN 'aguardar' THEN 2
-        WHEN 'concluÃ­do-aguardando-pagamento' THEN 3
-        WHEN 'concluÃ­do' THEN 4
+        WHEN 'concluído-aguardando-pagamento' THEN 3
+        WHEN 'concluído' THEN 4
         ELSE 5
       END, projects.updated_at DESC
     `),
@@ -294,7 +294,7 @@ export async function getBootstrapData() {
           partner_payouts.amount * -1 AS signed_amount,
           CASE
             WHEN subprojects.discipline IS NOT NULL
-            THEN partner_payouts.partner_name || ' Â· ' || subprojects.discipline
+            THEN partner_payouts.partner_name || ' · ' || subprojects.discipline
             ELSE partner_payouts.partner_name
           END AS counterpart
         FROM partner_payouts

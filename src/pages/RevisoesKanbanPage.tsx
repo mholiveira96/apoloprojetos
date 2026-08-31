@@ -30,6 +30,7 @@ type SubmitMutation = (
   payload: Record<string, unknown>,
   onSuccess?: () => void,
   successMessage?: string,
+  onError?: () => void,
 ) => Promise<void>
 
 interface Props {
@@ -558,9 +559,8 @@ export function RevisoesKanbanPage({ data, submitMutation, mutating }: Props) {
           { id: revisionId, stage: targetStage },
           () => setStageOverrides((prev) => { const next = { ...prev }; delete next[revisionId]; return next }),
           'Etapa atualizada',
-        ).catch(() => {
-          setStageOverrides((prev) => { const next = { ...prev }; delete next[revisionId]; return next })
-        })
+          () => setStageOverrides((prev) => { const next = { ...prev }; delete next[revisionId]; return next }),
+        )
       }, 0)
     },
     [data.revisions, submitMutation],
@@ -579,9 +579,8 @@ export function RevisoesKanbanPage({ data, submitMutation, mutating }: Props) {
           setStageOverrides((prev) => { const next = { ...prev }; delete next[id]; return next })
         },
         'Revisão concluída',
-      ).catch(() => {
-        setStageOverrides((prev) => { const next = { ...prev }; delete next[id]; return next })
-      })
+        () => setStageOverrides((prev) => { const next = { ...prev }; delete next[id]; return next }),
+      )
     }, 0)
   }, [completionDate, completionDraft, submitMutation])
 

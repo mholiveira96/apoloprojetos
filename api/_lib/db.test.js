@@ -60,6 +60,53 @@ test('ensureSchema repairs missing subproject artifacts even when schema_version
   resetDbGlobals()
 })
 
+test('ensureSchema canonicalizes legacy mojibake lifecycle values', async () => {
+  const dbPath = path.join(os.tmpdir(), `apoloprojetos-encoding-${process.pid}-${Date.now()}.sqlite`)
+  process.env.APP_LOCAL_DB_URL = `file:${dbPath}`
+  process.env.NODE_ENV = 'test'
+  resetDbGlobals()
+
+  const firstModule = await import(`./db.js?case=encoding-seed-${Date.now()}`)
+  await firstModule.ensureSchema()
+  const seededDb = firstModule.getDb()
+  const timestamp = new Date().toISOString()
+  await seededDb.execute({
+    sql: `INSERT INTO projects (id, name, stage, contract_amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+    args: ['encoding-project', 'Projeto Encoding', 'concluÃ­do', 100, timestamp, timestamp],
+  })
+  await seededDb.execute({
+    sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: ['encoding-subproject', 'encoding-project', 'eletrico', 100, 'concluÃ­do', 'Matheus', timestamp, timestamp],
+  })
+  await seededDb.execute({
+    sql: `INSERT INTO project_logs (id, project_id, log_type, title, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+    args: ['encoding-log', 'encoding-project', 'sale', 'ContrataÃ§Ã£o registrada', 'done', timestamp],
+  })
+  await seededDb.execute({
+    sql: `UPDATE app_meta SET value = '13' WHERE key = 'schema_version'`,
+  })
+
+  resetDbGlobals()
+  const migratedModule = await import(`./db.js?case=encoding-migrate-${Date.now()}`)
+  await migratedModule.ensureSchema()
+  const migratedDb = migratedModule.getDb()
+  const result = await migratedDb.execute(`
+    SELECT projects.stage AS project_stage, subprojects.stage AS subproject_stage, project_logs.title AS log_title
+    FROM projects
+    JOIN subprojects ON subprojects.project_id = projects.id
+    JOIN project_logs ON project_logs.project_id = projects.id
+    WHERE projects.id = 'encoding-project'
+  `)
+
+  assert.deepEqual(result.rows[0], {
+    project_stage: 'concluído',
+    subproject_stage: 'concluído',
+    log_title: 'Contratação registrada',
+  })
+
+  await fs.rm(dbPath, { force: true })
+  resetDbGlobals()
+})
 test('ensureSchema adds project drive schema artifacts when schema_version is already current', async () => {
   const dbPath = path.join(os.tmpdir(), `apoloprojetos-drive-schema-${process.pid}-${Date.now()}.sqlite`)
   process.env.APP_LOCAL_DB_URL = `file:${dbPath}`

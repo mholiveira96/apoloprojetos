@@ -10,6 +10,21 @@ function normalizeAmount(value) {
   return Number.isFinite(amount) ? amount : 0
 }
 
+function requireAmount(value, label) {
+  const raw = String(value ?? '').trim()
+  const amount = Number(raw)
+  if (!raw || !Number.isFinite(amount) || amount < 0) {
+    throw new Error(`${label} deve ser um valor válido e não pode ser negativo`)
+  }
+  return amount
+}
+
+function boundedText(value, maxLength, label) {
+  const text = normalizeText(value)
+  if (text.length > maxLength) throw new Error(`${label} é longa demais`)
+  return text
+}
+
 function normalizeDate(value) {
   const text = String(value ?? '').trim()
   return text || null
@@ -18,7 +33,10 @@ function normalizeDate(value) {
 function normalizeAnswers(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
   return Object.fromEntries(
-    Object.entries(value).map(([key, answer]) => [String(key), String(answer ?? '').trim()]),
+    Object.entries(value).map(([key, answer]) => [
+      boundedText(key, 120, 'A identificação da pergunta'),
+      boundedText(answer, 4000, 'A resposta'),
+    ]),
   )
 }
 
@@ -405,7 +423,7 @@ export async function runMutation(action, payload, actor) {
         args: [normalizeText(payload.leadId)],
       })
       const lead = leadResult.rows[0]
-      if (!lead) throw new Error('Lead nÃ£o encontrado')
+      if (!lead) throw new Error('Lead não encontrado')
 
       const contractAmount = normalizeAmount(payload.contractAmount) || Number(lead.estimated_amount ?? 0)
       const projectId = createId('project')
@@ -461,11 +479,11 @@ export async function runMutation(action, payload, actor) {
 
       await db.execute({
         sql: `INSERT INTO project_logs (id, project_id, log_type, title, details, due_date, status, created_by, created_at)
-              VALUES (?, ?, 'note', 'ContrataÃ§Ã£o registrada', ?, ?, 'done', ?, ?)`,
+              VALUES (?, ?, 'note', 'Contratação registrada', ?, ?, 'done', ?, ?)`,
         args: [
           createId('log'),
           projectId,
-          'Gerado automaticamente na conversÃ£o do lead para projeto.',
+          'Gerado automaticamente na conversão do lead para projeto.',
           contractedAt,
           actor,
           timestamp,
@@ -494,7 +512,7 @@ export async function runMutation(action, payload, actor) {
 
     case 'createSubproject': {
       const spProjectId = normalizeText(payload.projectId)
-      if (!spProjectId) throw new Error('projectId Ã© obrigatÃ³rio')
+      if (!spProjectId) throw new Error('projectId é obrigatório')
       await db.execute({
         sql: `INSERT INTO subprojects (id, project_id, discipline, amount, stage, responsible_partner, deadline, observacao, area, created_at, updated_at)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -567,8 +585,8 @@ export async function runMutation(action, payload, actor) {
       const spProjectId = normalizeText(payload.projectId)
       const completedAt = normalizeDate(payload.completedAt)
 
-      if (newStage === 'concluÃ­do' && !completedAt) {
-        throw new Error('Data de conclusÃ£o Ã© obrigatÃ³ria')
+      if (newStage === 'concluído' && !completedAt) {
+        throw new Error('Data de conclusão é obrigatória')
       }
 
       await db.execute({
@@ -576,7 +594,7 @@ export async function runMutation(action, payload, actor) {
         args: [newStage, timestamp, subId],
       })
 
-      if (newStage === 'concluÃ­do') {
+      if (newStage === 'concluído') {
         const subprojectResult = await db.execute({
           sql: 'SELECT discipline FROM subprojects WHERE id = ?',
           args: [subId],
@@ -584,11 +602,11 @@ export async function runMutation(action, payload, actor) {
         const discipline = normalizeText(subprojectResult.rows[0]?.discipline)
         await db.execute({
           sql: `INSERT INTO project_logs (id, project_id, log_type, title, details, due_date, status, created_by, created_at)
-                VALUES (?, ?, 'delivery', 'Entrega concluÃ­da', ?, ?, 'done', ?, ?)`,
+                VALUES (?, ?, 'delivery', 'Entrega concluída', ?, ?, 'done', ?, ?)`,
           args: [
             createId('log'),
             spProjectId,
-            discipline ? `Subprojeto concluÃ­do: ${discipline}.` : 'Subprojeto concluÃ­do.',
+            discipline ? `Subprojeto concluído: ${discipline}.` : 'Subprojeto concluído.',
             completedAt,
             actor,
             timestamp,
@@ -604,11 +622,11 @@ export async function runMutation(action, payload, actor) {
         })
         const stages = allSp.rows.map((row) => String(row.stage))
         const allTodo = stages.length > 0 && stages.every((stage) => stage === 'a-fazer')
-        const allDone = stages.length > 0 && stages.every((stage) => stage === 'concluÃ­do')
-        const hasActiveWork = stages.some((stage) => stage !== 'a-fazer' && stage !== 'concluÃ­do')
+        const allDone = stages.length > 0 && stages.every((stage) => stage === 'concluído')
+        const hasActiveWork = stages.some((stage) => stage !== 'a-fazer' && stage !== 'concluído')
 
         let nextProjectStage = 'aguardar'
-        if (allDone) nextProjectStage = 'concluÃ­do'
+        if (allDone) nextProjectStage = 'concluído'
         else if (hasActiveWork) nextProjectStage = 'em-andamento'
         else if (!allTodo) nextProjectStage = 'em-andamento'
 
@@ -629,71 +647,21 @@ export async function runMutation(action, payload, actor) {
       return { ok: true }
     }
 
-    case 'addProjectLog': {
-      await db.execute({
-        sql: `INSERT INTO project_logs (id, project_id, log_type, title, details, due_date, status, created_by, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          createId('log'),
-          normalizeText(payload.projectId),
-          normalizeText(payload.logType) || 'note',
-          normalizeText(payload.title),
-          normalizeText(payload.details),
-          normalizeText(payload.dueDate),
-          normalizeText(payload.status) || 'open',
-          actor,
-          timestamp,
-        ],
-      })
-      await db.execute({
-        sql: 'UPDATE projects SET updated_at = ? WHERE id = ?',
-        args: [timestamp, normalizeText(payload.projectId)],
-      })
-      return { ok: true }
-    }
-
-    case 'updateProjectLog': {
-      await db.execute({
-        sql: `UPDATE project_logs
-              SET project_id = ?,
-                  log_type = ?,
-                  title = ?,
-                  details = ?,
-                  due_date = ?,
-                  status = ?
-              WHERE id = ?`,
-        args: [
-          normalizeText(payload.projectId),
-          normalizeText(payload.logType) || 'note',
-          normalizeText(payload.title),
-          normalizeText(payload.details),
-          normalizeText(payload.dueDate),
-          normalizeText(payload.status) || 'open',
-          normalizeText(payload.id),
-        ],
-      })
-      await db.execute({
-        sql: 'UPDATE projects SET updated_at = ? WHERE id = ?',
-        args: [timestamp, normalizeText(payload.projectId)],
-      })
-      return { ok: true }
-    }
-
     case 'addReceipt': {
       const receiptProjectId = normalizeText(payload.projectId) || null
-      if (!receiptProjectId) throw new Error('projectId Ã© obrigatÃ³rio')
+      if (!receiptProjectId) throw new Error('projectId é obrigatório')
 
       const projectRow = await db.execute({
         sql: 'SELECT client_id FROM projects WHERE id = ?',
         args: [receiptProjectId],
       })
-      if (!projectRow.rows[0]) throw new Error('Projeto nÃ£o encontrado')
+      if (!projectRow.rows[0]) throw new Error('Projeto não encontrado')
 
       let receiptClientId = projectRow.rows[0].client_id ? String(projectRow.rows[0].client_id) : null
       if (!receiptClientId) {
         receiptClientId = await upsertClient(normalizeText(payload.clientName), payload)
       }
-      if (!receiptClientId) throw new Error('Cliente nÃ£o encontrado para o projeto')
+      if (!receiptClientId) throw new Error('Cliente não encontrado para o projeto')
 
       await db.execute({
         sql: `INSERT INTO payment_receipts (id, client_id, project_id, amount, bank_account, received_at, note, created_by, created_at)
@@ -702,7 +670,7 @@ export async function runMutation(action, payload, actor) {
           createId('receipt'),
           receiptClientId,
           receiptProjectId,
-          normalizeAmount(payload.amount),
+          requireAmount(payload.amount, 'O recebimento'),
           normalizeText(payload.bankAccount),
           normalizeText(payload.entryDate) || timestamp,
           normalizeText(payload.note),
@@ -719,7 +687,7 @@ export async function runMutation(action, payload, actor) {
         sql: 'SELECT stage FROM subprojects WHERE project_id = ?',
         args: [receiptProjectId],
       })
-      const allDone2 = allSp2.rows.length > 0 && allSp2.rows.every((r) => String(r.stage) === 'concluÃ­do')
+      const allDone2 = allSp2.rows.length > 0 && allSp2.rows.every((r) => String(r.stage) === 'concluído')
       if (allDone2) {
         const received2 = await db.execute({
           sql: 'SELECT COALESCE(SUM(amount), 0) AS total FROM payment_receipts WHERE project_id = ?',
@@ -730,13 +698,13 @@ export async function runMutation(action, payload, actor) {
           args: [receiptProjectId],
         })
         const p2 = proj2.rows[0]
-        if (p2 && ['em-andamento', 'concluÃ­do-aguardando-pagamento'].includes(String(p2.stage))) {
+        if (p2 && ['em-andamento', 'concluído-aguardando-pagamento'].includes(String(p2.stage))) {
           const totalReceived2 = Number(received2.rows[0]?.total ?? 0)
           const contractAmount2 = Number(p2.contract_amount ?? 0)
           if (totalReceived2 >= contractAmount2) {
             await db.execute({
               sql: 'UPDATE projects SET stage = ?, updated_at = ? WHERE id = ?',
-              args: ['concluÃ­do', timestamp, receiptProjectId],
+              args: ['concluído', timestamp, receiptProjectId],
             })
           }
         }
@@ -752,7 +720,7 @@ export async function runMutation(action, payload, actor) {
         args: [
           createId('expense'),
           expenseProjectId,
-          normalizeAmount(payload.amount),
+          requireAmount(payload.amount, 'A despesa'),
           normalizeText(payload.category),
           normalizeText(payload.bankAccount),
           normalizeText(payload.entryDate) || timestamp,
@@ -853,7 +821,7 @@ export async function runMutation(action, payload, actor) {
       const size = Number(payload.size) || 0
 
       if (!leadId || !filename || !fileData) {
-        throw new Error('leadId, filename e fileData sÃ£o obrigatÃ³rios')
+        throw new Error('leadId, filename e fileData são obrigatórios')
       }
 
       await db.execute({
@@ -878,7 +846,7 @@ export async function runMutation(action, payload, actor) {
 
     case 'deleteLeadProposal': {
       const leadId = normalizeText(payload.leadId)
-      if (!leadId) throw new Error('leadId Ã© obrigatÃ³rio')
+      if (!leadId) throw new Error('leadId é obrigatório')
 
       await db.execute({ sql: 'DELETE FROM lead_proposals WHERE lead_id = ?', args: [leadId] })
       await db.execute({
@@ -891,32 +859,32 @@ export async function runMutation(action, payload, actor) {
 
     case 'deleteReceipt': {
       const id = normalizeText(payload.id)
-      if (!id) throw new Error('id Ã© obrigatÃ³rio')
+      if (!id) throw new Error('id é obrigatório')
       await db.execute({ sql: 'DELETE FROM payment_receipts WHERE id = ?', args: [id] })
       break
     }
 
     case 'deleteExpense': {
       const id = normalizeText(payload.id)
-      if (!id) throw new Error('id Ã© obrigatÃ³rio')
+      if (!id) throw new Error('id é obrigatório')
       await db.execute({ sql: 'DELETE FROM project_expenses WHERE id = ?', args: [id] })
       break
     }
 
     case 'deletePayout': {
       const id = normalizeText(payload.id)
-      if (!id) throw new Error('id Ã© obrigatÃ³rio')
+      if (!id) throw new Error('id é obrigatório')
       await db.execute({ sql: 'DELETE FROM partner_payouts WHERE id = ?', args: [id] })
       break
     }
 
     case 'updateReceipt': {
       const id = normalizeText(payload.id)
-      if (!id) throw new Error('id Ã© obrigatÃ³rio')
+      if (!id) throw new Error('id é obrigatório')
       await db.execute({
         sql: `UPDATE payment_receipts SET amount = ?, bank_account = ?, received_at = ?, note = ? WHERE id = ?`,
         args: [
-          normalizeAmount(payload.amount),
+          requireAmount(payload.amount, 'O recebimento'),
           normalizeText(payload.bankAccount),
           normalizeText(payload.entryDate) || timestamp,
           normalizeText(payload.note),
@@ -928,11 +896,11 @@ export async function runMutation(action, payload, actor) {
 
     case 'updateExpense': {
       const id = normalizeText(payload.id)
-      if (!id) throw new Error('id Ã© obrigatÃ³rio')
+      if (!id) throw new Error('id é obrigatório')
       await db.execute({
         sql: `UPDATE project_expenses SET amount = ?, category = ?, vendor = ?, bank_account = ?, paid_at = ?, note = ?, project_id = ? WHERE id = ?`,
         args: [
-          normalizeAmount(payload.amount),
+          requireAmount(payload.amount, 'A despesa'),
           normalizeText(payload.category),
           normalizeText(payload.vendor),
           normalizeText(payload.bankAccount),
@@ -947,11 +915,11 @@ export async function runMutation(action, payload, actor) {
 
     case 'updatePayout': {
       const id = normalizeText(payload.id)
-      if (!id) throw new Error('id Ã© obrigatÃ³rio')
+      if (!id) throw new Error('id é obrigatório')
       await db.execute({
         sql: `UPDATE partner_payouts SET amount = ?, partner_name = ?, bank_account = ?, paid_at = ?, note = ? WHERE id = ?`,
         args: [
-          normalizeAmount(payload.amount),
+          requireAmount(payload.amount, 'O repasse'),
           normalizeText(payload.partnerName),
           normalizeText(payload.bankAccount),
           normalizeText(payload.entryDate) || timestamp,
@@ -1118,19 +1086,17 @@ export async function runMutation(action, payload, actor) {
       const projectId = normalizeText(payload.projectId)
       if (!projectId) throw new Error('projectId é obrigatório')
 
-      const spResult = await db.execute({ sql: 'SELECT id FROM subprojects WHERE project_id = ?', args: [projectId] })
-      const spIds = spResult.rows.map((r) => r.id)
-
-      for (const spId of spIds) {
-        await db.execute({ sql: 'DELETE FROM subproject_comments WHERE subproject_id = ?', args: [spId] })
-      }
-
-      await db.execute({ sql: 'DELETE FROM partner_payouts WHERE subproject_id IN (SELECT id FROM subprojects WHERE project_id = ?)', args: [projectId] })
-      await db.execute({ sql: 'DELETE FROM subprojects WHERE project_id = ?', args: [projectId] })
-      await db.execute({ sql: 'DELETE FROM project_logs WHERE project_id = ?', args: [projectId] })
-      await db.execute({ sql: 'DELETE FROM project_expenses WHERE project_id = ?', args: [projectId] })
-      await db.execute({ sql: 'DELETE FROM payment_receipts WHERE project_id = ?', args: [projectId] })
-      await db.execute({ sql: 'DELETE FROM projects WHERE id = ?', args: [projectId] })
+      await db.batch([
+        { sql: 'DELETE FROM project_drive_files WHERE project_id = ?', args: [projectId] },
+        { sql: 'DELETE FROM subproject_comments WHERE subproject_id IN (SELECT id FROM subprojects WHERE project_id = ?)', args: [projectId] },
+        { sql: 'DELETE FROM partner_payouts WHERE project_id = ?', args: [projectId] },
+        { sql: 'DELETE FROM project_logs WHERE project_id = ?', args: [projectId] },
+        { sql: 'DELETE FROM project_expenses WHERE project_id = ?', args: [projectId] },
+        { sql: 'DELETE FROM payment_receipts WHERE project_id = ?', args: [projectId] },
+        { sql: 'DELETE FROM revisions WHERE project_id = ?', args: [projectId] },
+        { sql: 'DELETE FROM subprojects WHERE project_id = ?', args: [projectId] },
+        { sql: 'DELETE FROM projects WHERE id = ?', args: [projectId] },
+      ], 'write')
 
       break
     }
