@@ -146,70 +146,6 @@ function DroppableColumn({
   )
 }
 
-// ─── Draggable card ───────────────────────────────────────────────────────────
-
-export function DraggableOpsCard({
-  project,
-  subprojects,
-  onClick,
-  ghost,
-}: {
-  project: Project
-  subprojects: Subproject[]
-  onClick?: () => void
-  ghost?: boolean
-}) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: project.id })
-  const style = transform
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
-    : undefined
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`select-none [] border border-[var(--line)] bg-[var(--bg-card-92)] p-4 shadow-[var(--shadow-panel-xs)] transition-opacity ${
-        isDragging && !ghost ? 'opacity-40' : 'opacity-100'
-      }`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 cursor-pointer" onClick={onClick}>
-          <div className="truncate text-sm font-semibold text-[var(--ink)]">{project.name}</div>
-          <div className="mt-0.5 truncate text-sm text-[var(--ink-soft)]">{project.client_name || 'Cliente não informado'}</div>
-        </div>
-        <button
-          {...listeners}
-          {...attributes}
-          className="mt-0.5 shrink-0 cursor-grab touch-none text-[var(--ink-soft)]/50 hover:text-[var(--ink-soft)] active:cursor-grabbing"
-          aria-label="Arrastar"
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs">
-        {subprojects.length ? (
-          subprojects.map((subproject) => (
-            <span key={subproject.id} className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">
-              {showDiscipline(subproject.discipline)}
-            </span>
-          ))
-        ) : project.discipline ? (
-          <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">{showDiscipline(project.discipline)}</span>
-        ) : null}
-        {project.sales_owner ? (
-          <span className="rounded-full border border-[var(--line)] px-2.5 py-1 text-[var(--ink-soft)]">{project.sales_owner}</span>
-        ) : null}
-      </div>
-      {(project.next_pending_due || project.contract_amount > 0) ? (
-        <div className="mt-3 text-xs text-[var(--ink-soft)]">
-          {project.contract_amount > 0 ? formatCurrency(numericValue(project.contract_amount)) : null}
-          {project.contract_amount > 0 && project.next_pending_due ? ' · ' : null}
-          {project.next_pending_due ? `Prazo ${formatDate(project.next_pending_due)}` : null}
-        </div>
-      ) : null}
-    </div>
-  )
-}
 
 function DraggableSubprojectCard({
   subproject,
@@ -317,14 +253,6 @@ function DraggableSubprojectCard({
   )
 }
 
-export function GhostCard({ project }: { project: Project }) {
-  return (
-    <div className="[] border border-[var(--teal-active-border)] bg-[var(--teal-active-bg)] p-4 shadow-[0_24px_60px_rgba(12,26,26,0.08)]">
-      <div className="font-medium text-[var(--ink)]">{project.name}</div>
-      <div className="mt-0.5 text-sm text-[var(--ink-soft)]">{project.client_name || 'Cliente não informado'}</div>
-    </div>
-  )
-}
 
 // ─── Calendar view ────────────────────────────────────────────────────────────
 

@@ -1,4 +1,4 @@
-import type { CashflowEntry, Lead } from '@/types/app'
+import type { Lead } from '@/types/app'
 import { LABELS } from './constants'
 
 export function formatCurrency(value: number) {
@@ -64,20 +64,6 @@ export function numericValue(value: unknown) {
   return Number(value || 0)
 }
 
-export function monthTotals(entries: CashflowEntry[]) {
-  const monthKey = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit' }).format(new Date())
-  return entries.reduce(
-    (acc, entry) => {
-      const entryKey = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit' }).format(new Date(entry.entry_date))
-      if (entryKey !== monthKey) return acc
-      if (entry.entry_type === 'receipt') acc.receipts += numericValue(entry.amount)
-      if (entry.entry_type === 'expense') acc.expenses += numericValue(entry.amount)
-      if (entry.entry_type === 'payout') acc.payouts += numericValue(entry.amount)
-      return acc
-    },
-    { receipts: 0, expenses: 0, payouts: 0 },
-  )
-}
 
 export function leadFollowUpMeta(lead: Lead) {
   if (!lead.next_follow_up_at) {
